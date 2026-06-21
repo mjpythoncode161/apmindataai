@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಚೋಪಡಾ (Chopada){% endblock %}
+
+{% block extra_head %}
+<style>
+  .chopada-card {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  .chopada-header {
+    background: #333; color: #fff;
+    text-align: center; padding: 5px 10px;
+    font-weight: bold; font-size: 1rem;
+    border-radius: 6px 6px 0 0;
+  }
+  .chopada-subtitle {
+    text-align: center; color: #cc0000;
+    font-size: 1.15rem; font-weight: 700;
+    padding: 6px 0 2px;
+    font-family: 'Noto Sans Kannada', sans-serif;
+  }
+  .chopada-body { padding: 10px 18px 16px; }
+  .radio-group label {
+    display: block; padding: 3px 0;
+    font-size: 1rem; cursor: pointer;
+    font-family: 'Noto Sans Kannada', sans-serif;
+  }
+  .radio-group input[type=radio] { margin-right: 8px; }
+  .chopada-body .field-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    font-weight: 600; font-size: 0.9rem;
+  }
+  .chopada-body .field-row label { min-width: 80px; color: #444; }
+  .chopada-body .field-row input,
+  .chopada-body .field-row select {
+    border: 1px solid #aaa; padding: 3px 6px;
+    border-radius: 2px; flex: 1;
+  }
+  .lot-row { display: flex; align-items: center; gap: 6px; }
+  .lot-row label { color: #444; font-size: 0.88rem; white-space: nowrap; }
+  .lot-row input { width: 65px; border: 1px solid #aaa; padding: 3px 5px; border-radius: 2px; }
+  .btn-chopada-print {
+    background: #28a745; color: #fff; border: none; border-radius: 3px;
+    width: 100%; padding: 8px; font-size: 1rem; font-weight: 700;
+    cursor: pointer; margin: 10px 0;
+  }
+  .btn-chopada-print:hover { background: #218838; }
+  .farmer-select-row { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+  .farmer-select-row label { font-weight: 700; white-space: nowrap; }
+  .farmer-select-row select { flex: 1; border: 2px solid #28a745; padding: 3px 6px; border-radius: 2px; }
+
+  /* ─── Print Report Styles ─── */
+  #chopada-print-area {
+    display: none;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+  }
+  .rpt-company { text-align:center; font-size:14px; font-weight:700; }
+  .rpt-title   { text-align:center; font-size:11px; font-weight:600; margin-top:2px; }
+  .rpt-date    { text-align:center; font-size:10px; margin-bottom:6px; }
+
+  /* Bastani */
+  .bastani-table { width:100%; border-collapse:collapse; font-size:10px; }
+  .bastani-table th { border-bottom:1px solid #333; padding:3px 5px; font-size:10px; text-align:center; }
+  .bastani-table td { padding:2px 5px; }
+  .bastani-table .row-amount  { text-align:right; font-weight:700; }
+  .bastani-table .row-lot     { text-align:center; }
+  .bastani-table .row-trader  { text-align:left; font-size:9px; color:#555; }
+
+  /* Poorna */
+  .poorna-farmer-header { font-size:10px; font-weight:700; border-bottom:1px solid #999; margin-top:8px; padding-bottom:2px; }
+  .poorna-table { width:100%; border-collapse:collapse; font-size:10px; }
+  .poorna-table th { border-bottom:1px solid #333; padding:3px 4px; font-size:9px; }
+  .poorna-table td { padding:2px 4px; }
+  .poorna-table td.col-patti {
+    text-align: left;
+    font-weight: 700;
+    font-size: 9px;
+    white-space: nowrap;
+    color: #1a365d;
+    padding-left: 6px !important;
+  }
+  .poorna-table th.col-patti-h {
+    text-align: left !important;
+    padding-left: 6px !important;
+  }
+
+  /* Registered */
+  .reg-table { width:100%; border-collapse:collapse; font-size:10px; }
+  .reg-table th, .reg-table td { border:1px solid #999; padding:3px 6px; }
+  .reg-table th { background:#eee; }
+
+  @media print {
+    body * { visibility: hidden; }
+    #chopada-print-area, #chopada-print-area * { visibility: visible !important; }
+    #chopada-print-area { display:block !important; position:fixed; top:0; left:0; width:100%; padding:15px; background:#fff; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+  <div class="content-header">
+    <div class="container-fluid">
+      <h1 class="m-0" style="font-size:1.2rem;">ಚೋಪಡಾ <small class="text-muted">(Chopada Report)</small></h1>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Left: Controls -->
+      <div class="col-md-5 col-lg-4">
+        <div class="chopada-card">
+          <div class="chopada-header">MSBC-2025-26</div>
+          <div class="chopada-subtitle">ಚೋಪಡಾ</div>
+          <div class="chopada-body">
+            <!-- Radio options -->
+            <div class="radio-group mb-3">
+              <label><input type="radio" name="chopada_mode" value="bastani"    id="r_bastani"    {% if mode == 'bastani' %}checked{% endif %}> ಬಸ್ತಾನಿ ವಿವರ</label>
+              <label><input type="radio" name="chopada_mode" value="poorna"     id="r_poorna"     {% if mode == 'poorna' %}checked{% endif %}> ಪೂರ್ಣ ಚೋಪಡಾ</label>
+              <label><input type="radio" name="chopada_mode" value="registered" id="r_registered" {% if mode == 'registered' %}checked{% endif %}> ರಿಜಿಸ್ಟರ್ಡ್ ಲಾಟ್ಗಳು</label>
+            </div>
+
+            <!-- Date -->
+            <div class="field-row">
+              <label>Date:</label>
+              <input type="date" id="ch_date" class="form-control form-control-sm" value="{{ selected_date }}">
+            </div>
+
+            <!-- Lot range -->
+            <div class="field-row">
+              <label>From Lot</label>
+              <div class="lot-row flex-grow-1">
+                <input type="number" id="ch_from" class="form-control form-control-sm" value="{{ from_lot|default:'1' }}" min="1">
+                <label>To</label>
+                <input type="number" id="ch_to" class="form-control form-control-sm" value="{{ to_lot|default:'' }}" min="1">
+              </div>
+            </div>
+
+            <!-- Select Farmer -->
+            <div class="form-group mb-3">
+              <label class="small font-weight-bold">Select Farmer :</label>
+              <select id="ch_farmer" class="form-control form-control-sm">
+                <option value="">All Farmers</option>
+                {% for f in farmers %}
+                <option value="{{ f.id }}" {% if f.id|stringformat:"s" == farmer_id %}selected{% endif %}>{{ f.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Print Button -->
+            <button class="btn btn-success btn-block py-2 font-weight-bold shadow-sm" onclick="doPrint()">
+               <i class="fas fa-print mr-1"></i> Print Chopada
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Preview area (screen only) -->
+      <div class="col-md-7 col-lg-8 mt-3 mt-md-0">
+        <div id="screen-preview" class="table-responsive" style="background:#fff; border-radius:8px; min-height:450px; padding:15px; border:1px solid #ccc; max-height: 80vh; overflow-y: auto;">
+          <p class="text-muted text-center pt-4" id="preview-placeholder">
+            <i class="fas fa-print fa-2x d-block mb-2"></i>
+            ದಿನಾಂಕ ಮತ್ತು ಆಯ್ಕೆ ಮಾಡಿ, Print ಗುಂಡಿ ಒತ್ತಿರಿ
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Hidden Print Area -->
+<div id="chopada-print-area"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Data pre-loaded from server for the current filter
+  const SERVER_PRINT_DATA = {{ print_data|safe }};
+  const SELECTED_DATE = "{{ selected_date_display }}";
+  const COMPANY = "ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ";
+
+  function doPrint() {
+    const date    = $('#ch_date').val();
+    const mode    = $('input[name="chopada_mode"]:checked').val();
+    const fromLot = $('#ch_from').val() || '1';
+    const toLot   = $('#ch_to').val() || '';
+    const farmer  = $('#ch_farmer').val() || '';
+
+    // Reload with print param so server can build data
+    const url = new URL(window.location.href);
+    url.searchParams.set('date', date);
+    url.searchParams.set('mode', mode);
+    url.searchParams.set('from_lot', fromLot);
+    url.searchParams.set('to_lot', toLot);
+    url.searchParams.set('farmer_id', farmer);
+    url.searchParams.set('print', '1');
+    window.location.href = url.toString();
+  }
+
+  // Auto-print if navigated with ?print=1
+  {% if do_print and print_data != 'null' %}
+  $(function() {
+    renderAndPrint();
+  });
+  {% endif %}
+
+  function renderAndPrint() {
+    const data = SERVER_PRINT_DATA;
+    const mode = "{{ mode }}";
+    const dateDisp = "{{ selected_date_display }}";
+    let html = '';
+
+    if (mode === 'bastani') {
+      html = buildBastani(data, dateDisp);
+    } else if (mode === 'poorna') {
+      html = buildPoorna(data, dateDisp);
+    } else {
+      html = buildRegistered(data, dateDisp);
+    }
+
+    // Populate BOTH the screen preview and the print area
+    $('#screen-preview').html(html);
+    $('#chopada-print-area').html(html);
+    
+    // Trigger print
+    setTimeout(function() { window.print(); }, 400);
+  }
+
+  function buildBastani(rows, dateDisp) {
+    if (!rows || !rows.length) return '<p>ದತ್ತ ದೊರೆಯಲಿಲ್ಲ</p>';
+    let h = `
+      <div class="rpt-company">${COMPANY}</div>
+      <div class="rpt-title">ಬಸ್ತಾನಿ ವಿವರ</div>
+      <div class="rpt-date">${dateDisp}</div>
+      <table class="bastani-table">
+        <thead>
+          <tr>
+            <th>ತೂಕ (ರೂ)</th>
+            <th>ಲಾಟ್</th>
+            <th>ಬ್ಯಾಗ್</th>
+            <th>ತೂಕ (ಕಿ.ಗ್ರಾ)</th>
+            <th>ದರ (ರೂ)</th>
+            <th>ವ್ಯಾಪಾರಿ</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    rows.forEach(function(r) {
+      h += `<tr>
+        <td class="row-amount">${parseFloat(r.net_payable).toFixed(2)}</td>
+        <td class="row-lot">${r.lot_no}</td>
+        <td class="row-lot">${r.bags}</td>
+        <td class="row-lot">${parseFloat(r.weight).toFixed(2)}<br><span style="font-size:9px;">${parseFloat(r.weight).toFixed(1)}</span></td>
+        <td class="row-lot">${parseFloat(r.rate).toFixed(2)}</td>
+        <td class="row-trader">${r.trader}</td>
+      </tr>`;
+    });
+    let totalPayable = rows.reduce((s, r) => s + parseFloat(r.net_payable || 0), 0);
+    h += `</tbody>
+      <tfoot>
+        <tr style="border-top:2px solid #333; font-weight:700;">
+          <td class="row-amount">${totalPayable.toFixed(2)}</td>
+          <td colspan="5"></td>
+        </tr>
+      </tfoot>
+      </table>`;
+    return h;
+  }
+
+  function formatPattiNo(no) {
+    if (no === null || no === undefined || no === '' || no === '-') return '—';
+    return 'ಪ.ಸಂ : ' + no;
+  }
+
+  function buildPoorna(farmers, dateDisp) {
+    if (!farmers || !farmers.length) return '<p>ದತ್ತ ದೊರೆಯಲಿಲ್ಲ</p>';
+    let h = `
+      <div class="rpt-company">${COMPANY}</div>
+      <div class="rpt-title">ಚೋಪಡಾ ದಿನ : ${dateDisp}</div>
+      <table class="poorna-table" style="margin-top:6px; width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid #333; background:#f2f2f2;">
+            <th style="text-align:right; width:95px; padding:4px;">ಬಾಪ್ಯ ಚೊಟ್</th>
+            <th style="text-align:center; width:50px; padding:4px;">ಲಾಟ್</th>
+            <th style="text-align:center; width:50px; padding:4px;">ಬ್ಯಾಗ್</th>
+            <th style="text-align:right; width:90px; padding:4px;">ತೂಕ/ದರ</th>
+            <th style="text-align:left; padding:4px;">ವ್ಯಾಪಾರಿ</th>
+            <th style="text-align:center; width:50px; padding:4px;">ಕಡಿತ</th>
+            <th style="text-align:center; width:60px; padding:4px;">ಒಟ್ಟು ಚೀಲ</th>
+            <th class="col-patti-h" style="width:85px; padding:4px;">ಪ.ಸಂ</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    farmers.forEach(function(f) {
+      let totalPayable = f.lots.reduce((s, l) => s + parseFloat(l.net_payable || 0), 0);
+      h += `
+        <tr style="background:#eef7ee; font-weight:700;">
+          <td colspan="8" style="text-align:left; padding:6px 8px; font-weight:700; border-bottom:1px solid #ccc; font-size:11px;">
+            ${f.farmer_name}
+          </td>
+        </tr>`;
+
+      f.lots.forEach(function(l) {
+        h += `<tr style="border-bottom:1px solid #eee;">
+          <td style="text-align:right; padding:4px;">${parseFloat(l.net_payable).toFixed(2)}</td>
+          <td style="text-align:center; padding:4px;">${l.lot_no}</td>
+          <td style="text-align:center; padding:4px;">${l.bags}</td>
+          <td style="text-align:right; padding:4px;">${parseFloat(l.weight).toFixed(1)}</td>
+          <td style="text-align:left; padding:4px; font-size:9px;">${parseFloat(l.rate).toFixed(2)} ${l.trader}</td>
+          <td style="text-align:center; padding:4px;">${parseFloat(l.deduction || 0).toFixed(0)}</td>
+          <td style="text-align:center; padding:4px;">${l.avak_bags}</td>
+          <td class="col-patti">${formatPattiNo(l.bill_no)}</td>
+        </tr>`;
+        
+        if (l.bag_weights && l.bag_weights.length) {
+          h += `<tr style="border-bottom:1px solid #ddd;">
+            <td colspan="8" style="text-align:left; padding:4px 10px; font-size:9px; color:#555; background:#fafafa;">
+              <strong>ಬಿಡಿ ತೂಕ:</strong> ${l.bag_weights.join(', ')}
+            </td>
+          </tr>`;
+        }
+      });
+
+      h += `
+        <tr style="border-bottom:2px solid #ccc; font-weight:700; background:#f9f9f9; font-size:10px;">
+          <td style="text-align:right; padding:4px 8px; font-weight:700;">${totalPayable.toFixed(2)}</td>
+          <td colspan="7"></td>
+        </tr>`;
+    });
+
+    h += `</tbody></table>`;
+    return h;
+  }
+
+  function buildRegistered(data, dateDisp) {
+    const activeLots = data.active || [];
+    const deletedLots = data.deleted || [];
+    
+    if (!activeLots.length && !deletedLots.length) return '<p>ದತ್ತ ದೊರೆಯಲಿಲ್ಲ</p>';
+    
+    let h = `
+      <div class="rpt-company">${COMPANY}</div>
+      <div class="rpt-title">ರಿಜಿಸ್ಟರ್ಡ್ ಲಾಟ್ಗಳು — ${dateDisp}</div>
+      <table class="reg-table" style="margin-top:8px;">
+        <thead><tr><th>ಲಾಟ್ ನಂ</th><th>ರೈತ</th><th>ಚೀಲ</th><th>ಸ್ಥಳ</th></tr></thead>
+        <tbody>`;
+        
+    if (activeLots.length) {
+      activeLots.forEach(function(r) {
+        h += `<tr><td>${r.lot_no}</td><td>${r.farmer}</td><td>${r.bags}</td><td>${r.place}</td></tr>`;
+      });
+      const totalActiveBags = activeLots.reduce((s, r) => s + parseInt(r.bags || 0), 0);
+      h += `</tbody>
+        <tfoot>
+          <tr style="font-weight: bold; background: #eee;">
+            <td colspan="2" style="text-align: right; font-weight: bold;">ಒಟ್ಟು (Total):</td>
+            <td style="font-weight: bold;">${totalActiveBags}</td>
+            <td></td>
+          </tr>
+        </tfoot>`;
+    } else {
+      h += `<tr><td colspan="4" class="text-center text-muted py-2">No active lots registered today</td></tr></tbody>`;
+    }
+    h += `</table>`;
+    
+    if (deletedLots.length) {
+      h += `
+        <div class="rpt-title" style="margin-top:20px; font-weight:700;">ಡಿಲೀಟ್ ಮಾಡಿದ ಲಾಟ್ಗಳು (Deleted Lots)</div>
+        <table class="reg-table" style="margin-top:8px;">
+          <thead><tr><th>ಲಾಟ್ ನಂ</th><th>ರೈತ</th><th>ಚೀಲ</th><th>ಸ್ಥಳ</th></tr></thead>
+          <tbody>`;
+      deletedLots.forEach(function(r) {
+        h += `<tr><td>${r.lot_no}</td><td>${r.farmer}</td><td>${r.bags}</td><td>${r.place}</td></tr>`;
+      });
+      const totalDeletedBags = deletedLots.reduce((s, r) => s + parseInt(r.bags || 0), 0);
+      h += `</tbody>
+        <tfoot>
+          <tr style="font-weight: bold; background: #eee;">
+            <td colspan="2" style="text-align: right; font-weight: bold;">ಒಟ್ಟು (Total):</td>
+            <td style="font-weight: bold;">${totalDeletedBags}</td>
+            <td></td>
+          </tr>
+        </tfoot>`;
+      h += `</table>`;
+    }
+    
+    return h;
+  }
+</script>
+{% endblock %}

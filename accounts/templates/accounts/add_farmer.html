@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if farmer %}Update{% else %}Add{% endif %} Farmer{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">{% if farmer %}Update{% else %}Add{% endif %} Farmer</h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">Farmer</h3>
+      </div>
+      <form action="{% if farmer %}{% url 'edit_farmer' farmer.id %}{% else %}{% url 'add_farmer' %}{% endif %}" method="POST">
+        {% csrf_token %}
+        <div class="card-body">
+          <div class="row mb-3">
+             <div class="col-12 text-right">
+                <div class="custom-control custom-checkbox">
+                  <input class="custom-control-input" type="checkbox" id="auto_translate" checked>
+                  <label for="auto_translate" class="custom-control-label font-weight-normal text-primary">Auto Translate (ಇಂಟರ್ನೆಟ್ ಬೇಕು)</label>
+                </div>
+             </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="full_name">Full Name</label>
+              <input type="text" id="full_name" name="full_name" class="form-control" placeholder="Enter full name" value="{% if form_values.name %}{{ form_values.name }}{% elif farmer %}{{ farmer.name }}{% endif %}" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="name_kannada">ಹೆಸರು (In Kannada)</label>
+              <input type="text" id="name_kannada" name="name_kannada" class="form-control" placeholder="ಹೆಸರನ್ನು ನಮೂದಿಸಿ" value="{% if form_values.name_kannada %}{{ form_values.name_kannada }}{% elif farmer %}{{ farmer.name_kannada }}{% endif %}">
+            </div>
+            {% if farmer %}
+            <div class="col-md-6 form-group">
+              <label for="contact">Contact No.</label>
+              <input type="text" id="contact" name="contact" class="form-control" placeholder="Enter contact number" value="{% if form_values.phone %}{{ form_values.phone }}{% elif farmer %}{{ farmer.phone }}{% endif %}">
+            </div>
+            {% endif %}
+            <div class="col-md-6 form-group">
+              <label for="address">Address / Place</label>
+              <input type="text" id="address" name="address" class="form-control" placeholder="Enter address / place" value="{% if form_values.address %}{{ form_values.address }}{% elif farmer %}{{ farmer.address }}{% endif %}" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="address_kannada">ವಿಳಾಸ / ಸ್ಥಳ (In Kannada)</label>
+              <input type="text" id="address_kannada" name="address_kannada" class="form-control" placeholder="ವಿಳಾಸ / ಸ್ಥಳವನ್ನು ನಮೂದಿಸಿ" value="{% if form_values.address_kannada %}{{ form_values.address_kannada }}{% elif farmer %}{{ farmer.address_kannada }}{% endif %}">
+            </div>
+          </div>
+
+          <!-- Bank Details Toggle -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <button type="button" class="btn btn-outline-info btn-block btn-sm" id="toggle_bank_details">
+                <i class="fas fa-university mr-1"></i> Show Bank Details
+              </button>
+            </div>
+          </div>
+
+          <!-- Bank Details Section (Hidden by Default) -->
+          <div id="bank_details_section" style="display: none; border-top: 1px dashed #ced4da; margin-top: 20px; padding-top: 20px;">
+            <h6 style="color: #29577f; font-weight: bold;" class="mb-3"><i class="fas fa-piggy-bank mr-2"></i>Bank & Opening Balance Details</h6>
+            <div class="row">
+              <div class="col-md-4 form-group">
+                <label for="opening_balance">Opening Balance</label>
+                <div class="input-group">
+                  <input type="number" step="0.01" id="opening_balance" name="opening_balance" class="form-control" value="{% if form_values.opening_balance %}{{ form_values.opening_balance }}{% elif farmer %}{{ farmer.opening_balance|default:'0.00' }}{% else %}0.00{% endif %}">
+                  <div class="input-group-append">
+                    <select name="balance_type" class="form-control">
+                      <option value="Cr" {% if form_values.balance_type == "Cr" or farmer.balance_type == "Cr" %}selected{% endif %}>Cr</option>
+                      <option value="Dr" {% if form_values.balance_type == "Dr" or farmer.balance_type == "Dr" %}selected{% endif %}>Dr</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="ifsc">IFSC</label>
+                <input type="text" id="ifsc" name="ifsc" class="form-control" placeholder="Enter IFSC code" value="{% if form_values.ifsc %}{{ form_values.ifsc }}{% elif farmer %}{{ farmer.ifsc }}{% endif %}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="account_no">Account No</label>
+                <input type="text" id="account_no" name="account_no" class="form-control" placeholder="Enter account number" value="{% if form_values.account_no %}{{ form_values.account_no }}{% elif farmer %}{{ farmer.account_no }}{% endif %}">
+              </div>
+              <div class="col-md-6 form-group">
+                <label for="branch_name">Bank/Branch</label>
+                <input type="text" id="branch_name" name="branch_name" class="form-control" placeholder="Enter bank and branch name" value="{% if form_values.branch_name %}{{ form_values.branch_name }}{% elif farmer %}{{ farmer.branch_name }}{% endif %}">
+              </div>
+              <div class="col-md-6 form-group">
+                <label for="bank_name">Bank Name in Eng</label>
+                <input type="text" id="bank_name" name="bank_name" class="form-control" placeholder="Enter bank name in English" value="{% if form_values.bank_name %}{{ form_values.bank_name }}{% elif farmer %}{{ farmer.bank_name }}{% endif %}">
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="card-footer text-center">
+            <button type="submit" class="btn btn-primary">{% if farmer %}Update{% else %}Submit{% endif %}</button>
+            <a href="{% url 'farmer_list' %}" class="btn btn-secondary">Close</a>
+        </div>
+
+
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  $(function() {
+    let debounce;
+    $("#full_name").on("keyup", function() {
+      if ($("#auto_translate").is(":checked")) {
+        clearTimeout(debounce);
+        const val = $(this).val();
+        debounce = setTimeout(function() {
+          translateText(val, "name_kannada");
+        }, 500);
+      }
+    });
+
+    $("#address").on("keyup", function() {
+      if ($("#auto_translate").is(":checked")) {
+        clearTimeout(debounce);
+        const val = $(this).val();
+        debounce = setTimeout(function() {
+          translateText(val, "address_kannada");
+        }, 500);
+      }
+    });
+
+    $("#toggle_bank_details").on("click", function() {
+      $("#bank_details_section").slideToggle(function() {
+        const isVisible = $(this).is(":visible");
+        $("#toggle_bank_details").html(isVisible ? '<i class="fas fa-times"></i> Hide Bank Details' : '<i class="fas fa-university mr-1"></i> Show Bank Details');
+        $("#toggle_bank_details").toggleClass('btn-outline-info btn-outline-secondary');
+      });
+    });
+  });
+</script>
+{% endblock %}
+

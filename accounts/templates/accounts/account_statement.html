@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Account Statement{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .card { border: none !important; box-shadow: none !important; }
+    .content-header { display: none; }
+    .main-header, .main-sidebar, .main-footer { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; }
+    body { font-size: 12px; }
+  }
+  .balance-dr  { color: #c0392b; font-weight: 600; }
+  .balance-cr  { color: #27ae60; font-weight: 600; }
+  .amount-dr   { color: #c0392b; }
+  .amount-cr   { color: #27ae60; }
+  .stmt-header { background: #f4f6f9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header no-print">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6"><h1 class="m-0">Account Statement</h1></div>
+      <div class="col-sm-6 text-right">
+        {% if selected_ledger %}
+        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+          <i class="fas fa-print mr-1"></i> Print
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- ── Filter Form ─────────────────────────────────────────────────── -->
+    <div class="card card-outline card-primary shadow mb-3 no-print">
+      <div class="card-header"><h5 class="card-title mb-0">Select Ledger &amp; Date Range</h5></div>
+      <div class="card-body">
+        <form method="get" class="form-inline flex-wrap" style="gap:10px">
+          <div class="form-group mr-2">
+            <label class="mr-2 font-weight-bold">Ledger:</label>
+            <select name="ledger_id" id="ledgerSelect" class="form-control" style="min-width:240px">
+              <option value="">-- Select Account --</option>
+              {% regroup ledger_accounts by group_nature as grouped %}
+              {% for grp in grouped %}
+              <optgroup label="{{ grp.grouper }}">
+                {% for la in grp.list %}
+                <option value="{{ la.id }}"
+                  {% if selected_ledger and selected_ledger.id == la.id %}selected{% endif %}>
+                  {{ la.name }}
+                </option>
+                {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group mr-2">
+            <label class="mr-2">From:</label>
+            <input type="date" name="from_date" class="form-control" value="{{ from_date }}" />
+          </div>
+          <div class="form-group mr-2">
+            <label class="mr-2">To:</label>
+            <input type="date" name="to_date" class="form-control" value="{{ to_date }}" />
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search mr-1"></i> View
+          </button>
+          {% if selected_ledger %}
+          <a href="?ledger_id={{ selected_ledger.id }}&from_date={{ today }}&to_date={{ today }}" class="btn btn-outline-secondary ml-1">Today</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+
+    {% if selected_ledger %}
+    <!-- ── Statement Table ─────────────────────────────────────────────── -->
+    <div class="card shadow">
+      <div class="card-header stmt-header">
+        <div class="row align-items-center">
+          <div class="col">
+            <h5 class="mb-0">
+              <strong>{{ selected_ledger.name }}</strong>
+              <small class="text-muted ml-2">{{ selected_ledger.group.name }} &bull; {{ selected_ledger.group.nature }}</small>
+            </h5>
+            {% if from_date or to_date %}
+            <small class="text-muted">
+              Period:
+              {% if from_date %}{{ from_date }}{% else %}Beginning{% endif %}
+              &nbsp;to&nbsp;
+              {% if to_date %}{{ to_date }}{% else %}Today{% endif %}
+            </small>
+            {% endif %}
+          </div>
+          <div class="col-auto text-right">
+            <span class="badge badge-{% if closing_balance_type == 'Dr' %}danger{% else %}success{% endif %} p-2" style="font-size:1rem">
+              Closing Balance: ₹{{ closing_balance|floatformat:2 }} {{ closing_balance_type }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm mb-0" id="stmtTable">
+            <thead class="thead-dark">
+              <tr>
+                <th style="width:90px">Date</th>
+                <th style="width:80px">Bill No</th>
+                <th style="width:100px">Ref No</th>
+                <th style="width:130px">Type</th>
+                <th>Narration / Details</th>
+                <th class="text-right" style="width:120px">Debit (Dr)</th>
+                <th class="text-right" style="width:120px">Credit (Cr)</th>
+                <th class="text-right" style="width:140px">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Opening Balance row -->
+              <tr class="table-secondary font-weight-bold">
+                <td colspan="5">Opening Balance</td>
+                <td class="text-right amount-dr">
+                  {% if opening_balance_type == 'Dr' %}₹{{ opening_balance|floatformat:2 }}{% endif %}
+                </td>
+                <td class="text-right amount-cr">
+                  {% if opening_balance_type == 'Cr' %}₹{{ opening_balance|floatformat:2 }}{% endif %}
+                </td>
+                <td class="text-right {% if opening_balance_type == 'Dr' %}balance-dr{% else %}balance-cr{% endif %}">
+                  ₹{{ opening_balance|floatformat:2 }} {{ opening_balance_type }}
+                </td>
+              </tr>
+
+              {% for entry in entries %}
+              <tr>
+                <td>{{ entry.date|date:"d-m-Y" }}</td>
+                <td class="text-center">{% if entry.bill_no %}<strong>{{ entry.bill_no }}</strong>{% else %}—{% endif %}</td>
+                <td>
+                  {% if entry.source == 'voucher' %}
+                  <a href="{% url 'view_voucher' entry.voucher_id %}">{{ entry.ref_no }}</a>
+                  {% else %}
+                  <a href="{% url 'view_transaction' entry.ft_id %}">{{ entry.ref_no }}</a>
+                  {% endif %}
+                </td>
+                <td>
+                  {% with t=entry.type %}
+                  <span class="badge
+                    {% if 'Payment' in t or t == 'Debit' %}badge-danger
+                    {% elif 'Receipt' in t or t == 'Credit' %}badge-success
+                    {% elif t == 'Journal' %}badge-info
+                    {% elif t == 'Contra' %}badge-warning
+                    {% else %}badge-secondary{% endif %}">
+                    {{ t|default:"—" }}
+                  </span>
+                  {% endwith %}
+                </td>
+                <td><small>{{ entry.narration }}</small></td>
+                <td class="text-right amount-dr">
+                  {% if entry.dr_amount %}₹{{ entry.dr_amount|floatformat:2 }}{% endif %}
+                </td>
+                <td class="text-right amount-cr">
+                  {% if entry.cr_amount %}₹{{ entry.cr_amount|floatformat:2 }}{% endif %}
+                </td>
+                <td class="text-right {% if entry.running_balance_type == 'Dr' %}balance-dr{% else %}balance-cr{% endif %}">
+                  ₹{{ entry.running_balance|floatformat:2 }} {{ entry.running_balance_type }}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                  <i class="fas fa-inbox fa-2x mb-2 d-block text-secondary"></i>
+                  No transactions found for this period.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+
+            <!-- Totals Footer -->
+            <tfoot>
+              <tr class="table-dark font-weight-bold">
+                <td colspan="5" class="text-right">Total</td>
+                <td class="text-right amount-dr">₹{{ total_dr|floatformat:2 }}</td>
+                <td class="text-right amount-cr">₹{{ total_cr|floatformat:2 }}</td>
+                <td class="text-right {% if closing_balance_type == 'Dr' %}balance-dr{% else %}balance-cr{% endif %}">
+                  ₹{{ closing_balance|floatformat:2 }} {{ closing_balance_type }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="card-footer no-print">
+        <div class="row text-center">
+          <div class="col-md-3 border-right">
+            <div class="text-muted small">Opening Balance</div>
+            <div class="font-weight-bold {% if opening_balance_type == 'Dr' %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ opening_balance|floatformat:2 }} {{ opening_balance_type }}
+            </div>
+          </div>
+          <div class="col-md-3 border-right">
+            <div class="text-muted small">Total Debit (Dr)</div>
+            <div class="font-weight-bold text-danger">₹{{ total_dr|floatformat:2 }}</div>
+          </div>
+          <div class="col-md-3 border-right">
+            <div class="text-muted small">Total Credit (Cr)</div>
+            <div class="font-weight-bold text-success">₹{{ total_cr|floatformat:2 }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-muted small">Closing Balance</div>
+            <div class="font-weight-bold {% if closing_balance_type == 'Dr' %}text-danger{% else %}text-success{% endif %}">
+              ₹{{ closing_balance|floatformat:2 }} {{ closing_balance_type }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="callout callout-info">
+      <h5><i class="fas fa-info-circle mr-2"></i>Select a Ledger Account</h5>
+      <p class="mb-0">Choose a ledger account and optional date range above to view the full account statement including all payments, receipts, bank entries, hamali entries, and other transactions.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+$(function () {
+  $('#ledgerSelect').select2({
+    theme: 'bootstrap4',
+    width: '100%',
+    placeholder: '-- Select Account --',
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ತಿದ್ದುಪಡಿ / ರದ್ದುಪಡಿಸುವಿಕೆ (Edit / Cancellation){% endblock %}
+
+{% block extra_css %}
+<style>
+  .compact-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+    border: 1px solid #e9ecef !important;
+    margin-bottom: 1.5rem;
+    height: 100%;
+  }
+  .compact-card .card-header {
+    background: #fff;
+    border-bottom: 1px solid #f1f1f1;
+    padding: 0.6rem 1rem;
+  }
+  .compact-card .card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  .form-group label {
+    font-size: 0.78rem;
+    margin-bottom: 0.15rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .form-control-sm, 
+  .select2-container--bootstrap4 .select2-selection--single {
+    height: 32px !important;
+    font-size: 0.85rem !important;
+    border-radius: 4px !important;
+    border: 1px solid #ced4da !important;
+    background-color: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 0.75rem !important;
+    box-sizing: border-box !important;
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+    line-height: 1 !important;
+    padding-left: 0 !important;
+    color: #495057 !important;
+    width: 100%;
+  }
+  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+    height: 30px !important;
+    top: 1px !important;
+    right: 5px !important;
+  }
+  input.form-control-sm {
+    line-height: 1 !important;
+  }
+  .btn-sm-custom {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0" style="font-weight: 700; color: #334155;">ತಿದ್ದುಪಡಿ / ರದ್ದುಪಡಿಸುವಿಕೆ</h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <!-- 1. Transfer All Lots -->
+      <div class="col-md-6">
+        <div class="card compact-card shadow-sm">
+          <div class="card-header">
+            <h3 class="card-title text-primary"><i class="fas fa-exchange-alt mr-1"></i> ಎಲ್ಲಾ ಲಾಟುಗಳ ಬದಲಾವಣೆ (Transfer All)</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ದಿನಾಂಕ (Date)</label>
+                        <input type="date" id="date1" class="form-control form-control-sm" value="{{ today }}">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ಖರೀದಿದಾರ (Current Trader)</label>
+                        <select id="currentTrader1" class="form-control select2" disabled>
+                            <option value="">Select Date</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+              <label>ಬದಲಿ ಖರೀದಿದಾರ (New Trader)</label>
+              <select id="newTrader1" class="form-control select2">
+                <option value="">Search New Trader...</option>
+              </select>
+            </div>
+            <button type="button" id="btnTransferAll" class="btn btn-primary btn-block btn-sm-custom mt-2" disabled>ಖರೀದಿದಾರರನ್ನು ಬದಲಾಯಿಸಿ (Transfer All)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Lot-wise Transfer -->
+      <div class="col-md-6">
+        <div class="card compact-card shadow-sm border-left-info" style="border-left: 4px solid #17a2b8 !important;">
+          <div class="card-header">
+            <h3 class="card-title text-info"><i class="fas fa-list-ol mr-1"></i> ಲಾಟ್ವಾರು ಬದಲಾವಣೆ (Lot-wise Transfer)</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ದಿನಾಂಕ (Date)</label>
+                        <input type="date" id="date2" class="form-control form-control-sm" value="{{ today }}">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ಲಾಟ್ ಸಂಖ್ಯೆ (Lot Number)</label>
+                        <select id="lotNumber2" class="form-control select2" disabled>
+                            <option value="">Select Date</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ಈಗಿನ ಖರೀದಿದಾರ (Current)</label>
+                        <input type="text" id="currentTrader2" class="form-control form-control-sm" readonly style="background: #f8f9fa;">
+                        <input type="hidden" id="currentTraderId2">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ಬದಲಿ ಖರೀದಿದಾರ (New)</label>
+                        <select id="newTrader2" class="form-control select2">
+                            <option value="">Search New Trader...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="btnTransferLot" class="btn btn-info btn-block btn-sm-custom mt-2" disabled>ಲಾಟ್ ಬದಲಾಯಿಸಿ (Transfer Lot)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- 3. Farmer Name Update -->
+      <div class="col-md-6">
+        <div class="card compact-card shadow-sm border-left-warning" style="border-left: 4px solid #ffc107 !important;">
+          <div class="card-header">
+            <h3 class="card-title text-warning"><i class="fas fa-user-edit mr-1"></i> ರೈತರ ಹೆಸರು ಬದಲಾವಣೆ (Farmer Update)</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ದಿನಾಂಕ (Date)</label>
+                        <input type="date" id="date3" class="form-control form-control-sm" value="{{ today }}">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ಲಾಟ್ ಸಂಖ್ಯೆ/ಅನ್ನಿ (Lot/Bill)</label>
+                        <select id="billNumber3" class="form-control select2" disabled>
+                            <option value="">Select Date</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ರೈತರ ಹೆಸರು (Name)</label>
+                        <input type="text" id="farmerName3" class="form-control form-control-sm">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label>ರೈತರ ಊರು (Village)</label>
+                        <input type="text" id="farmerVillage3" class="form-control form-control-sm">
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="btnUpdateFarmer" class="btn btn-warning btn-block btn-sm-custom mt-2" disabled style="color: #fff;">ಮಾಹಿತಿ ಬದಲಾಯಿಸಿ (Update Info)</button>
+          </div>
+        </div>
+      </div>
+
+       <!-- 4. Cancellation / Delete -->
+       <div class="col-md-6">
+        <div class="card compact-card shadow-sm border-left-danger" style="border-left: 4px solid #dc3545 !important;">
+          <div class="card-header">
+            <h3 class="card-title text-danger"><i class="fas fa-trash-alt mr-1"></i> ರದ್ದುಪಡಿಸುವಿಕೆ / ಅಳಿಸುವಿಕೆ (Cancellation)</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>ದಿನಾಂಕ (Date)</label>
+              <input type="date" id="date4" class="form-control form-control-sm" value="{{ today }}">
+            </div>
+            <div class="row">
+              <div class="col-sm-6">
+                <button type="button" id="btnCancelVikri" class="btn btn-outline-danger btn-block btn-sm-custom mb-2">ಬಿಲ್ ರದ್ದು (Bikri)</button>
+              </div>
+              <div class="col-sm-6">
+                <button type="button" id="btnCancelKharidi" class="btn btn-outline-danger btn-block btn-sm-custom mb-2">ಅವಾಕ್ ರದ್ದು (Avak)</button>
+              </div>
+            </div>
+            <div class="mt-2 text-center text-muted" style="font-size: 0.75rem;">
+                *ರದ್ದುಪಡಿಸಿದ ದಾಖಲೆಗಳು ರಿಪೋರ್ಟ್ಗಳಲ್ಲಿ ಕಾಣಿಸುವುದಿಲ್ಲ.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function() {
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Helper to fetch traders
+    function loadTraders(date, targetSelect) {
+        if (!date) return;
+        $.get("{% url 'get_traders_by_date' %}?date=" + date, function(data) {
+            var options = '<option value="">Select Trader</option>';
+            data.results.forEach(function(t) {
+                options += '<option value="' + t.id + '">' + t.text + '</option>';
+            });
+            $(targetSelect).html(options).prop('disabled', false).trigger('change');
+        });
+    }
+
+    // Helper to fetch lots
+    function loadLots(date, targetSelect) {
+        if (!date) return;
+        $.get("{% url 'get_lots_by_date' %}?date=" + date, function(data) {
+            var options = '<option value="">Select Lot</option>';
+            data.results.forEach(function(l) {
+                options += '<option value="' + l.id + '" data-trader-id="' + (l.buyer_id || '') + '" data-trader-name="' + (l.buyer_name || '') + '">' + l.lot_number + '</option>';
+            });
+            $(targetSelect).html(options).prop('disabled', false).trigger('change');
+        });
+    }
+
+    // Helper to fetch bills
+    function loadBills(date, targetSelect) {
+        if (!date) return;
+        $.get("{% url 'get_bills_by_date' %}?date=" + date, function(data) {
+            var options = '<option value="">Select Bill</option>';
+            data.results.forEach(function(b) {
+                options += '<option value="' + b.id + '" data-farmer="' + b.farmer_name + '" data-village="' + b.village + '">' + b.lot_number + ' (' + b.farmer_name + ')</option>';
+            });
+            $(targetSelect).html(options).prop('disabled', false).trigger('change');
+        });
+    }
+
+    // New Trader Search (Global)
+    function setupGlobalTraderSearch(targetSelect) {
+        $(targetSelect).select2({
+            theme: 'bootstrap4',
+            ajax: {
+                url: "{% url 'get_traders' %}",
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { q: params.term };
+                },
+                processResults: function(data) {
+                    return { results: data.results };
+                },
+                cache: true
+            },
+            minimumInputLength: 0,
+            placeholder: 'Search New Trader...',
+            allowClear: true
+        });
+        
+        // Open on focus
+        $(targetSelect).on('select2:open', function() {
+            if ($(this).val() === "" || $(this).val() === null) {
+                // Trigger search for empty query to show initial suggestions
+                var searchField = document.querySelector('.select2-search__field');
+                if (searchField) {
+                     // searchField.value = '';
+                     // $(searchField).trigger('input');
+                }
+            }
+        });
+    }
+
+    setupGlobalTraderSearch('#newTrader1');
+    setupGlobalTraderSearch('#newTrader2');
+
+    // Block 1 Events
+    $('#date1').on('change', function() {
+        loadTraders($(this).val(), '#currentTrader1');
+    });
+    $('#currentTrader1, #newTrader1').on('change', function() {
+        var ct = $('#currentTrader1').val();
+        var nt = $('#newTrader1').val();
+        $('#btnTransferAll').prop('disabled', !ct || !nt || ct == nt);
+    });
+    $('#btnTransferAll').click(function() {
+        if (!confirm('Are you sure you want to transfer all lots?')) return;
+        $.post("{% url 'transfer_all_lots' %}", {
+            date: $('#date1').val(),
+            old_trader_id: $('#currentTrader1').val(),
+            new_trader_id: $('#newTrader1').val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(res) {
+            if (res.success) {
+                toastr.success(res.message);
+                loadTraders($('#date1').val(), '#currentTrader1');
+            } else toastr.error(res.message);
+        });
+    });
+
+    // Block 2 Events
+    $('#date2').on('change', function() {
+        loadLots($(this).val(), '#lotNumber2');
+    });
+    $('#lotNumber2').on('change', function() {
+        var opt = $(this).find(':selected');
+        $('#currentTrader2').val(opt.data('trader-name') || '-');
+        $('#currentTraderId2').val(opt.data('trader-id') || '');
+    });
+    $('#lotNumber2, #newTrader2').on('change', function() {
+        var lot = $('#lotNumber2').val();
+        var ct = $('#currentTraderId2').val();
+        var nt = $('#newTrader2').val();
+        $('#btnTransferLot').prop('disabled', !lot || !nt || ct == nt);
+    });
+    $('#btnTransferLot').click(function() {
+        if (!confirm('Are you sure you want to transfer this lot?')) return;
+        $.post("{% url 'transfer_lot_wise' %}", {
+            lot_id: $('#lotNumber2').val(),
+            new_trader_id: $('#newTrader2').val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(res) {
+            if (res.success) {
+                toastr.success(res.message);
+                loadLots($('#date2').val(), '#lotNumber2');
+            } else toastr.error(res.message);
+        });
+    });
+
+    // Block 3 Events
+    $('#date3').on('change', function() {
+        loadBills($(this).val(), '#billNumber3');
+    });
+    $('#billNumber3').on('change', function() {
+        var opt = $(this).find(':selected');
+        $('#farmerName3').val(opt.data('farmer') || '');
+        $('#farmerVillage3').val(opt.data('village') || '');
+        $('#btnUpdateFarmer').prop('disabled', !$(this).val());
+    });
+    $('#btnUpdateFarmer').click(function() {
+        $.post("{% url 'update_farmer_details' %}", {
+            bill_id: $('#billNumber3').val(),
+            farmer_name: $('#farmerName3').val(),
+            farmer_village: $('#farmerVillage3').val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(res) {
+            if (res.success) {
+                toastr.success(res.message);
+                loadBills($('#date3').val(), '#billNumber3');
+            } else toastr.error(res.message);
+        });
+    });
+
+    // Block 4 Events
+    $('#btnCancelVikri').click(function() {
+        if (!confirm('Are you sure you want to cancel Vikri Patti for this date?')) return;
+        $.post("{% url 'cancel_vikri_patti' %}", {
+            date: $('#date4').val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(res) {
+            if (res.success) toastr.success(res.message);
+            else toastr.error(res.message);
+        });
+    });
+    $('#btnCancelKharidi').click(function() {
+        if (!confirm('Are you sure you want to cancel Kharidi Patti for this date?')) return;
+        $.post("{% url 'cancel_kharidi_patti' %}", {
+            date: $('#date4').val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        }, function(res) {
+            if (res.success) toastr.success(res.message);
+            else toastr.error(res.message);
+        });
+    });
+
+    // Initial loads
+    if ($('#date1').val()) $('#date1').trigger('change');
+    if ($('#date2').val()) $('#date2').trigger('change');
+    if ($('#date3').val()) $('#date3').trigger('change');
+});
+</script>
+{% endblock %}

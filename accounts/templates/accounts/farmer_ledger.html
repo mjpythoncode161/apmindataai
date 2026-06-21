@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Farmer Account Statement{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  /* ── Layout ── */
+  .ledger-wrapper { max-width: 960px; margin: 0 auto; }
+
+  /* ── Filter card ── */
+  .filter-card { background: #fff; border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+
+  /* ── Farmer info strip ── */
+  .farmer-info-strip {
+    background: linear-gradient(135deg, #1a3c5e 0%, #2d6ca2 100%);
+    color: #fff;
+    border-radius: 6px 6px 0 0;
+    padding: 14px 20px;
+  }
+  .farmer-info-strip h5 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: .3px; }
+  .farmer-info-strip .meta { font-size: 0.82rem; opacity: .85; margin-top: 4px; }
+
+  /* ── Summary boxes ── */
+  .summary-boxes { display: flex; gap: 12px; padding: 14px 16px; background: #f8f9fa; border-bottom: 1px solid #dee2e6; flex-wrap: wrap; }
+  .summary-box { flex: 1; min-width: 140px; background: #fff; border-radius: 6px; padding: 10px 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center; }
+  .summary-box .label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: .5px; }
+  .summary-box .value { font-size: 1.25rem; font-weight: 700; margin-top: 2px; }
+  .summary-box.cr .value { color: #28a745; }
+  .summary-box.dr .value { color: #dc3545; }
+  .summary-box.bal .value { color: #007bff; }
+
+  /* ── Ledger table ── */
+  .ledger-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .ledger-table thead tr { background: #343a40; color: #fff; }
+  .ledger-table thead th { padding: 9px 10px; border: 1px solid #495057; white-space: nowrap; }
+  .ledger-table tbody td { padding: 7px 10px; border: 1px solid #dee2e6; vertical-align: middle; }
+  .ledger-table tbody tr:nth-child(even) { background: #f9f9f9; }
+  .ledger-table tbody tr:hover { background: #eef5ff; }
+
+  .opening-row { background: #fffbcc !important; font-weight: 600; }
+  .closing-row { background: #e8f4f8 !important; font-weight: 700; border-top: 2px solid #2d6ca2; }
+
+  .text-right { text-align: right !important; }
+  .text-center { text-align: center !important; }
+
+  .cr-amt { color: #28a745; font-weight: 600; }
+  .dr-amt { color: #dc3545; font-weight: 600; }
+  .bal-cr { color: #28a745; font-weight: 700; }
+  .bal-dr { color: #dc3545; font-weight: 700; }
+
+  .badge-method { font-size: 0.7rem; padding: 2px 6px; background: #e9ecef; color: #333; border-radius: 4px; white-space: nowrap; }
+  .ref-link { font-size: 0.78rem; color: #007bff; }
+
+  /* ── Print ── */
+  @media print {
+    .no-print { display: none !important; }
+    .main-sidebar, .main-header, .main-footer { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; padding: 0 !important; background: white !important; }
+    .card { box-shadow: none !important; }
+    .ledger-wrapper { max-width: 100%; }
+    .farmer-info-strip { background: #1a3c5e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .summary-boxes { background: #f8f9fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ledger-table thead tr { background: #343a40 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ledger-table tbody tr:hover { background: transparent !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header no-print">
+  <div class="container-fluid">
+    <div class="row mb-1">
+      <div class="col-sm-6"><h1 class="m-0">Farmer Account Statement</h1></div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="ledger-wrapper">
+
+      <!-- ── Filter Card ─────────────────────────────────────────────────── -->
+      <div class="filter-card no-print">
+        <form method="get" id="filterForm" class="row align-items-end" style="gap:0">
+          <div class="col-md-4 form-group mb-2">
+            <label class="font-weight-bold small mb-1">Select Farmer</label>
+            <select name="farmer_id" id="farmerSelect" class="form-control select2"
+                    onchange="this.form.submit()" required>
+              <option value="">-- Choose Farmer --</option>
+              {% for f in farmers %}
+              <option value="{{ f.id }}" {% if farmer and farmer.id == f.id %}selected{% endif %}>
+                {{ f.name }}{% if f.phone %} – {{ f.phone }}{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3 form-group mb-2">
+            <label class="font-weight-bold small mb-1">From Date</label>
+            <input type="date" name="from_date" class="form-control" value="{{ from_date }}" />
+          </div>
+          <div class="col-md-3 form-group mb-2">
+            <label class="font-weight-bold small mb-1">To Date</label>
+            <input type="date" name="to_date" class="form-control" value="{{ to_date }}" />
+          </div>
+          <div class="col-md-2 form-group mb-2 d-flex" style="gap:6px">
+            <button type="submit" class="btn btn-primary flex-fill">
+              <i class="fas fa-search"></i>
+            </button>
+            <button type="button" onclick="window.print()" class="btn btn-outline-secondary flex-fill" title="Print">
+              <i class="fas fa-print"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ── Ledger Card ─────────────────────────────────────────────────── -->
+      <div class="card shadow-sm border-0 mb-3">
+
+        {% if farmer %}
+
+        <!-- Farmer Header Strip -->
+        <div class="farmer-info-strip">
+          <div class="row align-items-center">
+            <div class="col-md-7">
+              <h5><i class="fas fa-user-circle mr-2"></i>{{ farmer.name }}{% if farmer.name_kannada %} / {{ farmer.name_kannada }}{% endif %}</h5>
+              <div class="meta">
+                {% if farmer.phone %}<i class="fas fa-phone mr-1"></i>{{ farmer.phone }}&nbsp;&nbsp;{% endif %}
+                {% if farmer.address %}<i class="fas fa-map-marker-alt mr-1"></i>{{ farmer.address }}{% endif %}
+              </div>
+            </div>
+            <div class="col-md-5 text-md-right">
+              {% if farmer.bank_name %}
+              <div class="meta"><i class="fas fa-university mr-1"></i>{{ farmer.bank_name }}{% if farmer.branch_name %} – {{ farmer.branch_name }}{% endif %}</div>
+              {% endif %}
+              {% if farmer.account_no %}
+              <div class="meta"><i class="fas fa-credit-card mr-1"></i>A/c: {{ farmer.account_no }}{% if farmer.ifsc %} | IFSC: {{ farmer.ifsc }}{% endif %}</div>
+              {% endif %}
+              <div class="meta mt-1">
+                Statement Period:
+                <strong>{{ from_date|default:"All dates" }}</strong>
+                {% if to_date %} to <strong>{{ to_date }}</strong>{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Boxes -->
+        <div class="summary-boxes no-print">
+          <div class="summary-box cr">
+            <div class="label">Total Credit (Cr)</div>
+            <div class="value">₹{{ summary.total_credit|floatformat:2 }}</div>
+            <div class="label">Sale proceeds</div>
+          </div>
+          <div class="summary-box dr">
+            <div class="label">Total Debit (Dr)</div>
+            <div class="value">₹{{ summary.total_debit|floatformat:2 }}</div>
+            <div class="label">Payments made</div>
+          </div>
+          <div class="summary-box bal">
+            <div class="label">Closing Balance</div>
+            <div class="value {% if summary.balance_side == 'Cr' %}cr-amt{% else %}dr-amt{% endif %}">
+              ₹{{ summary.balance|floatformat:2 }}
+            </div>
+            <div class="label">
+              {% if summary.balance_side == 'Cr' %}
+                <span class="text-success">Cr – We owe farmer</span>
+              {% else %}
+                <span class="text-danger">Dr – Farmer owes us</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="summary-box">
+            <div class="label">Transactions</div>
+            <div class="value">{{ ledger_entries|length }}</div>
+            <div class="label">entries</div>
+          </div>
+        </div>
+
+        <!-- Ledger Table -->
+        <div class="table-responsive">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width:40px">SL</th>
+                <th style="width:100px">Date</th>
+                <th>Narration / Particulars</th>
+                <th style="width:90px" class="text-center">Mode</th>
+                <th style="width:130px" class="text-right">Debit (Dr) ₹</th>
+                <th style="width:130px" class="text-right">Credit (Cr) ₹</th>
+                <th style="width:140px" class="text-right">Balance ₹</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <!-- Opening Balance Row -->
+              <tr class="opening-row">
+                <td class="text-center">–</td>
+                <td class="text-center">{{ from_date|default:"Inception" }}</td>
+                <td><strong>Opening Balance (ಆರಂಭಿಕ ಬಾಕಿ)</strong></td>
+                <td></td>
+                <td class="text-right">{% if farmer.balance_type == 'Dr' %}<span class="dr-amt">{{ farmer.opening_balance|floatformat:2 }}</span>{% endif %}</td>
+                <td class="text-right">{% if farmer.balance_type == 'Cr' %}<span class="cr-amt">{{ farmer.opening_balance|floatformat:2 }}</span>{% endif %}</td>
+                <td class="text-right">
+                  <span class="{% if farmer.balance_type == 'Cr' %}bal-cr{% else %}bal-dr{% endif %}">
+                    {{ farmer.opening_balance|floatformat:2 }} {{ farmer.balance_type }}
+                  </span>
+                </td>
+              </tr>
+
+              <!-- Transaction Rows -->
+              {% for entry in ledger_entries %}
+              <tr>
+                <td class="text-center text-muted">{{ forloop.counter }}</td>
+                <td class="text-center">{{ entry.date|date:"d-m-Y" }}</td>
+                <td>
+                  {% if entry.ref_type == 'bikri' %}
+                    <strong class="text-primary">ಪ.ಸಂ : {{ entry.bill_no }}</strong>
+                    &nbsp;–&nbsp; {{ entry.narration }}
+                    <br/><small class="text-muted">Lots: {{ entry.lot_nos }}</small>
+                    <br/>
+                    {% for bid in entry.bikri_ids %}
+                      <a href="{% url 'view_bikri' bid %}" class="ref-link mr-2" target="_blank">
+                        <i class="fas fa-file-invoice mr-1"></i>Vikri #{{ bid }}
+                      </a>
+                    {% endfor %}
+                  {% else %}
+                    {{ entry.narration }}
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if entry.method %}
+                  <span class="badge-method">{{ entry.method }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if entry.debit > 0 %}
+                  <span class="dr-amt">{{ entry.debit|floatformat:2 }}</span>
+                  {% else %}–{% endif %}
+                </td>
+                <td class="text-right">
+                  {% if entry.credit > 0 %}
+                  <span class="cr-amt">{{ entry.credit|floatformat:2 }}</span>
+                  {% else %}–{% endif %}
+                </td>
+                <td class="text-right">
+                  <span class="{% if entry.running_side == 'Cr' %}bal-cr{% else %}bal-dr{% endif %}">
+                    {{ entry.running|floatformat:2 }} {{ entry.running_side }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No transactions found for this period.</td>
+              </tr>
+              {% endfor %}
+
+              <!-- Closing Balance Row -->
+              {% if ledger_entries %}
+              <tr class="closing-row">
+                <td colspan="4" class="text-right"><strong>CLOSING BALANCE (ಅಂತಿಮ ಬಾಕಿ):</strong></td>
+                <td class="text-right"><span class="dr-amt">{{ summary.total_debit|floatformat:2 }}</span></td>
+                <td class="text-right"><span class="cr-amt">{{ summary.total_credit|floatformat:2 }}</span></td>
+                <td class="text-right">
+                  <span class="{% if summary.balance_side == 'Cr' %}bal-cr{% else %}bal-dr{% endif %}" style="font-size:1rem;">
+                    ₹{{ summary.balance|floatformat:2 }} {{ summary.balance_side }}
+                  </span>
+                </td>
+              </tr>
+              {% endif %}
+
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Print Footer -->
+        <div class="p-3 text-right text-muted small no-print">
+          Generated on {% now "d-m-Y H:i" %}
+        </div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="card-body text-center py-5 text-muted">
+          <i class="fas fa-user-circle fa-4x mb-3 text-primary" style="opacity:.4"></i>
+          <h5>Select a Farmer to View Account Statement</h5>
+          <p class="small">Choose farmer name from the filter above and click Search.</p>
+        </div>
+        {% endif %}
+
+      </div><!-- /.card -->
+    </div><!-- /.ledger-wrapper -->
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+$(function () {
+  $('#farmerSelect').select2({
+    theme: 'bootstrap4',
+    placeholder: '-- Choose Farmer --',
+    allowClear: true
+  });
+});
+</script>
+{% endblock %}

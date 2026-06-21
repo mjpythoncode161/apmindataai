@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if show_form %}Add Farmer{% else %}Farmer List{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-wrap { padding: 15px; background: #f4f6f9; min-height: calc(100vh - 120px); }
+
+  /* ── LIST PAGE ── */
+  .list-header {
+    background: #1e7e34; color: #fff; padding: 12px 18px; border-radius: 6px;
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .list-header h4 { margin: 0; font-weight: 700; }
+  .list-card { background: #fff; border-radius: 6px; border: 1px solid #dee2e6; overflow: hidden; }
+  .list-toolbar {
+    padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  }
+  .acc-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .acc-table th { background: #343a40; color: #fff; padding: 10px 12px; white-space: nowrap; }
+  .acc-table td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+  .acc-table tr:nth-child(even) { background: #f8f9fa; }
+  .table-scroll { overflow-x: auto; }
+
+  /* ── BIG FORM PAGE ── */
+  .form-page-header {
+    background: #1e7e34; color: #fff; padding: 14px 20px; border-radius: 6px 6px 0 0;
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .form-page-header h4 { margin: 0; font-weight: 700; }
+  .form-big-card {
+    background: #fff; border: 1px solid #dee2e6; border-radius: 6px;
+    max-width: 960px; margin: 0 auto; overflow: hidden;
+  }
+  .form-big-body { padding: 28px 32px; }
+  .form-big-body label { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .form-big-body .form-control {
+    height: 44px; font-size: 1rem; padding: 8px 14px; border-radius: 5px;
+  }
+  .form-big-body .form-group { margin-bottom: 18px; }
+  .form-big-body textarea.form-control { height: auto; min-height: 80px; }
+  #bank_box { display: none; border-top: 2px dashed #dee2e6; margin-top: 20px; padding-top: 20px; }
+  .btn-save-big {
+    background: #28a745; color: #fff; font-weight: 700;
+    font-size: 1.05rem; padding: 12px 40px; min-width: 180px;
+  }
+  .btn-save-big:hover { background: #218838; color: #fff; }
+
+  .acc-kb-hint { font-size: 0.82rem; margin-bottom: 14px !important; }
+  .acc-kb-field:focus, .acc-kb-field.is-active-field {
+    border-color: #17a2b8 !important;
+    box-shadow: 0 0 0 3px rgba(23,162,184,0.25) !important;
+    outline: none !important;
+  }
+  .acc-kb-field.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  #saveBtn:focus { outline: 3px solid #ffc107; outline-offset: 2px; }
+
+  @media (max-width: 768px) {
+    .form-big-body { padding: 18px 16px; }
+    .form-big-body .form-control { height: 40px; font-size: 0.95rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+
+{% if show_form %}
+  <!-- ══════════ SEPARATE BIG FORM PAGE ══════════ -->
+  <div class="form-big-card">
+    <div class="form-page-header">
+      <h4><i class="fas fa-plus-circle mr-2"></i>ಹೊಸ ರೈತ / Add Farmer</h4>
+      <a href="{% url 'farmer_list' %}?date={{ date_value }}" class="btn btn-light btn-sm">
+        <i class="fas fa-list mr-1"></i> Back to List
+      </a>
+    </div>
+    <div class="form-big-body">
+      <form method="post" id="accForm" action="{% url 'farmer_list' %}?date={{ date_value }}&add=1" autocomplete="off">
+        {% csrf_token %}
+        <input type="hidden" name="list_date" value="{{ date_value }}" />
+
+        <div class="alert alert-info py-2 acc-kb-hint">
+          <i class="fas fa-keyboard mr-1"></i>
+          <strong>Keyboard:</strong> Enter = next field &nbsp;·&nbsp; Ctrl+S or F2 = Save &nbsp;·&nbsp; F8 = Bank details
+        </div>
+
+        <div class="text-right mb-3">
+          <div class="custom-control custom-checkbox d-inline-block">
+            <input class="custom-control-input" type="checkbox" id="auto_translate" checked tabindex="-1">
+            <label for="auto_translate" class="custom-control-label text-primary">Auto Translate</label>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 form-group">
+            <label>Name <span class="text-danger">*</span></label>
+            <input type="text" id="full_name" name="full_name" class="form-control acc-kb-field"
+                   value="{{ form_values.name|default:'' }}" placeholder="Enter name" required tabindex="1" />
+          </div>
+          <div class="col-md-6 form-group">
+            <label>ಹೆಸರು</label>
+            <input type="text" id="name_kannada" name="name_kannada" class="form-control acc-kb-field"
+                   value="{{ form_values.name_kannada|default:'' }}" placeholder="ಕನ್ನಡ ಹೆಸರು" tabindex="-1" />
+          </div>
+          <div class="col-md-6 form-group">
+            <label>Place</label>
+            <input type="text" id="address" name="address" class="form-control acc-kb-field"
+                   value="{{ form_values.address|default:'' }}" placeholder="Village / place" tabindex="2" />
+          </div>
+          <div class="col-12 form-group">
+            <label>ವಿಳಾಸ</label>
+            <input type="text" id="address_kannada" name="address_kannada" class="form-control acc-kb-field"
+                   value="{{ form_values.address_kannada|default:'' }}" placeholder="ಕನ್ನಡ ವಿಳಾಸ" tabindex="-1" />
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-info mb-2" id="toggle_bank" tabindex="-1">
+          <i class="fas fa-university mr-1"></i> Bank Details
+        </button>
+        <div id="bank_box">
+          <div class="row">
+            <div class="col-md-4 form-group">
+              <label>Op. Balance</label>
+              <input type="number" step="0.01" name="opening_balance" id="opening_balance" class="form-control acc-kb-field"
+                     value="{{ form_values.opening_balance|default:'0.00' }}" tabindex="-1" />
+            </div>
+            <div class="col-md-2 form-group">
+              <label>Dr / Cr</label>
+              <select name="balance_type" id="balance_type" class="form-control acc-kb-field" tabindex="-1">
+                <option value="Cr" {% if form_values.balance_type == 'Cr' %}selected{% endif %}>Cr</option>
+                <option value="Dr" {% if form_values.balance_type == 'Dr' %}selected{% endif %}>Dr</option>
+              </select>
+            </div>
+            <div class="col-md-3 form-group">
+              <label>IFSC</label>
+              <input type="text" name="ifsc" id="ifsc" class="form-control acc-kb-field" value="{{ form_values.ifsc|default:'' }}" tabindex="-1" />
+            </div>
+            <div class="col-md-3 form-group">
+              <label>A/c No</label>
+              <input type="text" name="account_no" id="account_no" class="form-control acc-kb-field" value="{{ form_values.account_no|default:'' }}" tabindex="-1" />
+            </div>
+            <div class="col-12 form-group">
+              <label>Bank / Branch</label>
+              <input type="text" name="branch_name" id="branch_name" class="form-control acc-kb-field" value="{{ form_values.branch_name|default:'' }}" tabindex="-1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-4 pt-3 border-top">
+          <button type="submit" class="btn btn-save-big" id="saveBtn" tabindex="3"><i class="fas fa-save mr-2"></i>Save</button>
+          <a href="{% url 'farmer_list' %}?date={{ date_value }}" class="btn btn-secondary btn-lg ml-2 px-4" tabindex="-1">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+{% else %}
+  <!-- ══════════ SEPARATE LIST PAGE ══════════ -->
+  <div class="list-header">
+    <h4><i class="fas fa-seedling mr-2"></i>ರೈತ ಲಿಸ್ಟ್ / Farmer List</h4>
+    <span class="badge badge-light px-3 py-2">{{ farmers|length }} records</span>
+  </div>
+
+  <div class="list-card">
+    <div class="list-toolbar">
+      <form method="get" class="d-flex align-items-center flex-wrap" style="gap:8px;">
+        <label class="mb-0 font-weight-bold">Date</label>
+        <input type="date" name="date" class="form-control" value="{{ date_value }}"
+               style="width:160px;" onchange="this.form.submit()" />
+      </form>
+      <form method="get" class="d-flex align-items-center flex-wrap" style="gap:8px;">
+        <input type="hidden" name="date" value="{{ date_value }}" />
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search name / phone..."
+               value="{{ q|default:'' }}" style="width:200px;" />
+        <button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-search"></i></button>
+        {% if q %}
+          <a href="{% url 'farmer_list' %}?date={{ date_value }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+        {% endif %}
+      </form>
+      <a href="{% url 'farmer_list' %}?date={{ date_value }}&add=1" class="btn btn-success ml-auto">
+        <i class="fas fa-plus mr-1"></i> Add Farmer
+      </a>
+    </div>
+    <div class="table-scroll">
+      <table class="acc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Place</th>
+            <th>ಹೆಸರು</th>
+            <th>Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in farmers %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ f.name }}</td>
+            <td>{{ f.phone }}</td>
+            <td>{{ f.address|default:"—" }}</td>
+            <td>{{ f.name_kannada|default:"—" }}</td>
+            <td>{{ f.created_at|date:"H:i" }}</td>
+            <td class="text-nowrap">
+              <a href="{% url 'edit_farmer' f.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+              <a href="{% url 'delete_farmer' f.id %}" class="btn btn-sm btn-danger"
+                 onclick="return confirm('Delete this farmer?');"><i class="fas fa-trash"></i></a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              No farmers found for <strong>{{ date_value }}</strong>
+              &nbsp;—&nbsp;
+              <a href="{% url 'farmer_list' %}?date={{ date_value }}&add=1">Add Farmer</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if show_form %}
+<script>
+  $(function () {
+    var KB_BANK = ['#opening_balance', '#balance_type', '#ifsc', '#account_no', '#branch_name'];
+
+    function highlightField($el) {
+      $('.acc-kb-field, #saveBtn').removeClass('is-active-field');
+      if ($el && $el.length) $el.addClass('is-active-field');
+    }
+
+    function focusField($el) {
+      if (!$el || !$el.length) return;
+      highlightField($el);
+      $el.focus();
+      if ($el.is('input[type="text"], input[type="number"]')) {
+        try { $el[0].select(); } catch (e) {}
+      }
+    }
+
+    function collectFields() {
+      var fields = ['#full_name', '#address'];
+      if ($('#bank_box').is(':visible')) {
+        fields = fields.concat(KB_BANK);
+      }
+      fields.push('#saveBtn');
+      return fields.map(function (s) { return $(s); }).filter(function ($e) { return $e.length; });
+    }
+
+    function focusNextFrom(currentEl) {
+      var fields = collectFields();
+      var $cur = $(currentEl);
+      var idx = -1;
+      fields.forEach(function ($f, i) {
+        if ($f.is($cur) || $f[0] === $cur[0]) idx = i;
+      });
+      if (idx >= 0 && idx < fields.length - 1) {
+        focusField(fields[idx + 1]);
+      } else if (idx === fields.length - 1) {
+        triggerSave();
+      }
+    }
+
+    function validateAndSave() {
+      var name = $('#full_name').val().trim();
+      if (!name) {
+        alert('Name is required.');
+        focusField($('#full_name'));
+        return;
+      }
+      $('#accForm').submit();
+    }
+
+    function triggerSave() { validateAndSave(); }
+
+    function toggleBank(show) {
+      var $box = $('#bank_box');
+      if (show === undefined) show = !$box.is(':visible');
+      if (show) {
+        $box.slideDown(150);
+        setTimeout(function () { focusField($('#opening_balance')); }, 200);
+      } else {
+        $box.slideUp(150);
+      }
+    }
+
+    $('.acc-kb-field').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if ($(this).is('select')) {
+          focusNextFrom(this);
+        } else {
+          focusNextFrom(this);
+        }
+      }
+    }).on('focus', function () { highlightField($(this)); });
+
+    $('#saveBtn').on('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); triggerSave(); }
+    }).on('focus', function () { highlightField($(this)); });
+
+    $(document).on('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault(); triggerSave();
+      } else if (e.key === 'F2') {
+        e.preventDefault(); triggerSave();
+      } else if (e.key === 'F8') {
+        e.preventDefault(); toggleBank(true);
+      }
+    });
+
+    let debounce;
+    $('#full_name').on('keyup', function () {
+      if ($('#auto_translate').is(':checked')) {
+        clearTimeout(debounce);
+        debounce = setTimeout(function () { translateText($('#full_name').val(), 'name_kannada'); }, 500);
+      }
+    });
+    $('#address').on('keyup', function () {
+      if ($('#auto_translate').is(':checked')) {
+        clearTimeout(debounce);
+        debounce = setTimeout(function () { translateText($('#address').val(), 'address_kannada'); }, 500);
+      }
+    });
+    $('#toggle_bank').on('click', function () { toggleBank(); });
+
+    setTimeout(function () { focusField($('#full_name')); }, 300);
+  });
+</script>
+{% endif %}
+{% endblock %}

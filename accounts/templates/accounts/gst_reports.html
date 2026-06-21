@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cess / GST Reports{% endblock %}
+
+{% block content %}
+<section class="content pt-4" style="background: #f4f6f9; min-height: calc(100vh - 57px);">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <!-- Premium Report Card -->
+                <div class="card elevation-4 border-0" style="border-radius: 12px; overflow: hidden; background: #fff;">
+                    <div class="card-header bg-success py-2 px-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;">
+                        <h3 class="card-title mb-0 font-weight-bold text-white small">
+                            <i class="fas fa-file-contract mr-2"></i> {{ system_name }}
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="text-center mb-4">
+                            <h4 class="font-weight-bold text-dark mb-1">Cess and GST Reports</h4>
+                            <p class="text-muted small">Select dates and report type</p>
+                        </div>
+                        
+                        <form id="reportForm">
+                            <div class="row mb-4">
+                                <div class="col-sm-6 col-12 mb-3 mb-sm-0">
+                                    <div class="form-group mb-0">
+                                        <label class="small text-muted font-weight-bold mb-1">From</label>
+                                        <input type="date" name="from_date" class="form-control form-control-sm border-success custom-input" value="{{ from_date }}">
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-12">
+                                    <div class="form-group mb-0">
+                                        <label class="small text-muted font-weight-bold mb-1">To</label>
+                                        <input type="date" name="to_date" class="form-control form-control-sm border-success custom-input" value="{{ to_date }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="report-buttons d-flex flex-column">
+                                <button type="button" class="btn btn-outline-success report-btn mb-2 py-2 font-weight-bold shadow-sm" id="btnCessReport">
+                                    Cess Report
+                                </button>
+                                <button type="button" class="btn btn-outline-success report-btn mb-2 py-2 font-weight-bold shadow-sm" id="btnWeeklyCessReport">
+                                    Weekly Cess Report
+                                </button>
+                                <button type="button" class="btn btn-outline-success report-btn mb-2 py-2 font-weight-bold shadow-sm" id="btnGstReport">
+                                    GST Report
+                                </button>
+                                <button type="button" class="btn btn-outline-success report-btn mb-2 py-2 font-weight-bold shadow-sm" id="btnGstR1">
+                                    GST R1
+                                </button>
+                                <button type="button" class="btn btn-outline-success report-btn mb-2 py-2 font-weight-bold shadow-sm" id="btnPartywiseGst">
+                                    Partywise GST
+                                </button>
+                                <button type="button" class="btn btn-outline-success report-btn mb-4 py-2 font-weight-bold shadow-sm" id="btnMonthwiseGst">
+                                    Monthwise GST
+                                </button>
+                            </div>
+
+                            <div class="whatsapp-box p-3 border rounded shadow-sm" style="background: #f8fcf9; border-color: #d4edda !important;">
+                                <h6 class="text-success font-weight-bold mb-3 small">
+                                    <i class="fab fa-whatsapp mr-1"></i> 10 Digit Mobile Number
+                                </h6>
+                                <div class="input-group input-group-sm mb-3">
+                                    <div class="input-group-prepend">
+                                      <span class="input-group-text bg-success text-white border-success">
+                                        <i class="fas fa-mobile-alt"></i>
+                                      </span>
+                                    </div>
+                                    <input type="text" class="form-control border-success custom-input" placeholder="Enter Mobile Number" maxlength="10">
+                                </div>
+                                <button type="button" class="btn btn-success btn-block btn-sm py-2 font-weight-bold shadow-sm whatsapp-btn">
+                                    Send GST PDF to Whatsapp
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .custom-input {
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    .custom-input:focus {
+        box-shadow: 0 0 0 0.15rem rgba(40, 167, 69, 0.2);
+        border-color: #28a745 !important;
+    }
+    
+    .report-btn {
+        border-radius: 8px;
+        border-width: 1.5px;
+        transition: all 0.2s ease-in-out;
+        background-color: transparent;
+        color: #28a745;
+        font-size: 0.9rem;
+    }
+    
+    .report-btn:hover {
+        background-color: #28a745 !important;
+        color: #fff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(40, 167, 69, 0.15) !important;
+    }
+    
+    .whatsapp-btn {
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .whatsapp-btn:hover {
+        background-color: #218838 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .whatsapp-box {
+        border-radius: 10px;
+    }
+    
+    /* Animation for card entry */
+    .card {
+        animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function generateReport(reportName) {
+        const fromDate = $('input[name="from_date"]').val();
+        const toDate = $('input[name="to_date"]').val();
+        
+        if (!fromDate || !toDate) {
+            toastr.warning('Please select both From and To dates');
+            return;
+        }
+        
+        const url = "{% url 'home' %}".replace('home/', '') + reportName + '/?from_date=' + fromDate + '&to_date=' + toDate;
+        window.location.href = url; // Open in same window to keep dashboard layout
+    }
+
+    $(document).ready(function() {
+        $('#btnCessReport').click(function() {
+            generateReport('cess_report');
+        });
+
+        $('#btnWeeklyCessReport').click(function() {
+            generateReport('weekly_cess_report');
+        });
+        
+        $('#btnGstReport').click(function() {
+            generateReport('detailed_gst_report');
+        });
+
+        $('#btnGstR1').click(function() {
+            generateReport('gstr1_report');
+        });
+
+        $('#btnPartywiseGst').click(function() {
+            generateReport('partywise_gst_report');
+        });
+
+        $('#btnMonthwiseGst').click(function() {
+            generateReport('monthwise_gst_report');
+        });
+
+        // Other buttons that haven't been implemented yet
+        $('.report-btn').not('#btnMonthwiseGst, #btnCessReport, #btnGstReport, #btnWeeklyCessReport, #btnGstR1, #btnPartywiseGst').click(function() {
+             toastr.info('This report is under development');
+        });
+    });
+</script>
+{% endblock %}

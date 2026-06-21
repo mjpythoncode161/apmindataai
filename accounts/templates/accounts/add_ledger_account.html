@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Ledger Account{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6"><h1 class="m-0">Add Ledger Account</h1></div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card card-outline card-primary shadow">
+          <div class="card-header"><h3 class="card-title">New Ledger</h3></div>
+          <form method="post">
+            {% csrf_token %}
+            <div class="card-body">
+              {% if messages %}
+              {% for msg in messages %}
+              <div class="alert alert-danger">{{ msg }}</div>
+              {% endfor %}
+              {% endif %}
+
+              <div class="form-group">
+                <label>Account Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. Rent Expense" required autofocus />
+              </div>
+
+              <div class="form-group">
+                <label>Group / Category <span class="text-danger">*</span></label>
+                <select name="group_id" id="group_id" class="form-control select2-group" style="width:100%" required>
+                  <option value="">-- Select Group --</option>
+                  {% for g in groups %}
+                  <option value="{{ g.id }}">{{ g.name }} ({{ g.nature }})</option>
+                  {% endfor %}
+                </select>
+                <small class="text-muted">Type to search group name or category</small>
+              </div>
+
+              <div class="row">
+                <div class="col-md-8">
+                  <div class="form-group">
+                    <label>Opening Balance</label>
+                    <input type="number" step="0.01" name="opening_balance" class="form-control" placeholder="0.00" value="0" />
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Balance Type</label>
+                    <select name="balance_type" class="form-control">
+                      <option value="Dr">Dr</option>
+                      <option value="Cr">Cr</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer text-right">
+              <a href="{% url 'ledger_master' %}" class="btn btn-secondary mr-2">Cancel</a>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function () {
+  $('#group_id').select2({
+    theme: 'bootstrap4',
+    width: '100%',
+    placeholder: '-- Select Group --',
+    allowClear: true
+  });
+});
+</script>
+{% endblock %}

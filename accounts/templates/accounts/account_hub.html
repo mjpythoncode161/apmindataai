@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಹೊಸ ಖಾತೆ (New Account){% endblock %}
+
+{% block extra_head %}
+<style>
+  .acc-container { padding: 10px; background-color: #f4f6f9; }
+
+  .acc-header {
+    background-color: #343a40; color: white; padding: 8px 15px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 4px; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+  }
+  .acc-header h5 { margin: 0; font-size: 1.1rem; font-weight: bold; }
+
+  .toolbar {
+    background: white; border: 1px solid #dee2e6; border-radius: 4px;
+    padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin-bottom: 8px;
+  }
+
+  /* ── LIST VIEW ── */
+  .lists-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .list-block {
+    background: white; border: 1px solid #dee2e6; border-radius: 4px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .list-block-header {
+    padding: 8px 12px; font-weight: bold; font-size: 0.9rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .list-block-header.farmer { background: #1e7e34; color: white; }
+  .list-block-header.trader { background: #0056b3; color: white; }
+  .list-block-header .count-badge {
+    background: rgba(255,255,255,0.25); border-radius: 10px;
+    padding: 1px 8px; font-size: 0.8rem;
+  }
+  .table-scroll { max-height: 320px; overflow-y: auto; }
+
+  .acc-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .acc-table th {
+    background-color: #343a40; color: white; padding: 7px 8px;
+    text-align: left; border: 1px solid #454d55;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .acc-table td { padding: 5px 8px; border: 1px solid #dee2e6; }
+  .acc-table tr:nth-child(even) { background-color: #f8f9fa; }
+  .acc-table tr:hover { background-color: #e9f5ff; }
+
+  /* ── FORM VIEW ── */
+  .form-wrap {
+    max-width: 520px; margin: 0 auto;
+    background: white; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;
+  }
+  .form-wrap-header {
+    background: #28a745; color: white; padding: 10px 15px;
+    font-weight: bold; font-size: 1rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .form-wrap-body { padding: 15px; }
+
+  .form-group { margin-bottom: 8px; }
+  .form-group label { font-weight: 600; font-size: 0.85rem; margin-bottom: 2px; display: block; }
+  .form-control-sm { height: 32px; padding: 2px 8px; font-size: 0.85rem; }
+  .btn-green { background-color: #28a745; color: white; font-weight: bold; }
+  .btn-green:hover { background-color: #218838; color: white; }
+  .type-toggle .btn { font-size: 0.85rem; }
+  .type-toggle .btn.active { font-weight: bold; }
+  #trader_fields { display: none; border-top: 1px dashed #dee2e6; margin-top: 10px; padding-top: 10px; }
+  #bank_details_section { display: none; border-top: 1px dashed #ced4da; margin-top: 10px; padding-top: 10px; }
+
+  .step-hint {
+    background: #e8f4fd; border: 1px solid #b8daff; border-radius: 4px;
+    padding: 8px 12px; font-size: 0.85rem; color: #004085; margin-bottom: 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="acc-container">
+
+  <!-- Header -->
+  <div class="acc-header">
+    <h5><i class="fas fa-users-cog mr-2"></i>ಹೊಸ ಖಾತೆ (New Account)</h5>
+    <form method="get" class="d-flex align-items-center" style="gap:8px;">
+      <label class="mb-0">Date:</label>
+      <input type="date" name="date" class="form-control form-control-sm"
+             value="{{ date_value }}" style="width:150px;" onchange="this.form.submit()" />
+      {% if show_form %}<input type="hidden" name="add" value="1" />{% endif %}
+      {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
+    </form>
+  </div>
+
+  {% if show_form %}
+  <!-- ════════════════════════════════════════════
+       STEP 2: ADD FORM  (click Add → fill → Save → back to list)
+  ════════════════════════════════════════════ -->
+  <div class="step-hint">
+    <i class="fas fa-arrow-left mr-1"></i>
+    Step 2: Fill the form and click <strong>Save</strong> — you will return to the list automatically.
+  </div>
+
+  <div class="form-wrap">
+    <div class="form-wrap-header">
+      <span><i class="fas fa-plus-circle mr-1"></i> Add New Account / ಹೊಸ ಖಾತೆ</span>
+      <a href="{% url 'account_hub' %}?date={{ date_value }}{% if q %}&q={{ q }}{% endif %}"
+         class="btn btn-sm btn-light">
+        <i class="fas fa-list mr-1"></i> Back to List
+      </a>
+    </div>
+    <div class="form-wrap-body">
+      <form method="post" action="{% url 'account_hub' %}?date={{ date_value }}&add=1" autocomplete="off" id="accountForm">
+        {% csrf_token %}
+        <input type="hidden" name="list_date" value="{{ date_value }}" />
+
+        <div class="form-group">
+          <label>Account Type (ಖಾತೆ ಪ್ರಕಾರ):</label>
+          <div class="btn-group btn-group-sm type-toggle w-100" role="group">
+            <button type="button"
+              class="btn btn-outline-success type-btn {% if account_type != 'trader' %}active{% endif %}"
+              data-type="farmer">
+              <i class="fas fa-seedling mr-1"></i>Farmer / ರೈತ
+            </button>
+            <button type="button"
+              class="btn btn-outline-primary type-btn {% if account_type == 'trader' %}active{% endif %}"
+              data-type="trader">
+              <i class="fas fa-store mr-1"></i>Trader / ವ್ಯಾಪಾರಿ
+            </button>
+          </div>
+          <input type="hidden" name="account_type" id="account_type" value="{{ account_type|default:'farmer' }}" />
+        </div>
+
+        <div class="text-right mb-2">
+          <div class="custom-control custom-checkbox d-inline-block">
+            <input class="custom-control-input" type="checkbox" id="auto_translate" checked>
+            <label for="auto_translate" class="custom-control-label text-primary" style="font-size:0.8rem;">Auto Translate</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Full Name:</label>
+          <input type="text" id="full_name" name="full_name" class="form-control form-control-sm"
+                 placeholder="Enter name" value="{{ form_values.name|default:'' }}" required autofocus />
+        </div>
+        <div class="form-group">
+          <label>ಹೆಸರು (Kannada):</label>
+          <input type="text" id="name_kannada" name="name_kannada" class="form-control form-control-sm"
+                 value="{{ form_values.name_kannada|default:'' }}" />
+        </div>
+        <div class="form-group">
+          <label>Contact No.:</label>
+          <input type="text" id="contact" name="contact" class="form-control form-control-sm"
+                 placeholder="Phone number" value="{{ form_values.phone|default:'' }}" required />
+        </div>
+        <div class="form-group">
+          <label>Address / Place:</label>
+          <input type="text" id="address" name="address" class="form-control form-control-sm"
+                 value="{{ form_values.address|default:'' }}" />
+        </div>
+        <div class="form-group">
+          <label>ವಿಳಾಸ (Kannada):</label>
+          <input type="text" id="address_kannada" name="address_kannada" class="form-control form-control-sm"
+                 value="{{ form_values.address_kannada|default:'' }}" />
+        </div>
+
+        <div id="trader_fields">
+          <div class="row">
+            <div class="col-6 form-group">
+              <label>Short Code:</label>
+              <input type="text" name="short_code" class="form-control form-control-sm"
+                     value="{{ form_values.short_code|default:'' }}" />
+            </div>
+            <div class="col-6 form-group">
+              <label>PAN:</label>
+              <input type="text" name="pan" class="form-control form-control-sm"
+                     value="{{ form_values.pan|default:'' }}" />
+            </div>
+            <div class="col-6 form-group">
+              <label>GSTIN:</label>
+              <input type="text" name="gstin" class="form-control form-control-sm"
+                     value="{{ form_values.gstin|default:'' }}" />
+            </div>
+            <div class="col-6 form-group">
+              <label>PIN:</label>
+              <input type="text" name="pin" class="form-control form-control-sm"
+                     value="{{ form_values.pin|default:'581106' }}" />
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-info btn-sm btn-block mb-2" id="toggle_bank_details">
+          <i class="fas fa-university mr-1"></i> Show Bank Details
+        </button>
+        <div id="bank_details_section">
+          <div class="form-group">
+            <label>Opening Balance:</label>
+            <div class="input-group input-group-sm">
+              <input type="number" step="0.01" name="opening_balance" class="form-control"
+                     value="{{ form_values.opening_balance|default:'0.00' }}" />
+              <select name="balance_type" class="form-control" style="max-width:65px;">
+                <option value="Cr" {% if form_values.balance_type == 'Cr' %}selected{% endif %}>Cr</option>
+                <option value="Dr" {% if form_values.balance_type == 'Dr' %}selected{% endif %}>Dr</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6 form-group">
+              <label>IFSC:</label>
+              <input type="text" name="ifsc" class="form-control form-control-sm" value="{{ form_values.ifsc|default:'' }}" />
+            </div>
+            <div class="col-6 form-group">
+              <label>A/c No:</label>
+              <input type="text" name="account_no" class="form-control form-control-sm" value="{{ form_values.account_no|default:'' }}" />
+            </div>
+            <div class="col-12 form-group">
+              <label>Bank / Branch:</label>
+              <input type="text" name="branch_name" class="form-control form-control-sm" value="{{ form_values.branch_name|default:'' }}" />
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3" style="gap:8px;">
+          <button type="submit" class="btn btn-green flex-fill">
+            <i class="fas fa-save mr-1"></i> Save &amp; Go to List
+          </button>
+          <a href="{% url 'account_hub' %}?date={{ date_value }}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- ════════════════════════════════════════════
+       STEP 1: LIST VIEW  (page opens here first)
+  ════════════════════════════════════════════ -->
+  <div class="step-hint">
+    <i class="fas fa-list mr-1"></i>
+    Step 1: Select date to see today's accounts. Click <strong>Add New</strong> to enter a new account.
+  </div>
+
+  <!-- Toolbar: search + add buttons -->
+  <div class="toolbar">
+    <form method="get" class="d-flex align-items-center" style="gap:8px;">
+      <input type="hidden" name="date" value="{{ date_value }}" />
+      <i class="fas fa-search text-muted"></i>
+      <input type="text" name="q" class="form-control form-control-sm"
+             placeholder="Search name or phone..." value="{{ q|default:'' }}" style="width:200px;" />
+      <button type="submit" class="btn btn-sm btn-secondary">Search</button>
+      {% if q %}
+        <a href="{% url 'account_hub' %}?date={{ date_value }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+      {% endif %}
+    </form>
+    <span class="text-muted ml-2" style="font-size:0.85rem;">
+      Date: <strong>{{ date_value }}</strong>
+    </span>
+    <div class="ml-auto d-flex" style="gap:6px;">
+      <a href="{% url 'account_hub' %}?date={{ date_value }}&add=1&type=farmer"
+         class="btn btn-sm btn-success">
+        <i class="fas fa-plus mr-1"></i> Add Farmer
+      </a>
+      <a href="{% url 'account_hub' %}?date={{ date_value }}&add=1&type=trader"
+         class="btn btn-sm btn-primary">
+        <i class="fas fa-plus mr-1"></i> Add Trader
+      </a>
+    </div>
+  </div>
+
+  <div class="lists-wrap">
+
+    <!-- Farmer List -->
+    <div class="list-block">
+      <div class="list-block-header farmer">
+        <span><i class="fas fa-seedling mr-1"></i> ರೈತರ ಲಿಸ್ಟ್ / Farmer List</span>
+        <span class="count-badge">{{ farmers|length }} records</span>
+      </div>
+      <div class="table-scroll">
+        <table class="acc-table">
+          <thead>
+            <tr>
+              <th style="width:35px;">#</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>ಹೆಸರು</th>
+              <th style="width:50px;">Time</th>
+              <th style="width:70px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in farmers %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ f.name }}</td>
+              <td>{{ f.phone }}</td>
+              <td>{{ f.address|default:"—" }}</td>
+              <td>{{ f.name_kannada|default:"—" }}</td>
+              <td>{{ f.created_at|date:"H:i" }}</td>
+              <td>
+                <a href="{% url 'edit_farmer' f.id %}" class="btn btn-xs btn-primary py-0"><i class="fas fa-edit"></i></a>
+                <a href="{% url 'delete_farmer' f.id %}" class="btn btn-xs btn-danger py-0"
+                   onclick="return confirm('Delete this farmer?');"><i class="fas fa-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                No farmers on {{ date_value }} —
+                <a href="{% url 'account_hub' %}?date={{ date_value }}&add=1&type=farmer">Add Farmer</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Trader List -->
+    <div class="list-block">
+      <div class="list-block-header trader">
+        <span><i class="fas fa-store mr-1"></i> ವ್ಯಾಪಾರಿ ಲಿಸ್ಟ್ / Trader List</span>
+        <span class="count-badge">{{ traders|length }} records</span>
+      </div>
+      <div class="table-scroll">
+        <table class="acc-table">
+          <thead>
+            <tr>
+              <th style="width:35px;">#</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Short Code</th>
+              <th>ಹೆಸರು</th>
+              <th style="width:50px;">Time</th>
+              <th style="width:70px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in traders %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ t.name }}</td>
+              <td>{{ t.phone }}</td>
+              <td>{{ t.short_code|default:"—" }}</td>
+              <td>{{ t.name_kannada|default:"—" }}</td>
+              <td>{{ t.created_at|date:"H:i" }}</td>
+              <td>
+                <a href="{% url 'edit_trader' t.id %}" class="btn btn-xs btn-primary py-0"><i class="fas fa-edit"></i></a>
+                <a href="{% url 'delete_trader' t.id %}" class="btn btn-xs btn-danger py-0"
+                   onclick="return confirm('Delete this trader?');"><i class="fas fa-trash"></i></a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                No traders on {{ date_value }} —
+                <a href="{% url 'account_hub' %}?date={{ date_value }}&add=1&type=trader">Add Trader</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  $(function () {
+    {% if show_form %}
+    let debounce;
+
+    function setAccountType(type) {
+      $("#account_type").val(type);
+      $(".type-btn").removeClass("active");
+      $('.type-btn[data-type="' + type + '"]').addClass("active");
+      if (type === "trader") {
+        $("#trader_fields").slideDown(150);
+      } else {
+        $("#trader_fields").slideUp(150);
+      }
+    }
+
+    setAccountType($("#account_type").val() || "farmer");
+
+    $(".type-btn").on("click", function () {
+      setAccountType($(this).data("type"));
+    });
+
+    $("#full_name").on("keyup", function () {
+      if ($("#auto_translate").is(":checked")) {
+        clearTimeout(debounce);
+        debounce = setTimeout(function () { translateText($("#full_name").val(), "name_kannada"); }, 500);
+      }
+    });
+
+    $("#address").on("keyup", function () {
+      if ($("#auto_translate").is(":checked")) {
+        clearTimeout(debounce);
+        debounce = setTimeout(function () { translateText($("#address").val(), "address_kannada"); }, 500);
+      }
+    });
+
+    $("#toggle_bank_details").on("click", function () {
+      $("#bank_details_section").slideToggle(function () {
+        const visible = $(this).is(":visible");
+        $("#toggle_bank_details").html(
+          visible
+            ? '<i class="fas fa-times"></i> Hide Bank Details'
+            : '<i class="fas fa-university mr-1"></i> Show Bank Details'
+        );
+      });
+    });
+    {% endif %}
+  });
+</script>
+{% endblock %}

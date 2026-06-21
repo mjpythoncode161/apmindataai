@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Monthwise Report{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  .ledger-report-toggle .btn { font-weight: 600; }
+  .monthwise-title {
+    background: #343a40;
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .monthwise-account {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-top: 0;
+    padding: 10px 16px;
+    font-weight: 600;
+    color: #0056b3;
+    font-size: 1rem;
+  }
+  .monthwise-table thead th {
+    background: #343a40 !important;
+    color: #fff !important;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle !important;
+  }
+  .monthwise-table tbody td {
+    text-align: right;
+    font-size: 0.9rem;
+    vertical-align: middle !important;
+  }
+  .monthwise-table tbody td:first-child,
+  .monthwise-table tbody td:nth-child(2),
+  .monthwise-table tbody td:last-child {
+    text-align: center;
+  }
+  .monthwise-table tbody tr:nth-child(even) td {
+    background: #f8f9fa !important;
+  }
+  .monthwise-print-btn {
+    background: #17a2b8;
+    border-color: #17a2b8;
+    color: #fff;
+    min-width: 120px;
+    font-weight: 600;
+    padding: 10px 28px;
+  }
+  .monthwise-print-btn:hover {
+    background: #138496;
+    border-color: #117a8b;
+    color: #fff;
+  }
+  @media print {
+    .no-print { display: none !important; }
+    .content-header { display: none !important; }
+    .monthwise-card { box-shadow: none !important; border: none !important; }
+    .monthwise-table thead th,
+    .monthwise-table tbody td {
+      background: #fff !important;
+      color: #000 !important;
+      border: 1px solid #000 !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header no-print">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6"><h1 class="m-0">Monthwise Report</h1></div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    {% include 'accounts/includes/ledger_report_toggle.html' with active_tab='monthwise' ledger_id=ledger_id fy_start=fy_start %}
+
+    <div class="card card-outline card-info shadow mb-3 no-print">
+      <div class="card-header"><h5 class="card-title mb-0">Select Financial Year &amp; Ledger</h5></div>
+      <div class="card-body">
+        <form method="get" action="{% url 'ledger_monthwise' %}">
+          <div class="row align-items-end">
+            <div class="col-md-3 col-sm-6 mb-2">
+              <label class="font-weight-bold">Financial Year:</label>
+              <select name="fy" class="form-control">
+                {% for y in fy_choices %}
+                <option value="{{ y }}" {% if fy_start == y %}selected{% endif %}>April {{ y }} – March {{ y|add:1 }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 col-sm-12 mb-2">
+              <label class="font-weight-bold">Ledger / Account:</label>
+              <select name="ledger_id" class="form-control" id="ledgerSelect" style="width:100%" required>
+                <option value="">-- Select Ledger --</option>
+                {% if farmers %}
+                <optgroup label="🌾 Farmers (ರೈತರು)">
+                  {% for f in farmers %}
+                  <option value="farmer:{{ f.id }}" {% if selected_farmer and selected_farmer.id == f.id %}selected{% endif %}>{{ f.name }}</option>
+                  {% endfor %}
+                </optgroup>
+                {% endif %}
+                {% if traders %}
+                <optgroup label="🏪 Traders (ವ್ಯಾಪಾರಿಗಳು)">
+                  {% for t in traders %}
+                  <option value="trader:{{ t.id }}" {% if selected_trader and selected_trader.id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                  {% endfor %}
+                </optgroup>
+                {% endif %}
+                {% regroup ledger_accounts by group_nature as grouped_ledgers %}
+                {% for group_entry in grouped_ledgers %}
+                <optgroup label="{{ group_entry.grouper }}">
+                  {% for la in group_entry.list %}
+                  <option value="{{ la.id }}" {% if selected_ledger and selected_ledger.id == la.id %}selected{% endif %}>{{ la.name }}</option>
+                  {% endfor %}
+                </optgroup>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-2">
+              <label class="d-none d-md-block">&nbsp;</label>
+              <button type="submit" class="btn btn-info btn-block font-weight-bold">
+                <i class="fas fa-search mr-1"></i> View Report
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if ledger_id and monthwise_rows %}
+    <div class="card shadow monthwise-card">
+      <div class="monthwise-title">Monthwise Summary — {{ fy_label }}</div>
+      <div class="monthwise-account">{{ account_display_name }}</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm mb-0 monthwise-table">
+            <thead>
+              <tr>
+                <th style="width:60px;">S No</th>
+                <th style="width:110px;">Month</th>
+                <th>Opening Balance</th>
+                <th>Credit</th>
+                <th>Debit</th>
+                <th>Closing Balance</th>
+                <th style="width:120px;">EndDate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in monthwise_rows %}
+              <tr>
+                <td>{{ row.sno }}</td>
+                <td>{{ row.month }}</td>
+                <td>{{ row.opening|floatformat:2 }}</td>
+                <td>{{ row.credit|floatformat:2 }}</td>
+                <td>{{ row.debit|floatformat:2 }}</td>
+                <td>{{ row.closing|floatformat:2 }}</td>
+                <td>{{ row.end_date }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer text-right no-print py-3">
+        <button type="button" class="btn monthwise-print-btn" onclick="window.print()">Print</button>
+      </div>
+    </div>
+
+    {% elif ledger_id %}
+    <div class="alert alert-warning">Could not load monthwise data for this account.</div>
+
+    {% else %}
+    <div class="alert alert-secondary no-print">
+      <i class="fas fa-info-circle mr-1"></i>
+      Select a <strong>Financial Year</strong> and <strong>Ledger</strong>, then click <strong>View Report</strong>.
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+$(function () {
+  $('#ledgerSelect').select2({ theme: 'bootstrap4', width: '100%', placeholder: '-- Select Ledger --' });
+});
+</script>
+{% endblock %}

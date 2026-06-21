@@ -1,0 +1,1095 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಲಾಟ್ ವಿವರ ತಿದ್ದುಪಡಿ (Lot Detail Modification){% endblock %}
+
+{% block extra_head %}
+<style>
+  .mod-card {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    height: 100%;
+    min-height: 550px;
+  }
+  .mod-header {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mod-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 10px;
+  }
+  .mod-table th, .mod-table td {
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .mod-table th {
+    background: #343a40;
+    color: #fff;
+    font-weight: 600;
+  }
+  .mod-table tbody tr:nth-child(even) {
+    background: #f8f9fa;
+  }
+  .mod-table tbody tr.row-selected {
+    background: #cce5ff !important;
+    font-weight: 600;
+  }
+  .form-row-sm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .form-row-sm label {
+    min-width: 90px;
+    margin-bottom: 0;
+    font-weight: 600;
+    font-size: 0.88rem;
+  }
+  .form-row-sm input, .form-row-sm select {
+    flex: 1;
+  }
+  .btn-green-badge {
+    background: #28a745;
+    color: #fff;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+  .scroll-table-container {
+    max-height: 420px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .tender-records-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #495057;
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+  .btn-transfer {
+    background: #5eb62d;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    padding: 8px 15px;
+    width: 100%;
+    margin-top: 12px;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .btn-transfer:hover {
+    background: #4da31e;
+    color: #fff;
+  }
+  .btn-toggle-bags {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .pdf-preview-table tbody tr.row-invalid {
+    background: #ffe5e5 !important;
+  }
+  .pdf-preview-table tbody tr.row-valid {
+    background: #f0fff4 !important;
+  }
+  .pdf-upload-bar {
+    background: #f8f9fa;
+    border: 1px dashed #6c757d;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .pdf-preview-table .form-control-sm {
+    min-width: 70px;
+    font-size: 0.82rem;
+    padding: 2px 4px;
+    height: auto;
+  }
+  .pdf-preview-table .pdf-buyer-select {
+    min-width: 110px;
+    max-width: 140px;
+  }
+  .pdf-preview-table td.text-left {
+    text-align: left !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+  <div class="content-header py-2">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1 class="m-0" style="font-size:1.3rem; font-weight:700;">ಲಾಟ್ ವಿವರ ತಿದ್ದುಪಡಿ <small class="text-muted">(Lot Detail Modification)</small></h1>
+        <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-bags" id="btn_toggle_bag_details">
+          <i class="fas fa-eye mr-1"></i> Show Bag Details
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="btn_upload_pdf">
+          <i class="fas fa-file-pdf mr-1"></i> Upload PDF
+        </button>
+        <input type="file" id="pdf_file_input" accept=".pdf,application/pdf" class="d-none">
+        <span class="badge badge-secondary py-1 px-2" style="font-size:0.9rem;">MSBC-2026-27</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+      <!-- COLUMN 1: Tender Rate Update -->
+      <div class="col-lg-6 col-md-12 mb-3 mod-col" id="col_tender">
+        <div class="mod-card">
+          <div class="mod-header">
+            <span>Tender Rate Update</span>
+            <button type="button" class="btn-green-badge">Lot Wise</button>
+          </div>
+
+          <div class="pdf-upload-bar">
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+              <small class="text-muted mb-0">
+                <i class="fas fa-info-circle mr-1"></i>
+                Upload APMC tender PDF to auto-fill Trade Date, Lot, Rate &amp; Buyer
+              </small>
+              <button type="button" class="btn btn-sm btn-primary mt-1 mt-md-0" id="btn_upload_pdf_inline">
+                <i class="fas fa-upload mr-1"></i> Choose PDF
+              </button>
+            </div>
+          </div>
+
+          <div class="form-row-sm">
+            <label>Date:</label>
+            <input type="date" id="left_date" class="form-control form-control-sm" value="{{ today }}">
+          </div>
+          <div class="form-row-sm">
+            <label>Lot No:</label>
+            <select id="left_lot_no" class="form-control form-control-sm select2-lot">
+              <option value="">-- Select Lot --</option>
+            </select>
+          </div>
+          <div class="form-row-sm">
+            <label>Rate:</label>
+            <input type="number" step="0.01" min="0" id="left_rate" class="form-control form-control-sm" placeholder="Enter rate">
+          </div>
+          <div class="form-row-sm">
+            <label>Buyer Code:</label>
+            <select id="left_buyer_select" class="form-control form-control-sm select2-buyer">
+              <option value="">-- Select Buyer --</option>
+              {% for t in traders %}
+              <option value="{{ t.id }}">{{ t.short_code|default:t.name }} - {{ t.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-primary mt-1" id="btn_save_tender" style="width:100%; font-weight:bold;">
+            <i class="fas fa-save mr-1"></i> Save Rate & Buyer
+          </button>
+
+          <div class="tender-records-title">All Lots — Rate & Buyer Records</div>
+          <div class="scroll-table-container">
+            <table class="mod-table">
+              <thead>
+                <tr>
+                  <th style="width:50px;">S.No</th>
+                  <th>Lot No</th>
+                  <th>Rate</th>
+                  <th>Trader</th>
+                </tr>
+              </thead>
+              <tbody id="left_table_body">
+                <tr>
+                  <td colspan="4" class="text-muted text-center py-4">No lots loaded</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN 2: Summarized Lots -->
+      <div class="col-lg-6 col-md-12 mb-3 mod-col" id="col_summary">
+        <div class="mod-card">
+          <div class="mod-header">
+            <span>No of Bags Selected: <span id="bags_selected_count" class="text-danger">0</span></span>
+          </div>
+
+          <div class="form-row-sm mb-3">
+            <label style="min-width:110px;">Average Weight:</label>
+            <input type="text" id="avg_weight_disp" class="form-control form-control-sm font-weight-bold text-center text-primary" style="font-size:1.1rem; max-width:100px;" value="0" readonly>
+          </div>
+
+          <div class="scroll-table-container" style="max-height: 430px;">
+            <table class="mod-table">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Lot No</th>
+                  <th>Bags</th>
+                  <th>Weight</th>
+                  <th>Rate</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody id="middle_table_body">
+                <tr>
+                  <td colspan="6" class="text-muted text-center py-4">Select date to view all lots</td>
+                </tr>
+              </tbody>
+              <tfoot id="middle_table_foot" class="d-none">
+                <tr style="background:#e9ecef; font-weight:700;">
+                  <td colspan="5" class="text-right">Total Amount:</td>
+                  <td id="middle_total_amount">0.00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN 3: Bag Details & Transfer (toggle show/hide) -->
+      <div class="col-lg-4 col-md-12 mb-3 d-none mod-col" id="col_bag_details">
+        <div class="mod-card">
+          <div class="mod-header">
+            <span>Bag Details Table</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn_hide_bag_details" title="Hide section">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="row mb-2">
+            <div class="col-6">
+              <div class="form-group mb-1">
+                <label class="small font-weight-bold">Date:</label>
+                <input type="date" id="right_date" class="form-control form-control-sm" value="{{ today }}">
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-group mb-1">
+                <label class="small font-weight-bold">Lot No:</label>
+                <select id="right_lot_no" class="form-control form-control-sm select2-lot">
+                  <option value="">-- Select Lot --</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="scroll-table-container" style="max-height: 310px;">
+            <table class="mod-table">
+              <thead>
+                <tr>
+                  <th>S.No</th>
+                  <th>Weight</th>
+                  <th>Trader</th>
+                  <th>Selected</th>
+                </tr>
+              </thead>
+              <tbody id="right_table_body">
+                <tr>
+                  <td colspan="4" class="text-muted text-center py-4">Select date & lot to load bags</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-3">
+            <div class="form-group mb-2">
+              <label class="small font-weight-bold">Select Buyer :</label>
+              <select id="target_buyer_select" class="form-control form-control-sm select2-trader">
+                <option value="">-- Choose Trader --</option>
+                {% for t in traders %}
+                <option value="{{ t.id }}">{{ t.short_code }} - {{ t.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="custom-control custom-checkbox mt-2">
+              <input type="checkbox" class="custom-control-input" id="select_all_checkbox">
+              <label class="custom-control-label font-weight-bold" for="select_all_checkbox">Select All</label>
+            </div>
+
+            <button type="button" class="btn btn-transfer" id="btn_transfer_weight">
+              <i class="fas fa-exchange-alt mr-1"></i> Transfer Weight
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PDF Preview Modal -->
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" role="dialog" aria-labelledby="pdfPreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="pdfPreviewModalLabel">
+          <i class="fas fa-file-pdf mr-2"></i>PDF Extracted Data — Review &amp; Confirm
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info py-2 mb-3" id="pdf_preview_summary">
+          Review and <strong>edit</strong> Lot No, Trade Price, Buyer Code, or Bags if needed, then confirm.
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Trade Date:</strong> <span id="pdf_trade_date_disp">—</span>
+          </div>
+          <div class="col-md-4">
+            <strong>Total Lots:</strong> <span id="pdf_total_lots">0</span>
+          </div>
+          <div class="col-md-4">
+            <strong>Valid / Invalid:</strong>
+            <span id="pdf_valid_count" class="text-success">0</span> /
+            <span id="pdf_invalid_count" class="text-danger">0</span>
+          </div>
+        </div>
+        <div class="scroll-table-container" style="max-height: 420px;">
+          <table class="mod-table pdf-preview-table">
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Lot Code</th>
+                <th>Lot No</th>
+                <th>Trade Price</th>
+                <th>Buyer (PDF)</th>
+                <th>Buyer Code</th>
+                <th>Bags</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="pdf_preview_body">
+              <tr><td colspan="8" class="text-muted text-center py-4">No data</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="pdf_preview_errors" class="alert alert-danger mt-3 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-primary" id="btn_revalidate_pdf">
+          <i class="fas fa-sync mr-1"></i> Re-validate
+        </button>
+        <button type="button" class="btn btn-success" id="btn_confirm_pdf_import" disabled>
+          <i class="fas fa-check mr-1"></i> Confirm &amp; Update AVAK
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  $(function() {
+    $('.select2-lot').select2({
+      theme: 'bootstrap4',
+      placeholder: '-- Select Lot --'
+    });
+
+    $('.select2-buyer').select2({
+      theme: 'bootstrap4',
+      placeholder: '-- Select Buyer --',
+      allowClear: true
+    });
+
+    $('.select2-trader').select2({
+      theme: 'bootstrap4',
+      placeholder: '-- Choose Trader --',
+      allowClear: true
+    });
+
+    let allLotsForDate = [];
+    let currentBags = [];
+    let bagDetailsVisible = false;
+    const DEFAULT_AVG_BAG_WEIGHT = {{ default_avg_bag_weight|default:"30" }};
+
+    function estimatedWeightFromBags(bagCount, avgWeight) {
+      const bags = parseInt(bagCount, 10) || 0;
+      const avg = parseFloat(avgWeight);
+      const perBag = !isNaN(avg) && avg > 0 ? avg : DEFAULT_AVG_BAG_WEIGHT;
+      return bags * perBag;
+    }
+
+    function setBagDetailsVisible(show) {
+      bagDetailsVisible = !!show;
+      if (bagDetailsVisible) {
+        $('#col_bag_details').removeClass('d-none');
+        $('#col_tender, #col_summary').removeClass('col-lg-6').addClass('col-lg-4');
+        $('#btn_toggle_bag_details').html('<i class="fas fa-eye-slash mr-1"></i> Hide Bag Details');
+      } else {
+        $('#col_bag_details').addClass('d-none');
+        $('#col_tender, #col_summary').removeClass('col-lg-4').addClass('col-lg-6');
+        $('#btn_toggle_bag_details').html('<i class="fas fa-eye mr-1"></i> Show Bag Details');
+      }
+    }
+
+    $('#btn_toggle_bag_details, #btn_hide_bag_details').on('click', function() {
+      setBagDetailsVisible(!bagDetailsVisible);
+      if (bagDetailsVisible && $('#left_lot_no').val()) {
+        renderBagDetailsTable();
+      }
+    });
+
+    function getBuyerCodeLabel() {
+      const $opt = $('#left_buyer_select option:selected');
+      if (!$opt.val()) return '';
+      const text = $opt.text();
+      return text.split(' - ')[0] || text;
+    }
+
+    function setLeftBuyer(buyerId) {
+      $('#left_buyer_select').val(buyerId ? String(buyerId) : '').trigger('change.select2');
+    }
+
+    function formatRate(rate) {
+      const n = parseFloat(rate);
+      return isNaN(n) ? '0.00' : n.toFixed(2);
+    }
+
+    function getTenderRateFromStorage(date, lotNo) {
+      try {
+        const saved = localStorage.getItem('tender_rates_' + date);
+        if (!saved) return null;
+        const data = JSON.parse(saved);
+        if (data[lotNo] && data[lotNo].rate !== undefined && data[lotNo].rate !== '') {
+          const r = parseFloat(data[lotNo].rate);
+          return isNaN(r) ? null : r;
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function resolveAvakRate(res, date, lotNo) {
+      let rate = parseFloat(res.rate);
+      if (isNaN(rate) || rate === 0) {
+        const stored = getTenderRateFromStorage(date, lotNo);
+        if (stored !== null) rate = stored;
+      }
+      return isNaN(rate) ? 0 : rate;
+    }
+
+    function resolveLotRate(lot, date, selectedLot) {
+      let rate = resolveAvakRate({ rate: lot.rate }, date, lot.lot_number);
+      if (selectedLot && String(lot.lot_number) === String(selectedLot)) {
+        const formRate = $('#left_rate').val();
+        if (formRate !== '') rate = parseFloat(formRate) || rate;
+      }
+      return rate;
+    }
+
+    function buildAllLotsSummary(selectedLot) {
+      const date = $('#left_date').val();
+      if (!date || !allLotsForDate.length) {
+        clearSummaryPanel(date ? 'No lots for this date' : 'Select date to view all lots');
+        return;
+      }
+
+      let html = '';
+      let totalAmount = 0;
+
+      allLotsForDate.forEach(function(lot, idx) {
+        const lotNo = lot.lot_number;
+        const rate = resolveLotRate(lot, date, selectedLot);
+        const bags = parseInt(lot.no_of_bags, 10) || 0;
+        const weight = estimatedWeightFromBags(bags, DEFAULT_AVG_BAG_WEIGHT);
+        const amount = (weight / 100) * rate;
+        totalAmount += amount;
+
+        const isSelected = selectedLot && String(lotNo) === String(selectedLot);
+        const rowClass = isSelected ? 'row-selected' : '';
+
+        html += `<tr class="${rowClass}" data-summary-lot="${lotNo}" style="cursor:pointer;">
+          <td>${idx + 1}</td>
+          <td>${lotNo}</td>
+          <td>${bags}</td>
+          <td>${weight.toFixed(2)}</td>
+          <td>${parseFloat(rate) > 0 ? formatRate(rate) : '—'}</td>
+          <td>${amount.toFixed(2)}</td>
+        </tr>`;
+      });
+
+      $('#middle_table_body').html(html);
+      $('#avg_weight_disp').val(DEFAULT_AVG_BAG_WEIGHT);
+      $('#middle_total_amount').text(totalAmount.toFixed(2));
+      $('#middle_table_foot').toggleClass('d-none', allLotsForDate.length === 0);
+      if (!selectedLot) {
+        $('#bags_selected_count').text('0');
+      } else {
+        updateSelectedCount();
+      }
+    }
+
+    function buildTenderRecordsTable(selectedLot) {
+      selectedLot = selectedLot || $('#left_lot_no').val();
+      if (!allLotsForDate.length) {
+        $('#left_table_body').html('<tr><td colspan="4" class="text-muted text-center py-4">No lots for this date</td></tr>');
+        return;
+      }
+
+      let html = '';
+      allLotsForDate.forEach(function(lot, idx) {
+        const isSelected = String(lot.lot_number) === String(selectedLot);
+        let rate = lot.rate || 0;
+        let trader = lot.buyer_name || '-';
+
+        if (isSelected) {
+          const formRate = $('#left_rate').val();
+          const formTrader = getBuyerCodeLabel();
+          if (formRate !== '') rate = parseFloat(formRate) || rate;
+          if (formTrader) trader = formTrader;
+        }
+
+        const rowClass = isSelected ? 'row-selected' : '';
+        const rateDisplay = parseFloat(rate) > 0 ? formatRate(rate) : '—';
+        const traderDisplay = trader && trader !== '-' ? trader : '—';
+
+        html += `<tr class="${rowClass}" data-lot="${lot.lot_number}" style="cursor:pointer;">
+          <td>${idx + 1}</td>
+          <td>${lot.lot_number}</td>
+          <td>${rateDisplay}</td>
+          <td>${traderDisplay}</td>
+        </tr>`;
+      });
+      $('#left_table_body').html(html);
+    }
+
+    function populateLotsForDate(date, selectedLot) {
+      $.getJSON("{% url 'get_lots_by_date' %}", { date: date }, function(res) {
+        allLotsForDate = res.results || [];
+
+        let options = '<option value="">-- Select Lot --</option>';
+        allLotsForDate.forEach(function(lot) {
+          const pending = lot.has_bikri ? '' : ' [Bikri pending]';
+          options += `<option value="${lot.lot_number}">${lot.lot_number} (${lot.buyer_name})${pending}</option>`;
+        });
+
+        $('#left_lot_no').html(options);
+        $('#right_lot_no').html(options);
+
+        if (selectedLot) {
+          $('#left_lot_no').val(selectedLot);
+          $('#right_lot_no').val(selectedLot);
+        }
+
+        $('#left_lot_no, #right_lot_no').trigger('change.select2');
+        buildTenderRecordsTable(selectedLot || $('#left_lot_no').val());
+
+        const activeLot = selectedLot || $('#left_lot_no').val() || '';
+        if (activeLot) {
+          loadLotSummary(activeLot);
+        } else {
+          buildAllLotsSummary('');
+          $('#left_rate').val('');
+          setLeftBuyer('');
+          renderBagDetailsTable('Select a lot to load bag weights.');
+        }
+      });
+    }
+
+    function clearSummaryPanel(message) {
+      $('#middle_table_body').html(`<tr><td colspan="6" class="text-muted text-center py-4">${message || 'No summary data'}</td></tr>`);
+      $('#avg_weight_disp').val('0');
+      $('#bags_selected_count').text('0');
+      $('#middle_table_foot').addClass('d-none');
+    }
+
+    function populateLeftPanel(lotNo, rate, buyerId) {
+      $('#left_rate').val(rate ? formatRate(rate) : '');
+      setLeftBuyer(buyerId || '');
+      buildTenderRecordsTable(lotNo);
+    }
+
+    function renderBagDetailsTable(pendingMessage) {
+      if (pendingMessage) {
+        $('#right_table_body').html(`<tr><td colspan="4" class="text-muted text-center py-4">${pendingMessage}</td></tr>`);
+        return;
+      }
+      let rightHtml = '';
+      if (currentBags.length > 0) {
+        currentBags.forEach(function(b) {
+          rightHtml += `<tr>
+            <td>${b.bag_no}</td>
+            <td>${b.weight.toFixed(2)}</td>
+            <td>${b.trader}</td>
+            <td>
+              <input type="checkbox" class="bag-checkbox" data-id="${b.id}" style="transform: scale(1.2); cursor:pointer;">
+            </td>
+          </tr>`;
+        });
+      } else {
+        rightHtml = `<tr><td colspan="4" class="text-muted text-center py-4">No bags found for this lot</td></tr>`;
+      }
+      $('#right_table_body').html(rightHtml);
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const count = $('.bag-checkbox:checked').length;
+      const lotNo = $('#left_lot_no').val();
+      const lotMeta = allLotsForDate.find(function(l) { return String(l.lot_number) === String(lotNo); });
+      const totalBags = lotMeta ? lotMeta.no_of_bags : currentBags.length;
+      if (totalBags && currentBags.length === 0) {
+        $('#bags_selected_count').text('0 / ' + totalBags);
+      } else if (totalBags) {
+        $('#bags_selected_count').text(count + ' / ' + totalBags);
+      } else {
+        $('#bags_selected_count').text(count);
+      }
+    }
+    function loadLotSummary(lotNo) {
+      const date = $('#left_date').val();
+      lotNo = lotNo || $('#left_lot_no').val();
+
+      if (!date) {
+        clearSummaryPanel('Select date to view all lots');
+        $('#left_rate').val('');
+        setLeftBuyer('');
+        buildTenderRecordsTable('');
+        renderBagDetailsTable('Select date and lot number');
+        return;
+      }
+
+      buildAllLotsSummary(lotNo || '');
+
+      if (!lotNo) {
+        $('#left_rate').val('');
+        setLeftBuyer('');
+        buildTenderRecordsTable('');
+        renderBagDetailsTable('Select a lot to load bag weights.');
+        return;
+      }
+
+      $.getJSON("{% url 'get_lot_bags_details' %}", { date: date, lot_no: lotNo }, function(res) {
+        if (!res.success) {
+          renderBagDetailsTable(res.message || 'Failed to load lot details.');
+          toastr.error(res.message || 'Failed to load lot details.');
+          return;
+        }
+
+        currentBags = res.bags || [];
+        const avakRate = resolveAvakRate(res, date, lotNo);
+
+        populateLeftPanel(lotNo, avakRate, res.buyer_id || '');
+        buildAllLotsSummary(lotNo);
+
+        if (res.pending_bikri) {
+          renderBagDetailsTable(res.message || 'Complete Bikri entry to load bag weights.');
+          return;
+        }
+
+        renderBagDetailsTable();
+      }).fail(function() {
+        renderBagDetailsTable('Could not load lot details.');
+        toastr.error('Could not load lot details.');
+      });
+    }
+
+    // Click row in records table or summary table to select lot
+    $(document).on('click', '#left_table_body tr[data-lot], #middle_table_body tr[data-summary-lot]', function() {
+      const lot = $(this).data('lot') || $(this).data('summary-lot');
+      if (lot) {
+        $('#left_lot_no').val(lot).trigger('change');
+      }
+    });
+
+    $('#left_date').on('change', function() {
+      const d = $(this).val();
+      $('#right_date').val(d);
+      populateLotsForDate(d, '');
+    });
+
+    $('#left_lot_no').on('change', function() {
+      const val = $(this).val();
+      $('#right_lot_no').val(val).trigger('change.select2');
+      buildTenderRecordsTable(val);
+      loadLotSummary(val);
+    });
+
+    $('#right_date').on('change', function() {
+      const d = $(this).val();
+      $('#left_date').val(d);
+      populateLotsForDate(d, $('#right_lot_no').val());
+    });
+
+    $('#right_lot_no').on('change', function() {
+      const val = $(this).val();
+      if ($('#left_lot_no').val() !== val) {
+        $('#left_lot_no').val(val).trigger('change.select2');
+      }
+      loadLotSummary(val);
+    });
+
+    $(document).on('change', '.bag-checkbox', function() {
+      updateSelectedCount();
+    });
+
+    $('#select_all_checkbox').on('change', function() {
+      const checked = $(this).is(':checked');
+      $('.bag-checkbox').prop('checked', checked);
+      updateSelectedCount();
+    });
+
+    $('#btn_transfer_weight').on('click', function() {
+      const selectedIds = [];
+      $('.bag-checkbox:checked').each(function() {
+        selectedIds.push($(this).data('id'));
+      });
+      const targetBuyerId = $('#target_buyer_select').val();
+
+      if (!selectedIds.length) {
+        Swal.fire({ icon: 'warning', title: 'No bags selected', text: 'Please select at least one bag to transfer.' });
+        return;
+      }
+      if (!targetBuyerId) {
+        Swal.fire({ icon: 'warning', title: 'No buyer selected', text: 'Please select a target buyer trader.' });
+        return;
+      }
+
+      Swal.fire({
+        title: 'Are you sure?',
+        text: `Do you want to transfer ${selectedIds.length} bags to the selected buyer?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, transfer!'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          $.ajax({
+            url: "{% url 'transfer_bag_weights' %}",
+            type: 'POST',
+            data: JSON.stringify({ selected_bag_ids: selectedIds, target_buyer_id: targetBuyerId }),
+            contentType: 'application/json',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            success: function(res) {
+              if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Transferred!', text: res.message || 'Bags transferred successfully.', timer: 1500, showConfirmButton: false });
+                $('#select_all_checkbox').prop('checked', false);
+                loadLotSummary();
+              } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: res.message || 'Transfer failed.' });
+              }
+            },
+            error: function() {
+              Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while performing the transfer.' });
+            }
+          });
+        }
+      });
+    });
+
+    $('#left_rate, #left_buyer_select').on('input change', function() {
+      const lotNo = $('#left_lot_no').val();
+      buildTenderRecordsTable(lotNo);
+      buildAllLotsSummary(lotNo);
+    });
+
+    $('#btn_save_tender').on('click', function() {
+      const date = $('#left_date').val();
+      const lotNo = $('#left_lot_no').val();
+      const rate = $('#left_rate').val();
+      const buyerId = $('#left_buyer_select').val();
+
+      if (!date || !lotNo) {
+        toastr.warning('Please select date and lot number.');
+        return;
+      }
+
+      const $btn = $(this);
+      $btn.prop('disabled', true);
+
+      $.ajax({
+        url: "{% url 'update_avak_tender' %}",
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          date: date,
+          lot_no: lotNo,
+          rate: rate || '0',
+          buyer_id: buyerId || ''
+        }),
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        success: function(res) {
+          if (res.success) {
+            toastr.success(res.message || 'Saved successfully.');
+            populateLotsForDate(date, lotNo);
+          } else {
+            toastr.error(res.message || 'Save failed.');
+          }
+        },
+        error: function() {
+          toastr.error('Could not save tender details.');
+        },
+        complete: function() {
+          $btn.prop('disabled', false);
+        }
+      });
+    });
+
+    let pdfPreviewData = null;
+    let pdfTradersList = [
+      {% for t in traders %}
+      { id: {{ t.id }}, code: "{{ t.short_code|default:t.name|escapejs }}", name: "{{ t.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    function buildPdfBuyerOptions(selectedId) {
+      let html = '<option value="">-- Select --</option>';
+      pdfTradersList.forEach(function(t) {
+        const sel = String(selectedId || '') === String(t.id) ? ' selected' : '';
+        html += `<option value="${t.id}" data-code="${t.code}"${sel}>${t.code}</option>`;
+      });
+      return html;
+    }
+
+    function collectPdfPreviewRows() {
+      const rows = [];
+      $('#pdf_preview_body tr[data-row-idx]').each(function() {
+        const idx = parseInt($(this).data('row-idx'), 10);
+        const base = (pdfPreviewData && pdfPreviewData.rows[idx]) ? Object.assign({}, pdfPreviewData.rows[idx]) : {};
+        const buyerId = $(this).find('.pdf-buyer-select').val();
+        const buyerOpt = $(this).find('.pdf-buyer-select option:selected');
+        rows.push(Object.assign(base, {
+          lot_number: ($(this).find('.pdf-lot-no').val() || '').trim(),
+          trade_price: ($(this).find('.pdf-trade-price').val() || '').trim(),
+          buyer_id: buyerId || null,
+          buyer_code: buyerOpt.data('code') || buyerOpt.text() || '',
+          no_of_bags: parseInt($(this).find('.pdf-bags').val(), 10) || 0,
+        }));
+      });
+      return rows;
+    }
+
+    function updatePdfPreviewSummary(summary) {
+      summary = summary || {};
+      $('#pdf_total_lots').text(summary.total || 0);
+      $('#pdf_valid_count').text(summary.valid || 0);
+      $('#pdf_invalid_count').text(summary.invalid || 0);
+      const invalid = summary.invalid || 0;
+      $('#btn_confirm_pdf_import').prop('disabled', invalid > 0 || !(summary.total));
+      if (invalid > 0) {
+        $('#pdf_preview_errors').removeClass('d-none').html(
+          '<div>• Fix highlighted rows (edit fields and click Re-validate).</div>'
+        );
+      } else {
+        $('#pdf_preview_errors').addClass('d-none').empty();
+      }
+    }
+
+    function renderPdfPreviewTable(rows) {
+      let html = '';
+      (rows || []).forEach(function(row, idx) {
+        const rowClass = row.valid ? 'row-valid' : 'row-invalid';
+        const status = row.valid
+          ? '<span class="text-success font-weight-bold">OK</span>'
+          : '<span class="text-danger small">' + (row.errors || []).join('<br>') + '</span>';
+        html += `<tr class="${rowClass}" data-row-idx="${idx}">
+          <td>${row.sr_no || idx + 1}</td>
+          <td>${row.lot_code || '—'}</td>
+          <td><input type="text" class="form-control form-control-sm pdf-lot-no text-center" value="${row.lot_number || ''}"></td>
+          <td><input type="number" step="0.01" min="0" class="form-control form-control-sm pdf-trade-price text-center" value="${row.trade_price || ''}"></td>
+          <td class="text-left small text-muted">${row.buyer_name || '—'}</td>
+          <td><select class="form-control form-control-sm pdf-buyer-select">${buildPdfBuyerOptions(row.buyer_id)}</select></td>
+          <td><input type="number" min="0" step="1" class="form-control form-control-sm pdf-bags text-center" value="${row.no_of_bags || 0}"></td>
+          <td class="text-left pdf-row-status">${status}</td>
+        </tr>`;
+      });
+      $('#pdf_preview_body').html(html || '<tr><td colspan="8" class="text-muted text-center py-4">No rows extracted</td></tr>');
+    }
+
+    function renderPdfPreview(res) {
+      pdfPreviewData = res;
+      if (res.traders && res.traders.length) {
+        pdfTradersList = res.traders;
+      }
+
+      $('#pdf_trade_date_disp').text(res.trade_date || '—');
+      renderPdfPreviewTable(res.rows || []);
+      updatePdfPreviewSummary(res.summary || {});
+
+      const warnings = res.parse_warnings || [];
+      if (warnings.length) {
+        const extra = warnings.map(function(w) { return '<div>• ' + w + '</div>'; }).join('');
+        $('#pdf_preview_errors').removeClass('d-none').html(extra);
+      }
+
+      $('#pdfPreviewModal').modal('show');
+    }
+
+    function revalidatePdfPreviewRows(showToast) {
+      if (!pdfPreviewData) return;
+
+      const rows = collectPdfPreviewRows();
+      $.ajax({
+        url: "{% url 'validate_tender_pdf_rows' %}",
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          trade_date: pdfPreviewData.trade_date,
+          rows: rows
+        }),
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        success: function(res) {
+          if (res.success) {
+            pdfPreviewData.rows = res.rows;
+            pdfPreviewData.available_lots = res.available_lots || pdfPreviewData.available_lots;
+            pdfPreviewData.summary = res.summary;
+            renderPdfPreviewTable(res.rows);
+            updatePdfPreviewSummary(res.summary);
+            if (showToast) {
+              toastr.success('Validation updated.');
+            }
+          } else {
+            toastr.error(res.message || 'Validation failed.');
+          }
+        },
+        error: function() {
+          toastr.error('Could not re-validate rows.');
+        }
+      });
+    }
+
+    let pdfValidateTimer = null;
+    $(document).on('input change', '.pdf-lot-no, .pdf-trade-price, .pdf-buyer-select, .pdf-bags', function() {
+      clearTimeout(pdfValidateTimer);
+      pdfValidateTimer = setTimeout(function() {
+        revalidatePdfPreviewRows(false);
+      }, 600);
+    });
+
+    $('#btn_revalidate_pdf').on('click', function() {
+      revalidatePdfPreviewRows(true);
+    });
+
+    function openPdfFilePicker() {
+      $('#pdf_file_input').val('').trigger('click');
+    }
+
+    function uploadTenderPdf(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        toastr.error('Please select a PDF file.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('pdf_file', file);
+
+      Swal.fire({
+        title: 'Reading PDF...',
+        allowOutsideClick: false,
+        didOpen: function() { Swal.showLoading(); }
+      });
+
+      $.ajax({
+        url: "{% url 'upload_tender_pdf' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        success: function(res) {
+          Swal.close();
+          if (res.success) {
+            renderPdfPreview(res);
+            toastr.info(res.message || 'PDF extracted successfully.');
+          } else {
+            toastr.error(res.message || 'PDF extraction failed.');
+          }
+        },
+        error: function(xhr) {
+          Swal.close();
+          const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Could not upload PDF.';
+          toastr.error(msg);
+        }
+      });
+    }
+
+    $('#btn_upload_pdf, #btn_upload_pdf_inline').on('click', openPdfFilePicker);
+    $('#pdf_file_input').on('change', function() {
+      const file = this.files && this.files[0];
+      uploadTenderPdf(file);
+    });
+
+    $('#btn_confirm_pdf_import').on('click', function() {
+      if (!pdfPreviewData) {
+        toastr.warning('No preview data to import.');
+        return;
+      }
+
+      const rows = collectPdfPreviewRows();
+      if (!rows.length) {
+        toastr.warning('No rows to import.');
+        return;
+      }
+
+      const $btn = $(this);
+      $btn.prop('disabled', true);
+
+      $.ajax({
+        url: "{% url 'confirm_tender_pdf_import' %}",
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          trade_date: pdfPreviewData.trade_date,
+          rows: rows
+        }),
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        success: function(res) {
+          if (res.success) {
+            $('#pdfPreviewModal').modal('hide');
+            toastr.success(res.message || 'AVAK records updated.');
+            if (res.trade_date) {
+              $('#left_date').val(res.trade_date);
+              $('#right_date').val(res.trade_date);
+            }
+            populateLotsForDate(res.trade_date || $('#left_date').val(), '');
+            Swal.fire({
+              icon: 'success',
+              title: 'Import Complete',
+              text: res.message || 'AVAK records updated from PDF.',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          } else {
+            toastr.error(res.message || 'Import failed.');
+            if (res.errors && res.errors.length) {
+              $('#pdf_preview_errors').removeClass('d-none').html(
+                res.errors.map(function(e) { return '<div>• ' + e + '</div>'; }).join('')
+              );
+            }
+          }
+        },
+        error: function(xhr) {
+          const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Import request failed.';
+          toastr.error(msg);
+        },
+        complete: function() {
+          $btn.prop('disabled', false);
+        }
+      });
+    });
+
+    populateLotsForDate($('#left_date').val());
+  });
+</script>
+{% endblock %}

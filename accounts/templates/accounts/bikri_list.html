@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bikri List (ವಿಕ್ರಿ ಲಿಸ್ಟ್){% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Bikri List (ವಿಕ್ರಿ ಲಿಸ್ಟ್)</h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center flex-wrap w-100">
+          <h3 class="card-title m-0">Sale Entries</h3>
+          <div class="ml-auto d-flex align-items-center flex-wrap">
+            <div class="d-flex align-items-center mr-3">
+              <label for="bikriDate" class="mr-2 mb-0 font-weight-bold">Date:</label>
+              <input type="date" id="bikriDate" class="form-control form-control-sm" value="{{ date_value }}" style="width: 150px;" />
+            </div>
+            <div class="input-group input-group-sm mr-2" style="width: 220px">
+              <input type="text" id="bikriTableSearch" class="form-control" placeholder="Search..." aria-label="Search sale entries" />
+              <div class="input-group-append">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+              </div>
+            </div>
+            <a href="{% url 'add_bikri' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add New Sale</a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="bikriTable" class="table table-bordered table-striped mb-0" style="width:100%;">
+          <thead>
+            <tr>
+              <th>SL NO</th>
+              <th>Date</th>
+              <th>Lot NO</th>
+              <th>Farmer</th>
+              <th>Place</th>
+              <th>Bags</th>
+              <th>Total Weight</th>
+              <th>ನಿವ್ವಳ ಅಮೌಂಟ್</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in bikris %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ b.date|date:"d-m-Y" }}</td>
+              <td>{{ b.avak.lot_number }}</td>
+              <td>{{ b.avak.farmer.name }}</td>
+              <td>{{ b.place }}</td>
+              <td>{{ b.no_of_bags }}</td>
+              <td>{{ b.total_weight }}</td>
+              <td>{{ b.net_payable|floatformat:2 }}</td>
+              <td>
+                <div class="btn-group">
+                  <a href="{% url 'view_bikri' b.id %}" class="btn btn-sm btn-info text-white" title="View Bill"><i class="fas fa-eye"></i></a>
+                  {% if b.lot_details|length > 1 %}
+                  <a href="{% url 'edit_bikri_multi' b.id %}" class="btn btn-sm btn-warning text-white" title="Edit All Lots"><i class="fas fa-edit"></i></a>
+                  {% else %}
+                  <a href="{% url 'edit_bikri' b.id %}" class="btn btn-sm btn-warning text-white" title="Edit Entry"><i class="fas fa-edit"></i></a>
+                  {% endif %}
+                  {% if b.lot_details|length > 1 %}
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Delete Specific Lot">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" style="min-width: 150px;">
+                      <h6 class="dropdown-header text-dark font-weight-bold">Select Lot to Delete:</h6>
+                      {% for lot in b.lot_details %}
+                      <a class="dropdown-item text-danger font-weight-bold" href="{% url 'delete_bikri' lot.id %}?date={{ date_value }}" onclick="return confirm('Are you sure you want to delete Lot {{ lot.lot_number }}?');">
+                        <i class="fas fa-trash-alt mr-1"></i> Lot {{ lot.lot_number }}
+                      </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% else %}
+                  <a href="{% url 'delete_bikri' b.id %}?date={{ date_value }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete Lot {{ b.avak.lot_number }}?');" title="Delete Lot"><i class="fas fa-trash"></i></a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center">No entries found for the selected date</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
+<script>
+  $(function () {
+    // Bind date change listener first so it always works even if DataTable fails
+    $("#bikriDate").on("change", function () {
+      window.location.href = "?date=" + this.value;
+    });
+
+    try {
+      var table = $("#bikriTable").DataTable({
+        responsive: true,
+        autoWidth: false,
+        scrollX: true,
+        order: [],
+        dom: "lrtip",
+        columnDefs: [
+          { responsivePriority: 1, targets: 0 },
+          { responsivePriority: 2, targets: 3 },
+          { responsivePriority: 3, targets: 8 },
+          { responsivePriority: 100, targets: '_all' }
+        ]
+      });
+      $("#bikriTableSearch").on("input", function () {
+        table.search(this.value).draw();
+      });
+    } catch (e) {
+      console.warn("DataTable failed to initialize: ", e);
+    }
+  });
+</script>
+{% endblock %}

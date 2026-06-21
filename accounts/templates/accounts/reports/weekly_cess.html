@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Weekly Cess Report - {{ system_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        .main-header, .main-sidebar, .main-footer, .no-print, .btn-print {
+            display: none !important;
+        }
+        .content-wrapper {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+        }
+        .report-card { box-shadow: none !important; padding: 0 !important; }
+    }
+    
+    .report-card {
+        background: white;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10pt;
+        color: #000;
+    }
+    .report-table th, .report-table td {
+        border: 1px solid #000;
+        padding: 10px 8px;
+        text-align: right;
+    }
+    .report-table th {
+        background-color: #fff;
+        font-weight: bold;
+        text-align: center;
+        color: #000;
+    }
+    .text-left { text-align: left !important; }
+    .summary-row { font-weight: bold; background-color: #fff; }
+    
+    .report-header { text-align: center; margin-bottom: 25px; }
+    .company-name { font-size: 18pt; font-weight: bold; }
+    .report-title { font-size: 13pt; font-weight: bold; margin-top: 10px; }
+    
+    .btn-back {
+        padding: 8px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        float: right;
+        text-decoration: none !important;
+    }
+    .btn-back:hover { color: #fff; background: #5a6268; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="report-card">
+            <div class="no-print mb-3">
+                <a href="{% url 'gst_reports' %}" class="btn-back">
+                    <i class="fas fa-chevron-left mr-2"></i> Back to Reports
+                </a>
+            </div>
+            <div class="clearfix"></div>
+
+            <div class="report-header">
+                <div class="company-name">ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ</div>
+                <div class="company-sub">ಎ ಪಿ ಎಂ ಸಿ ಯಾರ್ಡ್ - ಬ್ಯಾಡಗಿ | 29CFIPB5465B1ZL</div>
+                <div class="report-title">Weekly Cess Report</div>
+                <div class="date-range">{{ from_date|date:"d-m-Y" }} TO {{ to_date|date:"d-m-Y" }}</div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th class="text-left">Week Starting From</th>
+                            <th>Weight</th>
+                            <th>Bags</th>
+                            <th>Amount</th>
+                            <th>Cess</th>
+                            <th>W Fee</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in report_data %}
+                        <tr>
+                            <td class="text-left font-weight-bold">{{ row.week_display }}</td>
+                            <td>{{ row.weight|floatformat:1 }}</td>
+                            <td>{{ row.bags }}</td>
+                            <td>{{ row.amount|floatformat:2 }}</td>
+                            <td>{{ row.cess|floatformat:2 }}</td>
+                            <td>{{ row.w_fee|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="summary-row">
+                            <td class="text-left">TOTAL</td>
+                            <td>{{ totals.weight|floatformat:1 }}</td>
+                            <td>{{ totals.bags }}</td>
+                            <td>{{ totals.amount|floatformat:2 }}</td>
+                            <td>{{ totals.cess|floatformat:2 }}</td>
+                            <td>{{ totals.w_fee|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="mt-4 small text-muted">Generated on: {% now "d-m-Y H:i" %}</div>
+        </div>
+    </div>
+</section>
+{% endblock %}

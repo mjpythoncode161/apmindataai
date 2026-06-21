@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title|default:"Payment Entry" }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  .voucher-card {
+    max-width: 700px;
+    margin: 0 auto;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+  }
+  .voucher-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 12px 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .voucher-header h5 { margin: 0; font-weight: 700; color: #343a40; }
+  .voucher-body { padding: 22px; }
+  .field-row { margin-bottom: 15px; }
+  .field-row label {
+    font-size: 0.80rem;
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 4px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .type-select {
+    font-weight: 700;
+    background: #fff9e6;
+    border: 2px solid #ffc107 !important;
+    color: #856404;
+    font-size: 1rem;
+  }
+  .type-select:focus { border-color: #e0a800 !important; background: #fff3cd; }
+  .debit-label  { color: #721c24 !important; }
+  .credit-label { color: #155724 !important; }
+  .amount-input {
+    font-size: 1.6rem !important;
+    font-weight: 700;
+    color: #007bff;
+    border-bottom: 3px solid #007bff !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+    background: transparent;
+    text-align: center;
+    padding: 4px 0;
+  }
+  .amount-input:focus { outline: none; border-bottom-color: #0056b3 !important; }
+  .bill-divider { color: #adb5bd; font-size: 1.1rem; padding: 0 6px; line-height: 38px; flex-shrink: 0; }
+  .save-btn { min-width: 160px; font-size: 1rem; font-weight: 700; }
+  .bank-tile {
+    cursor: pointer;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.18s;
+    user-select: none;
+  }
+  .bank-tile:hover { border-color: #28a745; background: #f0fff4; }
+  .bank-tile.selected { border-color: #28a745; background: #d4edda; }
+  .bank-tile i { font-size: 1.3rem; display: block; margin-bottom: 4px; }
+  .bank-tile span { font-size: 0.78rem; font-weight: 700; word-break: break-word; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-rupee-sign mr-2 text-primary"></i>
+          {% if is_edit %}Edit Entry{% else %}Payment Entry{% endif %}
+        </h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+          <li class="breadcrumb-item active">Payment Entry</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <form method="post" id="transactionForm">
+      {% csrf_token %}
+
+      <div class="voucher-card">
+
+        <!-- Header -->
+        <div class="voucher-header">
+          <h5><i class="fas fa-file-invoice mr-2 text-primary"></i>Voucher Entry</h5>
+          {% if is_edit %}<span class="badge badge-warning p-2">EDIT MODE</span>{% endif %}
+        </div>
+
+        <div class="voucher-body">
+
+          <!-- Row 1: Date + Entry Type -->
+          <div class="row field-row">
+            <div class="col-5">
+              <label><i class="fas fa-calendar-alt mr-1"></i> Date</label>
+              <input type="date" name="date" class="form-control" value="{{ today }}" required />
+            </div>
+            <div class="col-7">
+              <label><i class="fas fa-tags mr-1"></i> Entry Type</label>
+              <select name="voucher_type" id="voucher_type" class="form-control type-select" required
+                onchange="onVoucherTypeChange(this.value)">
+                <option value="Cash Payment"      {% if default_voucher_type == 'Cash Payment' or not default_voucher_type %}selected{% endif %}>Cash Payment</option>
+                <option value="Cheque Payment"    {% if default_voucher_type == 'Cheque Payment' %}selected{% endif %}>Cheque Payment</option>
+                <option value="NEFT/RTGS Payment" {% if default_voucher_type == 'NEFT/RTGS Payment' %}selected{% endif %}>NEFT / RTGS Payment</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="my-2" />
+
+          <!-- Row 2: Credit Account — Bank Tiles -->
+          <div class="field-row">
+            <label class="credit-label">
+              <i class="fas fa-university mr-1"></i> Select Debit Account (Cr)
+              <a href="{% url 'add_ledger_account' %}" target="_blank" class="ml-2 text-muted" style="font-size:0.75rem; font-weight:400;">
+                <i class="fas fa-plus-circle"></i> Add Bank
+              </a>
+            </label>
+            <input type="hidden" name="pay_from_ledger_id" id="pay_from_ledger_id_hidden" value="{% if transaction.pay_from_ledger_id %}{{ transaction.pay_from_ledger_id }}{% endif %}" />
+            {% if cash_bank_accounts %}
+            <div class="row" id="bank_tile_grid">
+              {% for acc in cash_bank_accounts %}
+              <div class="col-6 col-md-4 mb-2">
+                <div class="bank-tile {% if transaction.pay_from_ledger_id == acc.id %}selected{% endif %}"
+                  data-ledger-id="{{ acc.id }}"
+                  onclick="selectBank({{ acc.id }}, '{{ acc.name|escapejs }}', this)">
+                  {% if 'cash' in acc.name|lower %}
+                    <i class="fas fa-money-bill-wave text-success"></i>
+                  {% else %}
+                    <i class="fas fa-university text-primary"></i>
+                  {% endif %}
+                  <span>{{ acc.name }}</span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div id="bank_selected_badge" class="mt-1 {% if not transaction.pay_from_ledger_id %}d-none{% endif %}">
+              <span class="badge badge-success px-3 py-2">
+                <i class="fas fa-check-circle mr-1"></i>
+                <span id="bank_selected_name">{% if transaction.pay_from_ledger %}{{ transaction.pay_from_ledger.name }}{% endif %}</span>
+              </span>
+            </div>
+            {% else %}
+            <div class="alert alert-warning py-2 mb-0">
+              <i class="fas fa-exclamation-triangle mr-1"></i> No Cash/Bank accounts found.
+              <a href="{% url 'add_ledger_account' %}" target="_blank">Add SBI / HDFC / Cash here</a>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Cheque details (shown for Cheque Payment) -->
+          <div id="cheque_details_row" class="d-none">
+            <div class="row mb-2">
+              <div class="col-6">
+                <div class="field-row mb-0">
+                  <label><i class="fas fa-hashtag mr-1 text-warning"></i> Cheque No</label>
+                  <input type="text" name="cheque_no" id="cheque_no" class="form-control"
+                    placeholder="e.g. 001234"
+                    value="{{ transaction.cheque_no|default:'' }}" />
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="field-row mb-0">
+                  <label><i class="fas fa-university mr-1 text-warning"></i> Cheque Bank Name</label>
+                  <input type="text" name="cheque_bank_name" id="cheque_bank_name" class="form-control"
+                    placeholder="e.g. SBI Main Branch"
+                    value="{{ transaction.cheque_bank_name|default:'' }}" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEFT/RTGS details (shown for NEFT/RTGS Payment) -->
+          <div id="neft_details_row" class="d-none">
+            <div class="field-row mb-2">
+              <label><i class="fas fa-network-wired mr-1 text-info"></i> NEFT / UTR Reference No</label>
+              <input type="text" name="cheque_no" id="neft_ref" class="form-control"
+                placeholder="e.g. SBIN0000123456789"
+                value="{% if transaction.voucher_type == 'NEFT/RTGS Payment' %}{{ transaction.cheque_no|default:'' }}{% endif %}" />
+            </div>
+          </div>
+
+          <hr class="my-2" /> 
+
+          <!-- Row 3: Farmer -->
+          <div class="field-row">
+            <label class="debit-label"><i class="fas fa-user mr-1"></i> Farmer Name  Credit Account (Cr)</label>
+            <select id="farmer_id" name="farmer_id" class="form-control select2-farmer" style="width:100%;" required>
+              <option value="">-- Select Farmer --</option>
+              {% for f in farmers %}
+              <option value="{{ f.id }}" {% if transaction.farmer_id == f.id %}selected{% endif %}>
+                {{ f.name }}{% if f.village %} – {{ f.village }}{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="farmer_info" class="mt-2 d-none">
+              <span class="badge badge-secondary mr-1"><i class="fas fa-map-marker-alt mr-1"></i><span id="fi_place"></span></span>
+              <span class="badge badge-secondary"><i class="fas fa-phone mr-1"></i><span id="fi_phone"></span></span>
+            </div>
+            <input type="hidden" name="name" id="name" />
+            <input type="hidden" name="place" id="place" />
+            <input type="hidden" name="phone_number" id="phone_number" />
+            <input type="hidden" name="person_type" id="person_type" value="Farmer" />
+          </div>
+
+          <!-- Row 4: Vikri Bill No -->
+          <div class="field-row">
+            <label><i class="fas fa-file-invoice mr-1"></i> Vikri Bill No <small class="text-muted font-weight-normal">(Optional)</small></label>
+            <div class="d-flex align-items-center">
+              <select id="bikri_bill_select" name="bikri_bill_no" class="form-control" style="flex:1;">
+                {% if is_edit and transaction.bikri_bill_no %}
+                <option value="{{ transaction.bikri_bill_no }}" selected>{{ bikri_bill_text }}</option>
+                {% else %}
+                <option value="">Search Vikri Bill / Lot...</option>
+                {% endif %}
+              </select>
+              <span class="bill-divider">—</span>
+              <input type="text" id="bill_info_display" class="form-control text-muted"
+                style="width:130px; font-size:0.82rem;" placeholder="Lot / Amount" readonly />
+            </div>
+          </div>
+
+          <hr class="my-2" />
+
+          <!-- Row 5: Amount -->
+          <div class="field-row">
+            <label><i class="fas fa-rupee-sign mr-1"></i> Amount (₹)</label>
+            <input type="number" step="0.01" name="amount" id="amountField"
+              class="form-control amount-input"
+              placeholder="0.00"
+              value="{{ transaction.amount|default:'' }}" required />
+          </div>
+
+          <!-- Row 6: Narration -->
+          <div class="field-row">
+            <label><i class="fas fa-comment-alt mr-1"></i> Narration / Remarks</label>
+            <textarea name="narration" class="form-control" rows="2"
+              placeholder="e.g. Payment for lot 123, NEFT transfer...">{{ transaction.narration|default:'' }}</textarea>
+          </div>
+
+          <!-- Buttons -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <a href="{% url 'payment_list' %}" class="btn btn-default btn-lg">
+              <i class="fas fa-times mr-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg save-btn shadow" id="saveBtn">
+              <i class="fas fa-save mr-1"></i> SAVE
+            </button>
+          </div>
+
+        </div><!-- /.voucher-body -->
+      </div><!-- /.voucher-card -->
+
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+$(function () {
+  // ── Select2: Farmer ──
+  $('.select2-farmer').select2({ theme: 'bootstrap4', placeholder: '-- Select Farmer --' });
+
+  // ── Bill search (AJAX) ──
+  $('#bikri_bill_select').select2({
+    theme: 'bootstrap4',
+    ajax: {
+      url: '{% url "search_bikri" %}',
+      dataType: 'json',
+      delay: 250,
+      data: function (params) {
+        return { q: params.term, farmer_id: $('#farmer_id').val(), date: $('input[name="date"]').val() };
+      },
+      processResults: function (data) { return { results: data.results }; },
+      cache: true
+    },
+    placeholder: 'Search Vikri Bill / Lot...',
+    minimumInputLength: 0,
+    allowClear: true
+  });
+
+  $('#bikri_bill_select').on('select2:select', function () {
+    const d = $(this).select2('data')[0];
+    if (d && d.net_payable) { $('#amountField').val(d.net_payable); }
+    if (d && d.text)        { $('#bill_info_display').val(d.text.split(' - ')[0]); }
+  });
+  $('#bikri_bill_select').on('select2:clear', function () { $('#bill_info_display').val(''); });
+
+  // ── Farmer change ──
+  $('#farmer_id').on('change', function () {
+    const farmerId = $(this).val();
+    if (!farmerId) { $('#farmer_info').addClass('d-none'); return; }
+    $.getJSON('{% url "get_farmer_details" %}', { farmer_id: farmerId }, function (res) {
+      if (res.success) {
+        $('#name').val(res.name);
+        $('#place').val(res.place);
+        $('#phone_number').val(res.phone);
+        $('#fi_place').text(res.place || '—');
+        $('#fi_phone').text(res.phone || '—');
+        $('#farmer_info').removeClass('d-none');
+        {% if not is_edit %}
+        $.getJSON('{% url "search_bikri" %}', { farmer_id: farmerId, date: $('input[name="date"]').val() }, function (data) {
+          if (data.results && data.results.length > 0) {
+            const bill = data.results[0];
+            $('#bikri_bill_select').empty().append(new Option(bill.text, bill.id, true, true)).trigger('change');
+            if (bill.net_payable) $('#amountField').val(bill.net_payable);
+          }
+        });
+        {% endif %}
+      }
+    });
+  });
+
+  {% if is_edit %}
+  if ($('#farmer_id').val()) { $('#farmer_id').trigger('change'); }
+  // Restore selected bank tile
+  const editLedgerId = '{{ transaction.pay_from_ledger_id|default:"" }}';
+  if (editLedgerId) {
+    const tile = document.querySelector('.bank-tile[data-ledger-id="' + editLedgerId + '"]');
+    if (tile) selectBank(parseInt(editLedgerId), tile.querySelector('span').textContent.trim(), tile);
+  }
+  {% else %}
+  if ($('#farmer_id').val()) { $('#farmer_id').trigger('change'); }
+  {% endif %}
+});
+
+// ── Bank tile selection ──
+function selectBank(id, name, tileEl) {
+  document.querySelectorAll('.bank-tile').forEach(function (t) { t.classList.remove('selected'); });
+  if (tileEl) tileEl.classList.add('selected');
+  document.getElementById('pay_from_ledger_id_hidden').value = id;
+  document.getElementById('bank_selected_name').textContent = name;
+  document.getElementById('bank_selected_badge').classList.remove('d-none');
+}
+
+// ── Voucher type change ──
+function onVoucherTypeChange(val) {
+  const isCheque = val === 'Cheque Payment';
+  const isNEFT   = val === 'NEFT/RTGS Payment';
+
+  // Cheque details
+  const chequeRow = document.getElementById('cheque_details_row');
+  chequeRow.classList.toggle('d-none', !isCheque);
+  document.getElementById('cheque_no').required = isCheque;
+  if (!isCheque) {
+    document.getElementById('cheque_no').value = '';
+    document.getElementById('cheque_bank_name').value = '';
+  }
+
+  // NEFT details
+  const neftRow = document.getElementById('neft_details_row');
+  neftRow.classList.toggle('d-none', !isNEFT);
+  document.getElementById('neft_ref').required = isNEFT;
+  if (!isNEFT) {
+    document.getElementById('neft_ref').value = '';
+  }
+
+  // Update save button label
+  const btn = document.getElementById('saveBtn');
+  if (btn) {
+    const labels = { 'Cash Payment': 'SAVE CASH PAYMENT', 'Cheque Payment': 'SAVE CHEQUE PAYMENT', 'NEFT/RTGS Payment': 'SAVE NEFT PAYMENT' };
+    btn.innerHTML = '<i class="fas fa-save mr-1"></i> ' + (labels[val] || 'SAVE PAYMENT');
+  }
+}
+
+// ── Form validation ──
+document.getElementById('transactionForm').addEventListener('submit', function (e) {
+  if (!document.getElementById('pay_from_ledger_id_hidden').value) {
+    e.preventDefault();
+    alert('Please select a bank / cash account (the tiles above).');
+    return false;
+  }
+  const amount = parseFloat(document.getElementById('amountField').value || '0');
+  if (!amount || amount <= 0) {
+    e.preventDefault();
+    alert('Please enter a valid amount greater than zero.');
+    return false;
+  }
+});
+
+// ── Init on page load ──
+(function () {
+  const sel = document.getElementById('voucher_type');
+  if (sel) onVoucherTypeChange(sel.value);
+})();
+</script>
+{% endblock %}

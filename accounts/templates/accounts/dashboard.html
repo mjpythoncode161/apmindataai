@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dash-page .content-header {
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.75rem 0;
+  }
+  .dash-page .content {
+    padding: 1rem 0.5rem;
+  }
+  .dash-stat-link {
+    display: block;
+    text-decoration: none !important;
+    color: inherit;
+  }
+  .dash-stat-link .info-box {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    margin-bottom: 0;
+    min-height: 90px;
+  }
+  .dash-stat-link:hover .info-box {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    transform: translateY(-2px);
+  }
+  .dash-page .info-box-text {
+    font-size: 0.85rem;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .dash-page .info-box-number {
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+  .dash-page .progress-description {
+    display: block;
+    margin-top: 2px;
+  }
+  .dash-summary-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  .dash-summary-item {
+    flex: 1 1 140px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px 14px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .dash-summary-item .label {
+    display: block;
+    font-size: 0.78rem;
+    color: #6c757d;
+    margin-bottom: 2px;
+  }
+  .dash-summary-item .value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #212529;
+  }
+  .dash-chart-card,
+  .dash-list-card {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .dash-chart-wrap {
+    position: relative;
+    height: 280px;
+    padding: 10px 15px 15px;
+  }
+  .dash-list-card .card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .dash-list-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .dash-mini-table {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+  .dash-mini-table th {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .dash-mini-table td {
+    vertical-align: middle;
+  }
+  .dash-mini-table a {
+    font-weight: 600;
+  }
+  @media (max-width: 576px) {
+    .dash-chart-wrap { height: 220px; }
+    .dash-page .info-box-number { font-size: 1.35rem; }
+    .dash-list-card .card-header {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .dash-list-card .card-header .btn {
+      margin-left: 0 !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="d-flex flex-wrap align-items-center justify-content-between">
+        <div>
+          <h4 class="mb-0">Dashboard / ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</h4>
+          <small class="text-muted">ಇಂದು: {{ today|date:"d-m-Y" }}</small>
+        </div>
+        {% if user.is_superuser %}
+        <div>
+          <form method="post" action="{% url 'truncate_records' %}" onsubmit="return confirm('Delete all transaction, farmer, trader and user records?\n\nLedger Master and Grouping Master will NOT be deleted.');">
+            {% csrf_token %}
+            <input type="hidden" name="delete_all" value="1">
+            <button type="submit" class="btn btn-danger btn-sm">Clear all records</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <section class="content">
+    <div class="container-fluid">
+      <div class="dash-summary-strip">
+        <div class="dash-summary-item">
+          <span class="label">ಒಟ್ಟು ರೈತರು</span>
+          <span class="value text-success">{{ total_farmers }}</span>
+        </div>
+        <div class="dash-summary-item">
+          <span class="label">ಒಟ್ಟು ವ್ಯಾಪಾರಿಗಳು</span>
+          <span class="value text-primary">{{ total_traders }}</span>
+        </div>
+        <div class="dash-summary-item">
+          <span class="label">ಲೆಡ್ಜರ್ ಖಾತೆಗಳು</span>
+          <span class="value text-info">{{ total_accounts }}</span>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3 mb-lg-0">
+          <a href="{% url 'avak_list' %}" class="dash-stat-link">
+            <div class="info-box shadow-sm">
+              <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-truck-loading"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text font-weight-bold">ಅವಾಕ್ (Receiving)</span>
+                <span class="info-box-number">{{ total_avak_today }}</span>
+                <span class="progress-description text-muted" style="font-size:0.8rem;">ಇಂದು · ವಾರ: {{ total_avak_week }}</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3 mb-lg-0">
+          <a href="{% url 'bikri_list' %}" class="dash-stat-link">
+            <div class="info-box shadow-sm">
+              <span class="info-box-icon bg-success elevation-1"><i class="fas fa-shopping-cart"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text font-weight-bold">ವಿಕ್ರಿ</span>
+                <span class="info-box-number">{{ total_vikri_today }}</span>
+                <span class="progress-description text-muted" style="font-size:0.8rem;">ಇಂದು · ವಾರ: {{ total_vikri_week }}</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3 mb-3 mb-lg-0">
+          <a href="{% url 'kharidi_patti_list' %}" class="dash-stat-link">
+            <div class="info-box shadow-sm">
+              <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-file-invoice"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text font-weight-bold">ಖರೀದಿ ಪಟ್ಟಿ</span>
+                <span class="info-box-number">{{ total_kharidi_today }}</span>
+                <span class="progress-description text-muted" style="font-size:0.8rem;">ಇಂದಿನ ಬಿಲ್‌ಗಳು</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="info-box shadow-sm">
+            <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-file-alt"></i></span>
+            <div class="info-box-content">
+              <span class="info-box-text font-weight-bold">ರೈತ ಬಿಲ್</span>
+              <span class="info-box-number">{{ total_farmer_bill_today }}</span>
+              <span class="progress-description text-muted" style="font-size:0.8rem;">ಇಂದಿನ ವಿಕ್ರಿ ರೈತರು</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="card dash-list-card shadow-sm">
+            <div class="card-header py-2 d-flex align-items-center">
+              <h3 class="card-title mb-0"><i class="fas fa-user-plus mr-2 text-success"></i> ಹೊಸ ಖಾತೆಗಳು</h3>
+              <a href="{% url 'farmer_list' %}" class="btn btn-xs btn-outline-primary ml-auto mr-1">ರೈತ</a>
+              <a href="{% url 'trader_list' %}" class="btn btn-xs btn-outline-primary">ವ್ಯಾಪಾರಿ</a>
+            </div>
+            <div class="card-body p-0 table-responsive">
+              <table class="table table-sm dash-mini-table mb-0">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>ವಿಧ</th>
+                    <th>ಹೆಸರು</th>
+                    <th>ಫೋನ್</th>
+                    <th>ದಿನಾಂಕ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for acc in new_accounts %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><span class="badge badge-{% if acc.type_en == 'Farmer' %}success{% else %}primary{% endif %}">{{ acc.type_kn }}</span></td>
+                    <td>
+                      <a href="{{ acc.edit_url }}">{{ acc.name }}</a>
+                      {% if acc.name_kn != "—" %}<br><small class="text-muted">{{ acc.name_kn }}</small>{% endif %}
+                    </td>
+                    <td>{{ acc.phone }}</td>
+                    <td>{{ acc.created_at|date:"d-m-Y" }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="5" class="text-center text-muted py-3">ಯಾವುದೇ ಹೊಸ ಖಾತೆಗಳಿಲ್ಲ</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12 col-lg-6 mb-3">
+          <div class="card dash-list-card shadow-sm">
+            <div class="card-header py-2 d-flex align-items-center">
+              <h3 class="card-title mb-0"><i class="fas fa-truck-loading mr-2 text-primary"></i> ಇತ್ತೀಚಿನ ಅವಾಕ್</h3>
+              <a href="{% url 'avak_list' %}" class="btn btn-xs btn-outline-secondary ml-auto">ಎಲ್ಲಾ</a>
+            </div>
+            <div class="card-body p-0 table-responsive">
+              <table class="table table-sm dash-mini-table mb-0">
+                <thead>
+                  <tr>
+                    <th>ದಿನಾಂಕ</th>
+                    <th>ಲಾಟ್</th>
+                    <th>ರೈತ</th>
+                    <th>ಸ್ಥಳ</th>
+                    <th>ಚೀಲ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for a in recent_avak %}
+                  <tr>
+                    <td>{{ a.date|date:"d-m-Y" }}</td>
+                    <td>{{ a.lot_number }}</td>
+                    <td>{{ a.farmer.name }}</td>
+                    <td>{{ a.place|default:"—" }}</td>
+                    <td>{{ a.no_of_bags }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="5" class="text-center text-muted py-3">ದಾಖಲೆಗಳಿಲ್ಲ</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6 mb-3">
+          <div class="card dash-list-card shadow-sm">
+            <div class="card-header py-2 d-flex align-items-center">
+              <h3 class="card-title mb-0"><i class="fas fa-shopping-cart mr-2 text-success"></i> ಇತ್ತೀಚಿನ ವಿಕ್ರಿ</h3>
+              <a href="{% url 'bikri_list' %}" class="btn btn-xs btn-outline-secondary ml-auto">ಎಲ್ಲಾ</a>
+            </div>
+            <div class="card-body p-0 table-responsive">
+              <table class="table table-sm dash-mini-table mb-0">
+                <thead>
+                  <tr>
+                    <th>ದಿನಾಂಕ</th>
+                    <th>ಲಾಟ್</th>
+                    <th>ರೈತ</th>
+                    <th>ವ್ಯಾಪಾರಿ</th>
+                    <th>ಮೊತ್ತ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for b in recent_bikri %}
+                  <tr>
+                    <td>{{ b.date|date:"d-m-Y" }}</td>
+                    <td>{{ b.avak.lot_number }}</td>
+                    <td>{{ b.avak.farmer.name }}</td>
+                    <td>{{ b.buyer.name }}</td>
+                    <td>{{ b.total_amount }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="5" class="text-center text-muted py-3">ದಾಖಲೆಗಳಿಲ್ಲ</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="card dash-chart-card shadow-sm">
+            <div class="card-header py-2">
+              <h3 class="card-title mb-0">
+                <i class="fas fa-chart-bar mr-2 text-muted"></i>
+                ಕಳೆದ 7 ದಿನಗಳ ಅವಾಕ್ ಮತ್ತು ವಿಕ್ರಿ
+              </h3>
+            </div>
+            <div class="card-body p-0">
+              <div class="dash-chart-wrap">
+                <canvas id="avakVikriChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/chart.js/Chart.bundle.js' %}"></script>
+<script>
+(function () {
+  var labels = {{ chart_labels_json|safe }};
+  var avakData = {{ avak_chart_json|safe }};
+  var vikriData = {{ vikri_chart_json|safe }};
+  var ctx = document.getElementById('avakVikriChart');
+  if (!ctx || typeof Chart === 'undefined') return;
+
+  new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'ಅವಾಕ್ (Receiving)',
+          data: avakData,
+          backgroundColor: 'rgba(0, 123, 255, 0.65)',
+          borderColor: 'rgba(0, 123, 255, 1)',
+          borderWidth: 1
+        },
+        {
+          label: 'ವಿಕ್ರಿ',
+          data: vikriData,
+          backgroundColor: 'rgba(40, 167, 69, 0.65)',
+          borderColor: 'rgba(40, 167, 69, 1)',
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      legend: { display: true, position: 'top' },
+      scales: {
+        yAxes: [{
+          ticks: { beginAtZero: true, precision: 0 },
+          scaleLabel: { display: true, labelString: 'ಪ್ರವೇಶಗಳು' }
+        }],
+        xAxes: [{
+          scaleLabel: { display: true, labelString: 'ದಿನಾಂಕ' }
+        }]
+      },
+      tooltips: {
+        mode: 'index',
+        intersect: false
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

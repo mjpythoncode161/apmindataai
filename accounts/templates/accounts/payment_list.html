@@ -1,0 +1,454 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Entry{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
+<style>
+  .voucher-card {
+    border: 2px solid #bee5eb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+  }
+  .voucher-header {
+    background: #d1ecf1;
+    border-bottom: 2px solid #bee5eb;
+    padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .voucher-header h5 { margin: 0; font-weight: 700; color: #0c5460; font-size: 0.95rem; }
+  .voucher-body { padding: 16px; }
+  .field-row { margin-bottom: 12px; }
+  .field-row label {
+    font-size: 0.75rem; font-weight: 700; color: #495057;
+    margin-bottom: 3px; display: block; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .type-select {
+    font-weight: 700; background: #e8f4f8;
+    border: 2px solid #17a2b8 !important; color: #0c5460; font-size: 0.92rem;
+  }
+  .debit-label  { color: #721c24 !important; }
+  .credit-label { color: #0c5460 !important; }
+  .amount-input {
+    font-size: 1.4rem !important; font-weight: 700; color: #007bff;
+    border-bottom: 3px solid #007bff !important;
+    border-top: none !important; border-left: none !important; border-right: none !important;
+    border-radius: 0 !important; background: transparent; text-align: center; padding: 2px 0;
+  }
+  .amount-input:focus { outline: none; border-bottom-color: #0056b3 !important; }
+  .save-btn { font-size: 0.92rem; font-weight: 700; }
+  .bank-tile {
+    cursor: pointer; border: 2px solid #dee2e6; border-radius: 7px;
+    padding: 7px 5px; text-align: center; background: #f8f9fa;
+    transition: all 0.15s; user-select: none;
+  }
+  .bank-tile:hover { border-color: #17a2b8; background: #e8f4f8; }
+  .bank-tile.selected { border-color: #17a2b8; background: #d1ecf1; }
+  .bank-tile i { font-size: 1.1rem; display: block; margin-bottom: 3px; }
+  .bank-tile span { font-size: 0.72rem; font-weight: 700; word-break: break-word; }
+  .list-card { border: 2px solid #bee5eb; border-radius: 10px; }
+  .list-card .card-header { background: #d1ecf1; border-bottom: 2px solid #bee5eb; padding: 10px 16px; }
+  .filter-bar { background: #f0fafc; border-bottom: 1px solid #bee5eb; padding: 10px 16px; }
+  .bill-divider { color: #adb5bd; padding: 0 4px; line-height: 31px; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0"><i class="fas fa-rupee-sign mr-2 text-info"></i> Payment Entry</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+          <li class="breadcrumb-item active">Payment Entry</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+
+      <!-- LEFT: Entry Form -->
+      <div class="col-lg-5 col-md-6 mb-3">
+        <form method="post" action="{% url 'add_payment' %}" id="paymentForm">
+          {% csrf_token %}
+          <div class="voucher-card">
+            <div class="voucher-header">
+              <h5><i class="fas fa-file-invoice mr-1"></i> New Payment</h5>
+            </div>
+            <div class="voucher-body">
+
+              <!-- Date + Entry Type -->
+              <div class="row field-row">
+                <div class="col-5 pr-1">
+                  <label><i class="fas fa-calendar-alt mr-1"></i> Date</label>
+                  <input type="date" name="date" class="form-control form-control-sm" value="{{ today }}" required />
+                </div>
+                <div class="col-7 pl-1">
+                  <label><i class="fas fa-tags mr-1"></i> Entry Type</label>
+                  <select name="voucher_type" id="voucher_type" class="form-control form-control-sm type-select"
+                    required onchange="onVoucherTypeChange(this.value)">
+                    <option value="Cash Payment">Cash Payment</option>
+                    <option value="Cheque Payment">Cheque Payment</option>
+                    <option value="NEFT/RTGS Payment">NEFT / RTGS Payment</option>
+                  </select>
+                </div>
+              </div>
+
+              <hr class="my-2" />
+
+              <!-- Bank Tiles -->
+              <div class="field-row">
+                <label class="credit-label">
+                  <i class="fas fa-university mr-1"></i> Pay From Account debit
+                  <a href="{% url 'add_ledger_account' %}" target="_blank" class="ml-1 text-muted" style="font-size:0.7rem; font-weight:400;">
+                    <i class="fas fa-plus-circle"></i> Add
+                  </a>
+                </label>
+                <input type="hidden" name="pay_from_ledger_id" id="pay_from_ledger_id_hidden" value="" />
+                {% if cash_bank_accounts %}
+                <div class="row" id="bank_tile_grid">
+                  {% for acc in cash_bank_accounts %}
+                  <div class="col-6 mb-2">
+                    <div class="bank-tile" data-ledger-id="{{ acc.id }}"
+                      onclick="selectBank({{ acc.id }}, '{{ acc.name|escapejs }}', this)">
+                      {% if 'cash' in acc.name|lower %}
+                        <i class="fas fa-money-bill-wave text-success"></i>
+                      {% else %}
+                        <i class="fas fa-university text-info"></i>
+                      {% endif %}
+                      <span>{{ acc.name }}</span>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <div id="bank_selected_badge" class="mt-1 d-none">
+                  <span class="badge badge-info px-2 py-1">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    <span id="bank_selected_name"></span>
+                  </span>
+                </div>
+                {% else %}
+                <div class="alert alert-warning py-1 mb-0" style="font-size:0.8rem;">
+                  No Cash/Bank accounts. <a href="{% url 'add_ledger_account' %}" target="_blank">Add here</a>
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Cheque details -->
+              <div id="cheque_details_row" class="d-none">
+                <div class="row mb-2">
+                  <div class="col-6 pr-1">
+                    <div class="field-row mb-0">
+                      <label><i class="fas fa-hashtag mr-1 text-warning"></i> Cheque No</label>
+                      <input type="text" name="cheque_no" id="cheque_no" class="form-control form-control-sm" placeholder="e.g. 001234" />
+                    </div>
+                  </div>
+                  <div class="col-6 pl-1">
+                    <div class="field-row mb-0">
+                      <label><i class="fas fa-university mr-1 text-warning"></i> Bank Name</label>
+                      <input type="text" name="cheque_bank_name" id="cheque_bank_name" class="form-control form-control-sm" placeholder="e.g. SBI Branch" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- NEFT details -->
+              <div id="neft_details_row" class="d-none">
+                <div class="field-row mb-2">
+                  <label><i class="fas fa-network-wired mr-1 text-info"></i> NEFT / UTR Ref No</label>
+                  <input type="text" name="cheque_no" id="neft_ref" class="form-control form-control-sm" placeholder="e.g. SBIN0000123456789" />
+                </div>
+              </div>
+
+              <hr class="my-2" />
+
+              <!-- Farmer -->
+              <div class="field-row">
+                <label class="debit-label"><i class="fas fa-user mr-1"></i> Farmer Name credit (cr)</label>
+                <select id="farmer_id" name="farmer_id" class="form-control form-control-sm select2-farmer" style="width:100%;" required>
+                  <option value="">-- Select Farmer --</option>
+                  {% for f in farmers %}
+                  <option value="{{ f.id }}">{{ f.name }}{% if f.village %} &ndash; {{ f.village }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+                <div id="farmer_info" class="mt-1 d-none">
+                  <span class="badge badge-secondary mr-1"><i class="fas fa-map-marker-alt mr-1"></i><span id="fi_place"></span></span>
+                  <span class="badge badge-secondary"><i class="fas fa-phone mr-1"></i><span id="fi_phone"></span></span>
+                </div>
+                <input type="hidden" name="name" id="name" />
+                <input type="hidden" name="place" id="place" />
+                <input type="hidden" name="phone_number" id="phone_number" />
+                <input type="hidden" name="person_type" id="person_type" value="Farmer" />
+              </div>
+
+              <!-- Vikri Bill No -->
+              <div class="field-row">
+                <label><i class="fas fa-file-invoice mr-1"></i> Vikri Bill No <small class="text-muted font-weight-normal">(Optional)</small></label>
+                <div class="d-flex align-items-center">
+                  <select id="bikri_bill_select" name="bikri_bill_no" class="form-control form-control-sm" style="flex:1;">
+                    <option value="">Search Vikri Bill / Lot...</option>
+                  </select>
+                  <span class="bill-divider">&mdash;</span>
+                  <input type="text" id="bill_info_display" class="form-control form-control-sm text-muted"
+                    style="width:100px; font-size:0.78rem;" placeholder="Lot / Amt" readonly />
+                </div>
+              </div>
+
+              <!-- Amount -->
+              <div class="field-row">
+                <label><i class="fas fa-rupee-sign mr-1"></i> Amount (&#8377;)</label>
+                <input type="number" step="0.01" name="amount" id="amountField"
+                  class="form-control amount-input" placeholder="0.00" required />
+              </div>
+
+              <!-- Narration -->
+              <div class="field-row">
+                <label><i class="fas fa-comment-alt mr-1"></i> Narration</label>
+                <input type="text" name="narration" class="form-control form-control-sm"
+                  placeholder="Optional remarks..." />
+              </div>
+
+              <div class="mt-3">
+                <button type="submit" class="btn btn-primary btn-block save-btn shadow" id="saveBtn">
+                  <i class="fas fa-save mr-1"></i> SAVE CASH PAYMENT
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- RIGHT: Payment List -->
+      <div class="col-lg-7 col-md-6 mb-3">
+        <div class="list-card card">
+          <div class="card-header d-flex align-items-center">
+            <h5 class="m-0 text-info font-weight-bold">
+              <i class="fas fa-list mr-1"></i> Payment Entries
+            </h5>
+            <span class="badge badge-info ml-2 px-2 py-1">{{ payments|length }} record{% if payments|length != 1 %}s{% endif %}</span>
+          </div>
+
+          <!-- Date filter bar -->
+          <form method="get" class="filter-bar">
+            <div class="row align-items-end">
+              <div class="col-auto pr-1">
+                <label class="mb-1" style="font-size:0.72rem; font-weight:700; color:#0c5460;">FROM</label>
+                <input type="date" name="from_date" class="form-control form-control-sm"
+                  value="{{ from_date }}" style="width:135px;" />
+              </div>
+              <div class="col-auto px-1">
+                <label class="mb-1" style="font-size:0.72rem; font-weight:700; color:#0c5460;">TO</label>
+                <input type="date" name="to_date" class="form-control form-control-sm"
+                  value="{{ to_date }}" style="width:135px;" />
+              </div>
+              <div class="col-auto px-1">
+                <button type="submit" class="btn btn-info btn-sm">
+                  <i class="fas fa-filter mr-1"></i> Filter
+                </button>
+                {% if from_date or to_date %}
+                <a href="{% url 'payment_list' %}" class="btn btn-outline-secondary btn-sm ml-1">
+                  <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
+              </div>
+              <div class="col-auto ml-auto pl-1">
+                <div class="input-group input-group-sm">
+                  <input type="text" id="paymentSearch" class="form-control" placeholder="Search&hellip;" style="width:110px;" />
+                  <div class="input-group-append">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table id="paymentTable" class="table table-sm table-bordered table-hover mb-0">
+                <thead class="thead-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Farmer</th>
+                    <th>Type</th>
+                    <th>Account</th>
+                    <th class="text-right">Amount</th>
+                    <th class="text-center no-print">Act.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in payments %}
+                  <tr>
+                    <td style="white-space:nowrap; font-size:0.82rem;">{{ p.date|date:"d-m-Y" }}</td>
+                    <td style="font-size:0.82rem;">
+                      {% if p.farmer %}{{ p.farmer.name }}
+                      {% elif p.trader %}{{ p.trader.name }}
+                      {% else %}{{ p.name|default:"---" }}{% endif %}
+                    </td>
+                    <td>
+                      <span class="badge badge-info" style="font-size:0.68rem;">
+                        {{ p.voucher_type|default:p.payment_method }}
+                      </span>
+                    </td>
+                    <td style="font-size:0.78rem;">{{ p.pay_from_ledger.name|default:"&mdash;" }}</td>
+                    <td class="text-right font-weight-bold text-info" style="font-size:0.85rem;">
+                      &#8377;{{ p.amount|floatformat:0 }}
+                    </td>
+                    <td class="text-center no-print">
+                      <div class="btn-group btn-group-sm">
+                        <a href="{% url 'view_transaction' p.id %}" class="btn btn-info" style="padding:2px 6px;" title="View"><i class="fas fa-eye" style="font-size:0.75rem;"></i></a>
+                        <a href="{% url 'edit_transaction' p.id %}" class="btn btn-warning" style="padding:2px 6px;" title="Edit"><i class="fas fa-edit" style="font-size:0.75rem;"></i></a>
+                        <a href="{% url 'delete_transaction' p.id %}" class="btn btn-danger" style="padding:2px 6px;"
+                          onclick="return confirm('Delete this payment?')" title="Delete"><i class="fas fa-trash" style="font-size:0.75rem;"></i></a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      {% if from_date or to_date %}
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        No payments found for selected dates.
+                      {% else %}
+                        <i class="fas fa-calendar-alt fa-2x mb-2 d-block text-info"></i>
+                        Please select a date range and click <strong>Filter</strong> to view records.
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                {% if payments %}
+                <tfoot>
+                  <tr class="table-info font-weight-bold">
+                    <td colspan="4" class="text-right">Total:</td>
+                    <td class="text-right text-info" id="grandTotal">&mdash;</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+                {% endif %}
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>
+$(function () {
+  // Select2: Farmer
+  $('.select2-farmer').select2({
+    theme: 'bootstrap4',
+    placeholder: '-- Select Farmer --',
+    dropdownParent: $('#paymentForm')
+  });
+
+  // Bill search
+  $('#bikri_bill_select').select2({
+    theme: 'bootstrap4',
+    ajax: {
+      url: '{% url "search_bikri" %}',
+      dataType: 'json',
+      delay: 250,
+      data: function (params) {
+        return { q: params.term, farmer_id: $('#farmer_id').val(), date: $('input[name="date"]').val() };
+      },
+      processResults: function (data) { return { results: data.results }; },
+      cache: true
+    },
+    placeholder: 'Search Vikri Bill / Lot...',
+    minimumInputLength: 0,
+    allowClear: true,
+    dropdownParent: $('#paymentForm')
+  });
+
+  $('#bikri_bill_select').on('select2:select', function () {
+    const d = $(this).select2('data')[0];
+    if (d && d.net_payable) { $('#amountField').val(d.net_payable); }
+    if (d && d.text) { $('#bill_info_display').val(d.text.split(' - ')[0]); }
+  });
+  $('#bikri_bill_select').on('select2:clear', function () { $('#bill_info_display').val(''); });
+
+  // Farmer change -> fetch info
+  $('#farmer_id').on('change', function () {
+    const id = $(this).val();
+    if (!id) { $('#farmer_info').addClass('d-none'); return; }
+    $.getJSON('{% url "get_farmer_details" %}', { farmer_id: id }, function (res) {
+      if (res.success) {
+        $('#name').val(res.name); $('#place').val(res.place || ''); $('#phone_number').val(res.phone || '');
+        $('#fi_place').text(res.place || '--'); $('#fi_phone').text(res.phone || '--');
+        $('#farmer_info').removeClass('d-none');
+        $.getJSON('{% url "search_bikri" %}', { farmer_id: id, date: $('input[name="date"]').val() }, function (data) {
+          if (data.results && data.results.length > 0) {
+            const bill = data.results[0];
+            $('#bikri_bill_select').empty().append(new Option(bill.text, bill.id, true, true)).trigger('change');
+            if (bill.net_payable) $('#amountField').val(bill.net_payable);
+          }
+        });
+      }
+    });
+  });
+
+  // DataTable
+  var dt = $('#paymentTable').DataTable({ paging: false, searching: true, info: false, ordering: false, dom: 'rt' });
+  $('#paymentSearch').on('input', function () { dt.search(this.value).draw(); });
+
+  // Grand total
+  let total = 0;
+  $('#paymentTable tbody tr').each(function () {
+    const txt = $(this).find('td:eq(4)').text().replace(/[^\d.]/g,'').trim();
+    total += parseFloat(txt) || 0;
+  });
+  if (total > 0) { $('#grandTotal').text('\u20b9' + total.toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:0})); }
+});
+
+function selectBank(id, name, tileEl) {
+  document.querySelectorAll('.bank-tile').forEach(t => t.classList.remove('selected'));
+  if (tileEl) tileEl.classList.add('selected');
+  document.getElementById('pay_from_ledger_id_hidden').value = id;
+  document.getElementById('bank_selected_name').textContent = name;
+  document.getElementById('bank_selected_badge').classList.remove('d-none');
+}
+
+function onVoucherTypeChange(val) {
+  const isCheque = val === 'Cheque Payment', isNEFT = val === 'NEFT/RTGS Payment';
+  document.getElementById('cheque_details_row').classList.toggle('d-none', !isCheque);
+  document.getElementById('cheque_no').required = isCheque;
+  document.getElementById('neft_details_row').classList.toggle('d-none', !isNEFT);
+  document.getElementById('neft_ref').required = isNEFT;
+  if (!isCheque) { document.getElementById('cheque_no').value = ''; document.getElementById('cheque_bank_name').value = ''; }
+  if (!isNEFT)   { document.getElementById('neft_ref').value = ''; }
+  const labels = { 'Cash Payment': 'SAVE CASH PAYMENT', 'Cheque Payment': 'SAVE CHEQUE PAYMENT', 'NEFT/RTGS Payment': 'SAVE NEFT PAYMENT' };
+  document.getElementById('saveBtn').innerHTML = '<i class="fas fa-save mr-1"></i> ' + (labels[val] || 'SAVE PAYMENT');
+}
+
+document.getElementById('paymentForm').addEventListener('submit', function (e) {
+  if (!document.getElementById('pay_from_ledger_id_hidden').value) {
+    e.preventDefault(); alert('Please select a bank / cash account.'); return false;
+  }
+  const amt = parseFloat(document.getElementById('amountField').value || '0');
+  if (!amt || amt <= 0) { e.preventDefault(); alert('Please enter a valid amount.'); return false; }
+});
+
+(function () { onVoucherTypeChange(document.getElementById('voucher_type').value); })();
+</script>
+{% endblock %}

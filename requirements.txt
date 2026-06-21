@@ -1,0 +1,9 @@
+
+# ── Core Framework ─────────────────────────────────────────────────────────────
+Django==4.2.27
+
+# ── Image Processing (required for ImageField) ─────────────────────────────────
+Pillow==11.3.0
+
+# ── PDF extraction (APMC tender upload) ────────────────────────────────────────
+pdfplumber==0.11.4

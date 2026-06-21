@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ವಿಕ್ರಿ ತಿದ್ದುಪಡಿ - ಎಲ್ಲಾ ಲಾಟ್ (Edit All Lots){% endblock %}
+
+{% block extra_css %}
+<style>
+  .edit-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    border: 1px solid #e9ecef;
+  }
+  .edit-card .card-header {
+    background: linear-gradient(135deg, #1a2a4a 0%, #2c3e6a 100%);
+    border-radius: 10px 10px 0 0;
+    padding: 0.85rem 1.2rem;
+  }
+  .lot-table th {
+    background: #343a40;
+    color: #fff;
+    font-size: 0.82rem;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .lot-table td {
+    vertical-align: middle;
+    font-size: 0.88rem;
+  }
+  .lot-table input[type="number"] {
+    text-align: right;
+    font-weight: 600;
+    border: 1.5px solid #0d6efd;
+    border-radius: 5px;
+    padding: 4px 8px;
+    width: 100%;
+    min-width: 80px;
+  }
+  .lot-table input[type="number"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
+  }
+  .lot-table .amount-cell {
+    font-weight: 700;
+    color: #198754;
+    text-align: right;
+  }
+  .lot-number-badge {
+    display: inline-block;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 20px;
+    padding: 2px 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .farmer-info {
+    background: #f0fdf4;
+    border-left: 4px solid #198754;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 18px;
+    margin-bottom: 1rem;
+  }
+  .tfoot-row td {
+    font-weight: 700;
+    font-size: 0.92rem;
+    background: #f8f9fa;
+  }
+  .btn-save {
+    min-width: 160px;
+    font-size: 1rem;
+    padding: 0.55rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+  .readonly-field {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6 !important;
+    color: #495057;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-8">
+        <h1 class="m-0" style="font-weight:700; color:#334155;">
+          <i class="fas fa-edit mr-2 text-warning"></i>ವಿಕ್ರಿ ತಿದ್ದುಪಡಿ — ಎಲ್ಲಾ ಲಾಟ್
+        </h1>
+      </div>
+      <div class="col-sm-4 text-right">
+        <a href="{% url 'bikri_list' %}" class="btn btn-secondary btn-sm">
+          <i class="fas fa-arrow-left mr-1"></i> Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Farmer Info Bar -->
+    <div class="farmer-info d-flex align-items-center">
+      <i class="fas fa-user-circle fa-2x text-success mr-3"></i>
+      <div>
+        <div style="font-size:1.15rem; font-weight:700; color:#155724;">{{ farmer.name }}</div>
+        <div class="text-muted small">{{ primary.avak.place }} &nbsp;|&nbsp; Date: <strong>{{ primary.date|date:"d-m-Y" }}</strong></div>
+      </div>
+      <div class="ml-auto text-right">
+        <div class="text-muted small">Bill No</div>
+        <div style="font-size:1.1rem; font-weight:700;">{{ primary.bill_no|default:"—" }}</div>
+      </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="card edit-card">
+      <div class="card-header">
+        <h5 class="mb-0 text-white font-weight-bold">
+          <i class="fas fa-table mr-2"></i>ಬ್ಯಾಗ್ ವಿವರ ತಿದ್ದುಪಡಿ (Edit Lot Details)
+        </h5>
+      </div>
+      <div class="card-body p-3">
+        <form method="post" id="multiEditForm">
+          {% csrf_token %}
+          <input type="hidden" name="date" value="{{ date_value }}">
+
+          <div class="table-responsive">
+            <table class="table table-bordered lot-table mb-2" id="lotTable">
+              <thead>
+                <tr>
+                  <th style="width:50px;">S.No</th>
+                  <th>Lot No</th>
+                  <th>Buyer</th>
+                  <th style="min-width:110px;">No Of Bags</th>
+                  <th style="min-width:130px;">Weight (kg)</th>
+                  <th style="min-width:130px;">Rate (₹/qtl)</th>
+                  <th style="min-width:120px;">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for lot in all_lots %}
+                <tr data-lot-id="{{ lot.id }}">
+                  <td class="text-center">{{ forloop.counter }}</td>
+                  <td class="text-center">
+                    <span class="lot-number-badge">{{ lot.avak.lot_number }}</span>
+                  </td>
+                  <td>{{ lot.buyer.name }}</td>
+                  <td>
+                    <input type="number" name="no_of_bags_{{ lot.id }}"
+                      id="bags_{{ lot.id }}"
+                      class="bags-input"
+                      data-lot="{{ lot.id }}"
+                      value="{{ lot.no_of_bags }}"
+                      min="1" required>
+                  </td>
+                  <td>
+                    <input type="number" step="0.001" name="total_weight_{{ lot.id }}"
+                      id="weight_{{ lot.id }}"
+                      class="weight-input"
+                      data-lot="{{ lot.id }}"
+                      value="{{ lot.total_weight }}"
+                      min="0.001" required>
+                  </td>
+                  <td>
+                    <input type="number" step="0.01" name="rate_{{ lot.id }}"
+                      id="rate_{{ lot.id }}"
+                      class="rate-input"
+                      data-lot="{{ lot.id }}"
+                      value="{{ lot.rate }}"
+                      min="0.01" required>
+                  </td>
+                  <td class="amount-cell" id="amount_{{ lot.id }}">
+                    {{ lot.amount|floatformat:2 }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="tfoot-row">
+                  <td colspan="3" class="text-right">Total:</td>
+                  <td class="text-right" id="total_bags">—</td>
+                  <td class="text-right" id="total_weight">—</td>
+                  <td></td>
+                  <td class="text-right text-success" id="total_amount">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="d-flex justify-content-end mt-3">
+            <a href="{% url 'bikri_list' %}" class="btn btn-secondary mr-2">Cancel</a>
+            <button type="submit" class="btn btn-success btn-save">
+              <i class="fas fa-save mr-2"></i>Save All Lots
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function () {
+  function recalcRow(lotId) {
+    const weight = parseFloat($('#weight_' + lotId).val()) || 0;
+    const rate   = parseFloat($('#rate_'   + lotId).val()) || 0;
+    const amount = (weight / 100) * rate;
+    $('#amount_' + lotId).text(amount.toFixed(2));
+  }
+
+  function recalcTotals() {
+    let totalBags = 0, totalWeight = 0, totalAmount = 0;
+    $('#lotTable tbody tr').each(function () {
+      const lotId = $(this).data('lot-id');
+      totalBags   += parseInt($('#bags_'  + lotId).val()) || 0;
+      totalWeight += parseFloat($('#weight_' + lotId).val()) || 0;
+      totalAmount += parseFloat($('#amount_' + lotId).text()) || 0;
+    });
+    $('#total_bags').text(totalBags);
+    $('#total_weight').text(totalWeight.toFixed(3));
+    $('#total_amount').text(totalAmount.toFixed(2));
+  }
+
+  // Initial calculation
+  $('#lotTable tbody tr').each(function () {
+    const lotId = $(this).data('lot-id');
+    recalcRow(lotId);
+  });
+  recalcTotals();
+
+  // Live recalc on input
+  $(document).on('input', '.weight-input, .rate-input, .bags-input', function () {
+    const lotId = $(this).data('lot');
+    recalcRow(lotId);
+    recalcTotals();
+  });
+
+  // Confirm on submit
+  $('#multiEditForm').on('submit', function (e) {
+    const btn = $(this).find('button[type=submit]');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Saving...');
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ledger Master{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6"><h1 class="m-0">Ledger Master</h1></div>
+      <div class="col-sm-6 text-right">
+        <a href="{% url 'grouping_master' %}" class="btn btn-outline-info mr-1">
+          <i class="fas fa-layer-group mr-1"></i> Grouping Master
+        </a>
+        <a href="{% url 'add_ledger_account' %}" class="btn btn-primary">
+          <i class="fas fa-plus mr-1"></i> Add Ledger Account
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show">
+      {{ msg }} <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Search -->
+    <div class="card card-outline card-secondary mb-3">
+      <div class="card-body py-2">
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+          </div>
+          <input type="search" id="ledgerSearch" class="form-control"
+                 placeholder="Search ledger name, group (e.g. Cash &amp; Bank), or category (Assets, Income...)">
+          <div class="input-group-append">
+            <button type="button" class="btn btn-outline-secondary" id="clearLedgerSearch">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ledgerNoResults" class="alert alert-warning d-none">
+      No ledger accounts match your search.
+    </div>
+
+    {% for group in groups %}
+    {% if group.ledger_accounts.all %}
+    <div class="card card-outline card-primary mb-3 ledger-group-card"
+         data-group-search="{{ group.name }} {{ group.nature }}">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <span class="badge badge-{% if group.nature == 'Assets' %}success{% elif group.nature == 'Liabilities' %}danger{% elif group.nature == 'Income' %}info{% else %}warning{% endif %} mr-2">
+            {{ group.nature }}
+          </span>
+          {{ group.name }}
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>#</th>
+              <th>Ledger Name</th>
+              <th>Opening Balance</th>
+              <th>Type</th>
+              <th>System</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ledger in group.ledger_accounts.all %}
+            <tr class="ledger-row"
+                data-search="{{ ledger.name }} {{ group.name }} {{ group.nature }} {{ ledger.balance_type }} {% if ledger.farmer %}farmer{% endif %} {% if ledger.trader %}trader{% endif %}">
+              <td>{{ forloop.counter }}</td>
+              <td>
+                {{ ledger.name }}
+                {% if ledger.farmer %}<small class="text-muted">(Farmer)</small>{% endif %}
+                {% if ledger.trader %}<small class="text-muted">(Trader)</small>{% endif %}
+              </td>
+              <td>₹{{ ledger.opening_balance|floatformat:2 }}</td>
+              <td>
+                <span class="badge badge-{% if ledger.balance_type == 'Dr' %}warning{% else %}info{% endif %}">
+                  {{ ledger.balance_type }}
+                </span>
+              </td>
+              <td>{% if ledger.is_system %}<i class="fas fa-lock text-secondary"></i>{% endif %}</td>
+              <td class="text-right">
+                {% if not ledger.is_system %}
+                <a href="{% url 'edit_ledger_account' ledger.id %}" class="btn btn-xs btn-warning">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'delete_ledger_account' ledger.id %}"
+                   class="btn btn-xs btn-danger"
+                   onclick="return confirm('Delete {{ ledger.name }}?')">
+                  <i class="fas fa-trash"></i>
+                </a>
+                {% else %}
+                <span class="text-muted small">System</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {% if not groups %}
+    <div class="alert alert-info">
+      Default ledger groups are being restored. Refresh the page if the list is empty.
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function () {
+  function filterLedgers() {
+    var q = $('#ledgerSearch').val().toLowerCase().trim();
+    var anyMatch = false;
+
+    $('.ledger-group-card').each(function () {
+      var $card = $(this);
+      var groupText = ($card.data('group-search') || '').toLowerCase();
+      var groupMatch = !q || groupText.indexOf(q) !== -1;
+      var rowMatch = false;
+
+      $card.find('.ledger-row').each(function () {
+        var rowText = ($(this).data('search') || '').toLowerCase();
+        var match = groupMatch || rowText.indexOf(q) !== -1;
+        $(this).toggle(!q || match);
+        if (!q || match) rowMatch = true;
+      });
+
+      var showCard = !q || groupMatch || rowMatch;
+      $card.toggle(showCard);
+      if (showCard) anyMatch = true;
+    });
+
+    $('#ledgerNoResults').toggleClass('d-none', !q || anyMatch);
+  }
+
+  $('#ledgerSearch').on('input', filterLedgers);
+  $('#clearLedgerSearch').on('click', function () {
+    $('#ledgerSearch').val('').focus();
+    filterLedgers();
+  });
+});
+</script>
+{% endblock %}

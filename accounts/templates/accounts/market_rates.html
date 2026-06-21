@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Market Rates{% endblock %}
+{% block content %}
+<section class="content-header">
+    <div class="container-fluid text-center">
+        <h3 class="text-primary font-weight-bold">Market Rates</h3>
+        <p class="text-muted">Last Updated : {{ last_updated_date }}</p>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid d-flex justify-content-center">
+        <div class="card shadow-lg" style="max-width: 500px; width: 100%; background-color: #f4ece4;">
+            <div class="card-body">
+                <form method="post" action="{% url 'market_rates' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group row justify-content-center">
+                        <label class="col-sm-4 col-form-label text-right font-weight-bold">Date</label>
+                        <div class="col-sm-6">
+                            <input type="date" name="date" class="form-control" value="{{ selected_date }}" onchange="window.location.href='?date=' + this.value">
+                        </div>
+                    </div>
+
+                    <div class="text-center my-3">
+                        <h5 class="text-primary font-weight-bold">ರೈತರ ಪಟ್ಟಿಗಳಲ್ಲಿ</h5>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Packing/Bag</label>
+                        <div class="col-sm-5 text-left">
+                            <input type="number" step="0.01" name="farmer_packing_per_bag" class="form-control h-auto py-1" value="{{ rates.farmer_packing_per_bag }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Hamali/Bag</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="farmer_hamali_per_bag" class="form-control h-auto py-1" value="{{ rates.farmer_hamali_per_bag }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Unloading/Bag</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="farmer_unloading_per_bag" class="form-control h-auto py-1" value="{{ rates.farmer_unloading_per_bag }}">
+                        </div>
+                    </div>
+
+                    <div class="text-center my-3">
+                        <h5 class="text-primary font-weight-bold">ಖರೀದಿ ಪಟ್ಟಿಗಳಲ್ಲಿ</h5>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Packing/Bag</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="trader_packing_per_bag" class="form-control h-auto py-1" value="{{ rates.trader_packing_per_bag }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Hamali/Bag</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="trader_hamali_per_bag" class="form-control h-auto py-1" value="{{ rates.trader_hamali_per_bag }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Weighman fee/Bag</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="weighman_fee_per_bag" class="form-control h-auto py-1" value="{{ rates.weighman_fee_per_bag }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Dalali (%)</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="dalali_percent" class="form-control h-auto py-1" value="{{ rates.dalali_percent }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">Cess (%)</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="cess_percent" class="form-control h-auto py-1" value="{{ rates.cess_percent }}">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">GST (%)</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" name="gst_percent" class="form-control h-auto py-1" value="{{ rates.gst_percent }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">ರಖಂ (%)</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" min="0" max="100" name="rakham_percent" class="form-control h-auto py-1" value="{{ rates.rakham_percent }}">
+                        </div>
+                    </div>
+
+    
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-info px-5">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .form-group {
+        margin-bottom: 0.5rem;
+    }
+    .form-control {
+        border-radius: 0;
+        border: 1px solid #999;
+    }
+    .h-auto {
+        height: 30px !important;
+    }
+    label {
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}

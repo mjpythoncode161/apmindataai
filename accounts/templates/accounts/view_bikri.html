@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Farmer Bill - {{ bikri.avak.farmer.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .main-footer, .main-header, .main-sidebar { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; background: #fff !important; }
+    body { background-color: #fff !important; -webkit-print-color-adjust: exact; }
+    .bill-container { box-shadow: none !important; border: 1px solid #000 !important; margin: 0 !important; padding: 10px !important; }
+  }
+
+  .bill-container {
+    max-width: 950px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border: 2px solid #333;
+    font-family: 'Sakal Bharti', 'Nudi', Arial, sans-serif;
+    position: relative;
+    color: #000;
+  }
+
+  .bill-top-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 1px solid #000;
+    padding-bottom: 5px;
+  }
+
+  .bill-title-section {
+    text-align: center;
+    margin-top: 5px;
+  }
+  .kannada-font { font-family: 'Nudi', serif; }
+  
+  .bill-title-box {
+    display: inline-block;
+    border: 1px solid #000;
+    border-radius: 15px;
+    padding: 2px 20px;
+    margin-top: 5px;
+    font-weight: bold;
+    font-size: 18px;
+  }
+
+  .farmer-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    font-size: 16px;
+  }
+
+  .bill-main-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    border-top: 1.5px solid #000;
+    border-bottom: 1.5px solid #000;
+  }
+  .bill-main-table th, .bill-main-table td {
+    border-left: 1px solid #000;
+    border-right: 1px solid #000;
+    padding: 4px 8px;
+    text-align: right;
+  }
+  .bill-main-table th {
+    text-align: center;
+    border-bottom: 1px solid #000;
+    font-weight: bold;
+  }
+  .bill-main-table .text-center { text-align: center; }
+
+  .deductions-container {
+    display: flex;
+    margin-top: 0;
+    border-bottom: 1.5px solid #000;
+  }
+
+  .mid-deductions {
+    flex: 3;
+    border-right: 1.5px solid #000;
+    padding: 5px 0;
+  }
+  
+  .deduction-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .ded-label { width: 150px; text-align: right; padding-right: 15px; }
+  .ded-rate { width: 100px; text-align: center; border-bottom: 1px solid #000; margin-right: 10px; }
+  .ded-val { width: 120px; text-align: right; padding-right: 10px; border-bottom: 1.5px solid #000; font-weight: bold; }
+
+  .side-other-box {
+    position: absolute;
+    top: 60px;
+    right: 40px;
+    width: 180px;
+    border: 1px solid #000;
+    text-align: center;
+    background: #fff;
+    z-index: 10;
+  }
+  .side-other-box-header {
+      border-bottom: 1px solid #000;
+      padding: 2px;
+      font-size: 12px;
+  }
+  .side-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 5px;
+      font-size: 13px;
+      border-bottom: 1px dashed #ccc;
+  }
+  .side-total {
+      font-weight: bold;
+      border-top: 1px solid #000;
+      padding: 2px 5px;
+  }
+
+  .summary-section {
+    flex: 2;
+    padding: 10px;
+    font-size: 15px;
+    background: #fff;
+  }
+  .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+  }
+  .summary-label { flex: 1; }
+  .summary-val { flex: 1; text-align: right; border-bottom: 1.5px double #000; font-weight: bold; }
+
+  .footer-sig {
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 50px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header no-print">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Farmer Bill (ರೈತರ ಪಟ್ಟಿ)</h1>
+      </div>
+      <div class="col-sm-6 text-right">
+        <a href="{% url 'voucher_from_bikri' bikri.id %}" class="btn btn-info small" title="Create Journal Voucher from this Vikri Patti">
+          <i class="fas fa-book mr-1"></i> Create Voucher
+        </a>
+        <a href="{% url 'bikri_list' %}" class="btn btn-secondary small"><i class="fas fa-arrow-left"></i> Back</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bill-container">
+  <!-- Side Other Deductions Box (Top Right as in image) -->
+  <div class="side-other-box">
+    <div class="side-other-box-header">{{ bikri.date|date:"d-m-Y" }}</div>
+    <div class="side-item"><span>ಬಾಡಿಗೆ</span> <span>{{ rent }}</span></div>
+    <div class="side-item"><span>ಚೀಲ</span> <span>0.00</span></div>
+    <div class="side-item"><span>ಅಡ್ವಾನ್ಸ್</span> <span>{{ other_fee_2 }}</span></div>
+    <div class="side-item"><span>ಇತರೆ 1</span> <span>{{ other_fee_1 }}</span></div>
+    <div class="side-item"><span>ಅನ್ಲೋಡಿಂಗ್</span> <span>{{ unload_fee }}</span></div>
+    <div class="side-total"><span>Total:</span> <span>{{ other_deductions_total }}</span></div>
+  </div>
+
+  <div class="bill-top-header">
+    <div>GSTN : {{ bikri.avak.crop.gst_number }}</div>
+    <div>ITEM : Red chilles</div>
+    <div>HSM : 09042110</div>
+  </div>
+
+  <div class="bill-title-section">
+    <div style="font-size: 14px;">|| ಶ್ರೀ ಗುರು ಪ್ರಸನ್ನ ||</div>
+    <h3 class="m-0" style="font-weight: 800;">ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ</h3>
+    <div style="font-size: 14px; font-weight: bold;">ಎ ಪಿ ಎಂ ಸಿ ಯಾರ್ಡ್ ಬ್ಯಾಡಗಿ-581106</div>
+    <div class="bill-title-box">ವಿಕ್ರಿದಾರರ ಪಟ್ಟಿ</div>
+  </div>
+
+  <div class="farmer-info-row kannada-font">
+    <div>
+      <strong>ಹೆಸರು :</strong> {{ display_name }}<br>
+      <strong>ಊರು :</strong> {{ display_village }}
+    </div>
+    <div class="text-right" style="margin-right: 220px;"> <!-- Margin to avoid overlapping with side box -->
+        <strong>ಪ.ಸಂ :</strong> {{ patti_no }}<br>
+        <strong>ಲಾಟ್ :</strong> {{ lot_numbers_display }}<br>
+        <strong>ದಿನಾಂಕ :</strong> {{ bikri.date|date:"d-m-Y" }}
+    </div>
+  </div>
+
+  <table class="bill-main-table">
+    <thead>
+      <tr>
+        <th style="width: 10%;">ಲಾಟ್</th>
+        <th style="width: 15%;">ಚೀಲ</th>
+        <th style="width: 20%;">ತೂಕ</th>
+        <th style="width: 25%;">ಕ್ವಿಂಟಲ್ ದರ</th>
+        <th style="width: 30%;">ರಕಮು</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if is_combined %}
+        {% for lot in grouped_lots %}
+          <tr style="height: 30px;">
+            <td class="text-center">{{ lot.lot_number }}</td>
+            <td class="text-center">{{ lot.no_of_bags }}</td>
+            <td>{{ lot.total_weight }}</td>
+            <td>{{ lot.rate }}</td>
+            <td>{{ lot.amount }}</td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr style="height: 40px;">
+          <td class="text-center">{{ bikri.avak.lot_number }}</td>
+          <td class="text-center">{{ bikri.no_of_bags }}</td>
+          <td>{{ bikri.total_weight }}</td>
+          <td>{{ bikri.rate }}</td>
+          <td style="font-size: 1.1rem; font-weight: bold;">{{ bikri.amount }}</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <td class="text-center">Total</td>
+        <td class="text-center">{{ total_bags }}</td>
+        <td>{{ total_weight }}</td>
+        <td></td>
+        <td style="border-top: 1.5px solid #000; font-weight: bold;">{{ total_amount }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="deductions-container">
+    <div class="mid-deductions">
+        <!-- Deduction Line 1 -->
+        <div class="deduction-row">
+            <div class="ded-label">ಹಮಾಲಿ(-)</div>
+            <div class="ded-rate">{{ farmer_hamali_rate }}/Bag</div>
+            <div class="ded-val">{{ farmer_hamali }}</div>
+        </div>
+        <!-- Intermediate Sum -->
+        <div class="deduction-row" style="margin-bottom: 5px;">
+            <div class="ded-val" style="border-bottom: 1px solid #000;">{{ amount_after_farmer_hamali }}</div>
+        </div>
+        <!-- Deduction Line 2 -->
+        <div class="deduction-row">
+            <div class="ded-label">ಪ್ಯಾಕಿಂಗ್(+)</div>
+            <div class="ded-rate">{{ farmer_packing_rate }}/Bag</div>
+            <div class="ded-val">{{ farmer_packing }}</div>
+        </div>
+        <!-- Subtotal 2 -->
+        <div class="deduction-row">
+            <div class="ded-val" style="border-bottom: 2px double #000; font-size: 1.1rem; margin-top: 5px;">{{ bill_amount }}</div>
+        </div>
+    </div>
+    
+    <div class="summary-section">
+        <div class="summary-row">
+            <div class="summary-label">ಪಟ್ಟಿ ಮೊತ್ತ</div>
+            <div class="summary-val">{{ bill_amount }}</div>
+        </div>
+        <div class="summary-row">
+          <div class="summary-label">ರಖಂ ({{ rakham_percent|floatformat:2 }}%)</div>
+          <div class="summary-val">{{ rakham_amount }}</div>
+        </div>
+        <div class="summary-row">
+            <div class="summary-label">ಇತರೆ ವಜಾ</div>
+            <div class="summary-val">{{ other_deductions_total }}</div>
+        </div>
+        <div class="summary-row mt-2" style="font-size: 1.15rem; color: #d00;">
+            <div class="summary-label"><strong>ನಿವ್ವಳ ಅಮೌಂಟ್</strong></div>
+          <div class="summary-val"><strong>₹ {{ net_payable_calc }}</strong></div>
+        </div>
+    </div>
+  </div>
+
+  <div class="footer-sig">
+    <div>ತಪ್ಪಿದ್ದರೆ ತಿದ್ದಿಕೊಳ್ಳಿ</div>
+    <div>ಸಹಿ</div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ is_edit|yesno:"Update,Add" }} Avak Entry (ಅವಾಕ್ ಎಂಟ್ರಿ){% endblock %}
+
+{% block content %}
+<section class="content">
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">
+            {{ is_edit|yesno:"Update,Add" }} Avak Entry (ಅವಾಕ್ ಎಂಟ್ರಿ)
+          </h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-body">
+            <form method="post" action="{{ form_action }}" autocomplete="off">
+              {% csrf_token %}
+
+              <div class="row">
+                <div class="col-md-12 form-group">
+                  <label>Date:</label>
+                  <div class="d-flex flex-wrap align-items-center">
+                    <input
+                      type="date"
+                      id="entry_date"
+                      name="date"
+                      class="form-control mb-2 mb-sm-0"
+                      style="max-width: 200px; flex-grow: 1;"
+                      value="{{ form_values.date }}"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-brown text-white ml-sm-2 btn-block-mobile"
+                      style="background-color: #8b4513"
+                    >
+                      Show Lots
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-sm-9 form-group">
+                  <label>Place (ಸ್ಥಳ):</label>
+                  <input
+                    type="text"
+                    id="place"
+                    name="place"
+                    class="form-control"
+                    placeholder="Place (ಸ್ಥಳ)"
+                    value="{{ form_values.place }}"
+                  />
+                </div>
+                <div class="col-sm-3 d-flex align-items-end mb-3">
+                  <button
+                    type="button"
+                    class="btn btn-brown btn-block text-white"
+                    style="background-color: #8b4513"
+                  >
+                    ಹೊಸ ಖಾತೆ
+                  </button>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12 form-group">
+                  <label>Name (ಹೆಸರು):</label>
+                  <select
+                    name="farmer_id"
+                    id="farmer_select"
+                    class="form-control select2"
+                    required
+                    style="width: 100%"
+                  >
+                    {% if selected_farmer %}
+                    <option value="{{ selected_farmer.id }}" selected>
+                      {{ selected_farmer.name }} ({{ selected_farmer.address }})
+                    </option>
+                    {% else %}
+                    <option value="">Select Farmer</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12 form-group">
+                  <label>Lot Number (ಲಾಟ್ ನಂಬರ್):</label>
+                  <input
+                    type="text"
+                    id="lot_number"
+                    name="lot_number"
+                    class="form-control{% if lot_number_error %} is-invalid{% endif %}"
+                    placeholder="Lot Number"
+                    value="{{ form_values.lot_number }}"
+                    data-check-url="{% url 'check_lot_number' %}"
+                    data-next-url="{% url 'get_next_lot_number' %}"
+                    data-exclude-id="{{ avak.id }}"
+                    required
+                  />
+                  <div
+                    id="lot_number_feedback"
+                    class="invalid-feedback d-block"
+                    {% if not lot_number_error %}style="display: none"{% endif %}
+                  >
+                    {{ lot_number_error }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12 form-group">
+                  <label>Buyer (ಖರೀದಿದಾರರು):</label>
+                  <select
+                    name="buyer_id"
+                    id="buyer_select"
+                    class="form-control select2"
+                    style="width: 100%"
+                  >
+                    {% if selected_buyer %}
+                    <option value="{{ selected_buyer.id }}" selected>
+                      {{ selected_buyer.name }} ({{ selected_buyer.short_code }})
+                    </option>
+                    {% else %}
+                    <option value="">Select Buyer</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12 form-group">
+                  <label>No Of Bags:</label>
+                  <input
+                    type="number"
+                    id="no_of_bags"
+                    name="no_of_bags"
+                    class="form-control"
+                    placeholder="No Of Bags"
+                    value="{{ form_values.no_of_bags }}"
+                    min="1"
+                    step="1"
+                    oninput="recalcHamali()"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12">
+                  <label>Unloading Hamali:</label>
+                  <div class="row">
+                    <div class="col-md-6 form-group">
+                      <input
+                        type="number"
+                        step="0.01"
+                        id="hamali_total"
+                        name="hamali_total"
+                        class="form-control bg-light"
+                        placeholder="Total Hamali"
+                        value="{{ form_values.hamali_total }}"
+                        readonly
+                      />
+                    </div>
+                    <div class="col-md-6 form-group">
+                      <input
+                        type="number"
+                        step="0.01"
+                        id="hamali_rate"
+                        name="hamali_rate"
+                        class="form-control"
+                        placeholder="Rate per bag"
+                        value="{{ form_values.hamali_rate }}"
+                        oninput="recalcHamali()"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="extra_details_section"
+                style="
+                  border-top: 1px dashed #ced4da;
+                  margin-top: 10px;
+                  padding-top: 15px;
+                "
+              >
+                <div class="row">
+                  <div class="col-md-4 form-group">
+                    <label>Freight:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="freight"
+                      class="form-control"
+                      placeholder="0.00"
+                      value="{{ form_values.freight }}"
+                    />
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label>Empty Bags:</label>
+                    <input
+                      type="number"
+                      name="empty_bags"
+                      class="form-control"
+                      placeholder="0"
+                      value="{{ form_values.empty_bags }}"
+                    />
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label>Advance:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="advance"
+                      class="form-control"
+                      placeholder="0.00"
+                      value="{{ form_values.advance }}"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex flex-column flex-sm-row justify-content-center mt-3" style="gap: 10px;">
+                <button type="submit" id="saveBtn" class="btn btn-success px-5 py-2 font-weight-bold">
+                  Save
+                </button>
+                <a href="{% url 'avak_list' %}" class="btn btn-outline-secondary px-5 py-2"
+                  >Back</a
+                >
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Global inline handler — works before jQuery is ready
+function recalcHamali() {
+  var bags = parseFloat(document.getElementById('no_of_bags').value) || 0;
+  var rate = parseFloat(document.getElementById('hamali_rate').value) || 0;
+  document.getElementById('hamali_total').value = (bags * rate).toFixed(2);
+}
+</script>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  $(function () {
+    // Initialize Select2 with Ajax for Farmer search
+    $("#farmer_select").select2({
+      ajax: {
+        url: '{% url "get_farmers" %}',
+        dataType: "json",
+        delay: 250,
+        data: function (params) {
+          const placeVal = $("#place").val();
+          if (!placeVal) {
+            // Optional: Alert or show message if place is empty
+          }
+          return {
+            q: params.term,
+            place: placeVal, // Pass exact place
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results,
+          };
+        },
+        cache: true,
+      },
+      placeholder: "Select Farmer",
+      minimumInputLength: 0,
+      language: {
+        noResults: function () {
+          return $("#place").val()
+            ? "No farmers found in this place"
+            : "Please select a Place first";
+        },
+      },
+    });
+
+    // Initialize Select2 for Buyer search
+    $("#buyer_select").select2({
+      ajax: {
+        url: '{% url "get_traders" %}',
+        dataType: "json",
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term,
+          };
+        },
+        processResults: function (data) {
+          return {
+            results: data.results,
+          };
+        },
+        cache: true,
+      },
+      placeholder: "Select Buyer",
+      minimumInputLength: 0,
+    });
+
+    // Clear farmer selection if place changes to ensure strict place-wise consistency
+    $("#place").on("change input", function () {
+      $("#farmer_select").val(null).trigger("change");
+    });
+
+    // Handle calculations (delegates to global recalcHamali)
+    function calculateTotal() { recalcHamali(); }
+
+    // Trigger on both input and change (covers typing, spinner, paste)
+    $("#no_of_bags, #hamali_rate").on("input change", calculateTotal);
+
+    // Fetch unloading hamali rate from market settings for a given date
+    function fetchHamaliRate(dateVal) {
+      const isEdit = {{ is_edit|yesno:'true,false' }};
+      if (isEdit) return; // don't overwrite in edit mode
+      $.getJSON('{% url "get_market_rates" %}', { date: dateVal }, function(rates) {
+        if (rates && rates.farmer_unloading_per_bag !== undefined) {
+          $("#hamali_rate").val(parseFloat(rates.farmer_unloading_per_bag).toFixed(2));
+          calculateTotal();
+        }
+      });
+    }
+
+    // Fetch on page load for new entries
+    fetchHamaliRate($("#entry_date").val());
+
+    // Re-fetch whenever date changes
+    $("#entry_date").on("change", function() {
+      fetchHamaliRate($(this).val());
+    });
+
+    // Initial calculation (covers edit mode where bags may already be set)
+    calculateTotal();
+
+    // Live lot number duplicate check
+    const $lotInput = $("#lot_number");
+    const $lotFeedback = $("#lot_number_feedback");
+    const $saveBtn = $("#saveBtn");
+    const checkUrl = $lotInput.data("check-url");
+    const excludeId = ($lotInput.data("exclude-id") || "").toString();
+    let lotCheckTimer = null;
+    let lastCheckedValue = null;
+
+    function setLotError(message) {
+      $lotInput.addClass("is-invalid");
+      $lotFeedback.text(message || "Lot number already exists.").show();
+      $saveBtn.prop("disabled", true);
+    }
+
+    function clearLotError() {
+      $lotInput.removeClass("is-invalid");
+      if ($lotFeedback.text().trim().length === 0) {
+        $lotFeedback.hide();
+      }
+      $saveBtn.prop("disabled", false);
+    }
+
+    // if server-side validation already set an error, ensure Save is disabled
+    if ($lotInput.hasClass("is-invalid") && $lotFeedback.text().trim().length > 0) {
+      $saveBtn.prop("disabled", true);
+    }
+
+    $lotInput.on("input", function () {
+      const value = ($lotInput.val() || "").trim();
+
+      if (!value) {
+        $lotFeedback.text("").hide();
+        $lotInput.removeClass("is-invalid");
+        $saveBtn.prop("disabled", false);
+        lastCheckedValue = null;
+        if (lotCheckTimer) clearTimeout(lotCheckTimer);
+        return;
+      }
+
+      if (value === lastCheckedValue) return;
+      if (lotCheckTimer) clearTimeout(lotCheckTimer);
+
+      lotCheckTimer = setTimeout(function () {
+        if (!checkUrl) return;
+        $.getJSON(checkUrl, { 
+          lot_number: value, 
+          date: $("input[name='date']").val(),
+          exclude_id: excludeId 
+        })
+          .done(function (data) {
+            lastCheckedValue = value;
+            if (data && data.exists) {
+              setLotError(
+                "Lot number already exists. Please use a different lot number.",
+              );
+            } else {
+              // only clear our duplicate error; keep any other inline error if present
+              $lotFeedback.text("").hide();
+              $lotInput.removeClass("is-invalid");
+              $saveBtn.prop("disabled", false);
+            }
+          })
+          .fail(function () {
+            // if check fails, allow submit (server-side validation will still protect)
+            $saveBtn.prop("disabled", false);
+          });
+      }, 250);
+    });
+
+    // Prevent submitting if duplicate error is visible
+    $("form").on("submit", function (e) {
+      if ($saveBtn.prop("disabled")) {
+        e.preventDefault();
+        $lotInput.focus();
+      }
+    });
+  });
+</script>
+<style>
+  .select2-container--default .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+  }
+  .btn-brown:hover {
+    opacity: 0.9;
+  }
+</style>
+{% endblock %}

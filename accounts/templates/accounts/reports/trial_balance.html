@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Trial Balance – {{ as_on_display }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  @media print {
+    .main-header, .main-sidebar, .main-footer, .no-print { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; padding: 0 !important; background: #fff !important; }
+    .tb-card { box-shadow: none !important; padding: 0 !important; }
+    .tb-table { font-size: 8pt !important; }
+    .page-break { page-break-before: always; }
+  }
+  .tb-card {
+    background: #fff;
+    padding: 20px 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.1);
+    border-radius: 6px;
+    margin-top: 16px;
+  }
+  .tb-header { text-align: center; margin-bottom: 18px; line-height: 1.45; }
+  .tb-co { font-size: 16pt; font-weight: 800; letter-spacing: .5px; }
+  .tb-addr { font-size: 10pt; font-weight: 600; }
+  .tb-gstin { font-size: 9pt; }
+  .tb-title { font-size: 12pt; font-weight: 700; margin-top: 8px; }
+  .tb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+  .tb-table th, .tb-table td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+  }
+  .tb-table th {
+    text-align: center;
+    font-weight: 700;
+    background: #fff;
+  }
+  .tb-num { text-align: right; white-space: nowrap; }
+  .tb-head td {
+    font-weight: 800;
+    font-size: 9.5pt;
+    background: #f8f9fa;
+    border-top: 2px solid #000;
+  }
+  .tb-subtotal td {
+    font-weight: 700;
+    font-style: italic;
+    border-top: 1px solid #000;
+  }
+  .tb-grand td {
+    font-weight: 800;
+    border-top: 3px double #000;
+    border-bottom: 3px double #000;
+  }
+  .tb-cash td { font-weight: 700; border-top: 1px solid #000; }
+  .tb-controls {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+  <div class="container-fluid">
+
+    <div class="tb-card">
+      <div class="no-print tb-controls">
+        <form method="get" class="form-inline" style="gap:10px;">
+          <div>
+            <label class="font-weight-bold small d-block mb-1">As On Date</label>
+            <input type="date" name="as_on_date" class="form-control form-control-sm" value="{{ as_on_date }}" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-search mr-1"></i> Generate
+          </button>
+        </form>
+        <button type="button" class="btn btn-dark btn-sm" onclick="window.print()">
+          <i class="fas fa-print mr-1"></i> Print
+        </button>
+        <a href="{% url 'ledger_book' %}" class="btn btn-secondary btn-sm">
+          <i class="fas fa-book mr-1"></i> Account Statements
+        </a>
+        {% if not is_balanced %}
+        <span class="badge badge-warning align-self-center">Dr/Cr totals differ</span>
+        {% else %}
+        <span class="badge badge-success align-self-center">Balanced</span>
+        {% endif %}
+      </div>
+
+      <div class="tb-header">
+        <div class="tb-co">M S B AND COMPANY</div>
+        <div class="tb-addr">APMC YARD, BYADGI</div>
+        <div class="tb-gstin">GSTIN : 29CFIPB5465B1ZL</div>
+        <div class="tb-title">Trial Balance as on {{ as_on_display }}</div>
+      </div>
+
+      {% if report_groups %}
+      <div class="table-responsive">
+        <table class="tb-table">
+          <thead>
+            <tr>
+              <th style="width:42px;">S.No</th>
+              <th>Account Name</th>
+              <th style="width:120px;">Place</th>
+              <th style="width:110px;">Credit</th>
+              <th style="width:110px;">Debit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for grp in report_groups %}
+            <tr class="tb-head">
+              <td colspan="5">{{ grp.head }}</td>
+            </tr>
+            {% for row in grp.rows %}
+            <tr>
+              <td class="text-center">{{ row.serial }}</td>
+              <td>{{ row.name }}</td>
+              <td>{{ row.place }}</td>
+              <td class="tb-num">{{ row.credit_fmt }}</td>
+              <td class="tb-num">{{ row.debit_fmt }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="tb-subtotal">
+              <td colspan="3"></td>
+              <td class="tb-num">{{ grp.subtotal_cr_fmt }}</td>
+              <td class="tb-num">{{ grp.subtotal_dr_fmt }}</td>
+            </tr>
+            {% endfor %}
+
+            <tr class="tb-grand">
+              <td colspan="3" class="text-right">Total</td>
+              <td class="tb-num">{{ grand_cr_fmt }}</td>
+              <td class="tb-num">{{ grand_dr_fmt }}</td>
+            </tr>
+            {% if cash_row %}
+            <tr class="tb-cash">
+              <td colspan="3">{{ cash_row.name }}</td>
+              <td class="tb-num">{{ cash_row.credit_fmt }}</td>
+              <td class="tb-num">{{ cash_row.debit_fmt }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0">
+        No ledger balances found as on {{ as_on_display }}.
+        Add ledgers in <a href="{% url 'ledger_master' %}">Ledger Master</a> and post vouchers first.
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+{% endblock %}

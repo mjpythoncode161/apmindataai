@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title|default:"Receipt Entry" }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  .voucher-card {
+    max-width: 700px;
+    margin: 0 auto;
+    border: 2px solid #c3e6cb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+  }
+  .voucher-header {
+    background: #d4edda;
+    border-bottom: 2px solid #c3e6cb;
+    padding: 12px 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .voucher-header h5 { margin: 0; font-weight: 700; color: #155724; }
+  .voucher-body { padding: 22px; }
+  .field-row { margin-bottom: 15px; }
+  .field-row label {
+    font-size: 0.80rem;
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 4px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .type-select {
+    font-weight: 700;
+    background: #f0fff4;
+    border: 2px solid #28a745 !important;
+    color: #155724;
+    font-size: 1rem;
+  }
+  .type-select:focus { border-color: #1e7e34 !important; background: #d4edda; }
+  .credit-label { color: #155724 !important; }
+  .debit-label  { color: #004085 !important; }
+  .amount-input {
+    font-size: 1.6rem !important;
+    font-weight: 700;
+    color: #28a745;
+    border-bottom: 3px solid #28a745 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+    background: transparent;
+    text-align: center;
+    padding: 4px 0;
+  }
+  .amount-input:focus { outline: none; border-bottom-color: #1e7e34 !important; }
+  .bill-divider { color: #adb5bd; font-size: 1.1rem; padding: 0 6px; line-height: 38px; flex-shrink: 0; }
+  .save-btn { min-width: 160px; font-size: 1rem; font-weight: 700; }
+  .bank-tile {
+    cursor: pointer;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.18s;
+    user-select: none;
+  }
+  .bank-tile:hover { border-color: #28a745; background: #f0fff4; }
+  .bank-tile.selected { border-color: #28a745; background: #d4edda; }
+  .bank-tile i { font-size: 1.3rem; display: block; margin-bottom: 4px; }
+  .bank-tile span { font-size: 0.78rem; font-weight: 700; word-break: break-word; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-hand-holding-usd mr-2 text-success"></i>
+          {% if is_edit %}Edit Receipt{% else %}Receipt Entry{% endif %}
+        </h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+          <li class="breadcrumb-item active">Receipt Entry</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <form method="post" id="transactionForm">
+      {% csrf_token %}
+
+      <div class="voucher-card">
+
+        <!-- Header -->
+        <div class="voucher-header">
+          <h5><i class="fas fa-file-invoice-dollar mr-2 text-success"></i>Receipt Voucher</h5>
+          {% if is_edit %}<span class="badge badge-warning p-2">EDIT MODE</span>{% endif %}
+        </div>
+
+        <div class="voucher-body">
+
+          <!-- Row 1: Date + Entry Type -->
+          <div class="row field-row">
+            <div class="col-5">
+              <label><i class="fas fa-calendar-alt mr-1"></i> Date</label>
+              <input type="date" name="date" class="form-control" value="{{ today }}" required />
+            </div>
+            <div class="col-7">
+              <label><i class="fas fa-tags mr-1"></i> Entry Type</label>
+              <select name="voucher_type" id="voucher_type" class="form-control type-select" required
+                onchange="onVoucherTypeChange(this.value)">
+                <option value="Cash Receipt"      {% if default_voucher_type == 'Cash Receipt' or not default_voucher_type %}selected{% endif %}>Cash Receipt</option>
+                <option value="Cheque Receipt"    {% if default_voucher_type == 'Cheque Receipt' %}selected{% endif %}>Cheque Receipt</option>
+                <option value="NEFT/RTGS Receipt" {% if default_voucher_type == 'NEFT/RTGS Receipt' %}selected{% endif %}>NEFT / RTGS Receipt</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="my-2" />
+
+          <!-- Row 2: Credit Account — Bank Tiles (money received INTO this account) -->
+          <div class="field-row">
+            <label class="credit-label">
+              <i class="fas fa-university mr-1"></i> Received Into (Debit Account)
+              <a href="{% url 'add_ledger_account' %}" target="_blank" class="ml-2 text-muted" style="font-size:0.75rem; font-weight:400;">
+                <i class="fas fa-plus-circle"></i> Add Bank
+              </a>
+            </label>
+            <input type="hidden" name="pay_from_ledger_id" id="pay_from_ledger_id_hidden"
+              value="{% if transaction.pay_from_ledger_id %}{{ transaction.pay_from_ledger_id }}{% endif %}" />
+            {% if cash_bank_accounts %}
+            <div class="row" id="bank_tile_grid">
+              {% for acc in cash_bank_accounts %}
+              <div class="col-6 col-md-4 mb-2">
+                <div class="bank-tile {% if transaction.pay_from_ledger_id == acc.id %}selected{% endif %}"
+                  data-ledger-id="{{ acc.id }}"
+                  onclick="selectBank({{ acc.id }}, '{{ acc.name|escapejs }}', this)">
+                  {% if 'cash' in acc.name|lower %}
+                    <i class="fas fa-money-bill-wave text-success"></i>
+                  {% else %}
+                    <i class="fas fa-university text-primary"></i>
+                  {% endif %}
+                  <span>{{ acc.name }}</span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div id="bank_selected_badge" class="mt-1 {% if not transaction.pay_from_ledger_id %}d-none{% endif %}">
+              <span class="badge badge-success px-3 py-2">
+                <i class="fas fa-check-circle mr-1"></i>
+                <span id="bank_selected_name">{% if transaction.pay_from_ledger %}{{ transaction.pay_from_ledger.name }}{% endif %}</span>
+              </span>
+            </div>
+            {% else %}
+            <div class="alert alert-warning py-2 mb-0">
+              <i class="fas fa-exclamation-triangle mr-1"></i> No Cash/Bank accounts found.
+              <a href="{% url 'add_ledger_account' %}" target="_blank">Add SBI / HDFC / Cash here</a>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Cheque details (shown for Cheque Receipt) -->
+          <div id="cheque_details_row" class="d-none">
+            <div class="row mb-2">
+              <div class="col-6">
+                <div class="field-row mb-0">
+                  <label><i class="fas fa-hashtag mr-1 text-warning"></i> Cheque No</label>
+                  <input type="text" name="cheque_no" id="cheque_no" class="form-control"
+                    placeholder="e.g. 001234"
+                    value="{{ transaction.cheque_no|default:'' }}" />
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="field-row mb-0">
+                  <label><i class="fas fa-university mr-1 text-warning"></i> Cheque Bank Name</label>
+                  <input type="text" name="cheque_bank_name" id="cheque_bank_name" class="form-control"
+                    placeholder="e.g. SBI Main Branch"
+                    value="{{ transaction.cheque_bank_name|default:'' }}" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEFT/RTGS details (shown for NEFT/RTGS Receipt) -->
+          <div id="neft_details_row" class="d-none">
+            <div class="field-row mb-2">
+              <label><i class="fas fa-network-wired mr-1 text-info"></i> NEFT / UTR Reference No</label>
+              <input type="text" name="cheque_no" id="neft_ref" class="form-control"
+                placeholder="e.g. SBIN0000123456789"
+                value="{% if transaction.voucher_type == 'NEFT/RTGS Receipt' %}{{ transaction.cheque_no|default:'' }}{% endif %}" />
+            </div>
+          </div>
+
+          <hr class="my-2" />
+
+          <!-- Row 3: Trader -->
+          <div class="field-row">
+            <label class="debit-label"><i class="fas fa-store mr-1"></i> Trader Name</label>
+            <select id="trader_id" name="trader_id" class="form-control select2-trader" style="width:100%;" required>
+              <option value="">-- Select Trader --</option>
+              {% for t in traders %}
+              <option value="{{ t.id }}" {% if transaction.trader_id == t.id %}selected{% endif %}>
+                {{ t.name }}{% if t.short_code %} ({{ t.short_code }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="trader_info" class="mt-2 d-none">
+              <span class="badge badge-secondary mr-1"><i class="fas fa-map-marker-alt mr-1"></i><span id="ti_place"></span></span>
+              <span class="badge badge-secondary"><i class="fas fa-phone mr-1"></i><span id="ti_mobile"></span></span>
+            </div>
+            <input type="hidden" name="name" id="name" />
+            <input type="hidden" name="place" id="place" />
+            <input type="hidden" name="phone_number" id="phone_number" />
+            <input type="hidden" name="person_type" id="person_type" value="Trader" />
+          </div>
+
+          <hr class="my-2" />
+
+          <!-- Row 4: Amount -->
+          <div class="field-row">
+            <label><i class="fas fa-rupee-sign mr-1"></i> Amount (₹)</label>
+            <input type="number" step="0.01" name="amount" id="amountField"
+              class="form-control amount-input"
+              placeholder="0.00"
+              value="{{ transaction.amount|default:'' }}" required />
+          </div>
+
+          <!-- Row 5: Narration -->
+          <div class="field-row">
+            <label><i class="fas fa-comment-alt mr-1"></i> Narration / Remarks</label>
+            <textarea name="narration" class="form-control" rows="2"
+              placeholder="e.g. Received from trader, cheque deposit...">{{ transaction.narration|default:'' }}</textarea>
+          </div>
+
+          <!-- Buttons -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <a href="{% url 'receipt_list' %}" class="btn btn-default btn-lg">
+              <i class="fas fa-times mr-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-success btn-lg save-btn shadow" id="saveBtn">
+              <i class="fas fa-save mr-1"></i> SAVE RECEIPT
+            </button>
+          </div>
+
+        </div><!-- /.voucher-body -->
+      </div><!-- /.voucher-card -->
+
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+$(function () {
+  // ── Select2: Trader ──
+  $('.select2-trader').select2({ theme: 'bootstrap4', placeholder: '-- Select Trader --' });
+
+  // ── Trader change ──
+  $('#trader_id').on('change', function () {
+    const traderId = $(this).val();
+    if (!traderId) { $('#trader_info').addClass('d-none'); return; }
+    $.getJSON('{% url "get_trader_details" %}', { buyer_id: traderId }, function (res) {
+      if (res.success) {
+        $('#name').val(res.name);
+        $('#place').val(res.place || '');
+        $('#phone_number').val(res.mobile || '');
+        $('#ti_place').text(res.place || '—');
+        $('#ti_mobile').text(res.mobile || '—');
+        $('#trader_info').removeClass('d-none');
+      }
+    });
+  });
+
+  {% if is_edit %}
+  if ($('#trader_id').val()) { $('#trader_id').trigger('change'); }
+  // Restore selected bank tile
+  const editLedgerId = '{{ transaction.pay_from_ledger_id|default:"" }}';
+  if (editLedgerId) {
+    const tile = document.querySelector('.bank-tile[data-ledger-id="' + editLedgerId + '"]');
+    if (tile) selectBank(parseInt(editLedgerId), tile.querySelector('span').textContent.trim(), tile);
+  }
+  {% else %}
+  if ($('#trader_id').val()) { $('#trader_id').trigger('change'); }
+  {% endif %}
+});
+
+// ── Bank tile selection ──
+function selectBank(id, name, tileEl) {
+  document.querySelectorAll('.bank-tile').forEach(function (t) { t.classList.remove('selected'); });
+  if (tileEl) tileEl.classList.add('selected');
+  document.getElementById('pay_from_ledger_id_hidden').value = id;
+  document.getElementById('bank_selected_name').textContent = name;
+  document.getElementById('bank_selected_badge').classList.remove('d-none');
+}
+
+// ── Voucher type change ──
+function onVoucherTypeChange(val) {
+  const isCheque = val === 'Cheque Receipt';
+  const isNEFT   = val === 'NEFT/RTGS Receipt';
+
+  // Cheque details
+  const chequeRow = document.getElementById('cheque_details_row');
+  chequeRow.classList.toggle('d-none', !isCheque);
+  document.getElementById('cheque_no').required = isCheque;
+  if (!isCheque) {
+    document.getElementById('cheque_no').value = '';
+    document.getElementById('cheque_bank_name').value = '';
+  }
+
+  // NEFT details
+  const neftRow = document.getElementById('neft_details_row');
+  neftRow.classList.toggle('d-none', !isNEFT);
+  document.getElementById('neft_ref').required = isNEFT;
+  if (!isNEFT) {
+    document.getElementById('neft_ref').value = '';
+  }
+
+  // Update save button label
+  const btn = document.getElementById('saveBtn');
+  if (btn) {
+    const labels = {
+      'Cash Receipt':      'SAVE CASH RECEIPT',
+      'Cheque Receipt':    'SAVE CHEQUE RECEIPT',
+      'NEFT/RTGS Receipt': 'SAVE NEFT RECEIPT'
+    };
+    btn.innerHTML = '<i class="fas fa-save mr-1"></i> ' + (labels[val] || 'SAVE RECEIPT');
+  }
+}
+
+// ── Form validation ──
+document.getElementById('transactionForm').addEventListener('submit', function (e) {
+  if (!document.getElementById('pay_from_ledger_id_hidden').value) {
+    e.preventDefault();
+    alert('Please select a bank / cash account (the tiles above).');
+    return false;
+  }
+  const amount = parseFloat(document.getElementById('amountField').value || '0');
+  if (!amount || amount <= 0) {
+    e.preventDefault();
+    alert('Please enter a valid amount greater than zero.');
+    return false;
+  }
+});
+
+// ── Init on page load ──
+(function () {
+  const sel = document.getElementById('voucher_type');
+  if (sel) onVoucherTypeChange(sel.value);
+})();
+</script>
+{% endblock %}

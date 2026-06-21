@@ -1,0 +1,15 @@
+{# Top toggle: Account Statement | Monthwise Report #}
+<div class="card shadow-sm mb-3 no-print border-0">
+  <div class="card-body py-2 px-2">
+    <div class="btn-group btn-group-lg w-100 ledger-report-toggle" role="group" aria-label="Report type">
+      <a href="{% url 'ledger_book' %}{% if ledger_id %}?ledger_id={{ ledger_id|urlencode }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}{% endif %}"
+         class="btn {% if active_tab == 'statement' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="fas fa-list-alt mr-1"></i> Account Statement
+      </a>
+      <a href="{% url 'ledger_monthwise' %}{% if ledger_id %}?ledger_id={{ ledger_id|urlencode }}{% if fy_start %}&fy={{ fy_start }}{% endif %}{% endif %}"
+         class="btn {% if active_tab == 'monthwise' %}btn-info{% else %}btn-outline-info{% endif %}">
+        <i class="fas fa-calendar-alt mr-1"></i> Monthwise Report
+      </a>
+    </div>
+  </div>
+</div>

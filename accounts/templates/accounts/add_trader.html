@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if trader %}Update{% else %}Add{% endif %} Trader{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">{% if trader %}Update{% else %}Add{% endif %} Trader</h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">Trader Profile</h3>
+      </div>
+      <form action="{% if trader %}{% url 'edit_trader' trader.id %}{% else %}{% url 'add_trader' %}{% endif %}" method="POST">
+        {% csrf_token %}
+        <div class="card-body">
+          <div class="row mb-3">
+             <div class="col-6">
+                <h5 class="text-secondary">Trader ID: <span class="badge badge-info">{% if trader %}{{ trader.id }}{% else %}NEW{% endif %}</span></h5>
+             </div>
+             <div class="col-6 text-right">
+                <div class="custom-control custom-checkbox">
+                  <input class="custom-control-input" type="checkbox" id="auto_translate" checked>
+                  <label for="auto_translate" class="custom-control-label font-weight-normal text-primary">Auto Translate (ಇಂಟರ್ನೆಟ್ ಬೇಕು)</label>
+                </div>
+             </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="full_name">Full Name</label>
+              <input type="text" id="full_name" name="full_name" class="form-control" placeholder="Enter trader name" value="{{ trader.name }}" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="name_kannada">ಹೆಸರು (In Kannada)</label>
+              <input type="text" id="name_kannada" name="name_kannada" class="form-control" placeholder="ಹೆಸರನ್ನು ನಮೂದಿಸಿ" value="{{ trader.name_kannada }}">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="contact">Contact No.</label>
+              <input type="text" id="contact" name="contact" class="form-control" placeholder="Enter contact number" value="{{ trader.phone }}" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="address">Address / Place</label>
+              <input type="text" id="address" name="address" class="form-control" placeholder="Enter address / place" value="{{ trader.address }}">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="address_kannada">ವಿಳಾಸ / ಸ್ಥಳ (In Kannada)</label>
+              <input type="text" id="address_kannada" name="address_kannada" class="form-control" placeholder="ವಿಳಾಸ / ಸ್ಥಳವನ್ನು ನಮೂದಿಸಿ" value="{{ trader.address_kannada }}">
+            </div>
+          </div>
+
+          <!-- Additional Trader Info Section Label -->
+          <div class="row mt-4 mb-3">
+            <div class="col-12">
+              <hr style="border-top: 1px solid #dee2e6;">
+              <h6 class="text-primary font-weight-bold"><i class="fas fa-info-circle mr-2"></i> Add Extra Trader Details</h6>
+            </div>
+          </div>
+
+          <!-- Additional Info Section -->
+          <div id="additional_info_section">
+            <div class="row">
+              <div class="col-md-4 form-group">
+                <label for="short_code">Short Code</label>
+                <input type="text" id="short_code" name="short_code" class="form-control" placeholder="Enter short code" value="{{ trader.short_code }}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="pan">PAN</label>
+                <input type="text" id="pan" name="pan" class="form-control" placeholder="Enter PAN number" value="{{ trader.pan }}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="gstin">GSTIN</label>
+                <input type="text" id="gstin" name="gstin" class="form-control" placeholder="Enter GSTIN" value="{{ trader.gstin }}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="mobile_no">Mobile No</label>
+                <input type="text" id="mobile_no" name="mobile_no" class="form-control" placeholder="Enter mobile number" value="{{ trader.mobile_no }}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="email">Email ID</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="Enter email address" value="{{ trader.email }}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="pin">PIN</label>
+                <input type="text" id="pin" name="pin" class="form-control" placeholder="Enter PIN code" value="{{ trader.pin|default:'581106' }}">
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Bank Details Toggle -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <button type="button" class="btn btn-outline-info btn-block btn-sm" id="toggle_bank_details">
+                <i class="fas fa-university mr-1"></i> Show Bank Details
+              </button>
+            </div>
+          </div>
+
+          <!-- Bank Details Section (Hidden by Default) -->
+          <div id="bank_details_section" style="display: none; border-top: 1px dashed #ced4da; margin-top: 20px; padding-top: 20px;">
+            <h6 style="color: #29577f; font-weight: bold;" class="mb-3"><i class="fas fa-piggy-bank mr-2"></i>Bank & Opening Balance Details</h6>
+            <div class="row">
+              <div class="col-md-4 form-group">
+                <label for="opening_balance">Opening Balance</label>
+                <div class="input-group">
+                  <input type="number" step="0.01" id="opening_balance" name="opening_balance" class="form-control" value="{{ trader.opening_balance|default:'0.00' }}">
+                  <div class="input-group-append">
+                    <select name="balance_type" class="form-control">
+                      <option value="Cr" {% if trader.balance_type == "Cr" %}selected{% endif %}>Cr</option>
+                      <option value="Dr" {% if trader.balance_type == "Dr" %}selected{% endif %}>Dr</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="ifsc">IFSC</label>
+                <input type="text" id="ifsc" name="ifsc" class="form-control" placeholder="Enter IFSC code" value="{{ trader.ifsc }}">
+              </div>
+              <div class="col-md-4 form-group">
+                <label for="account_no">Account No</label>
+                <input type="text" id="account_no" name="account_no" class="form-control" placeholder="Enter account number" value="{{ trader.account_no }}">
+              </div>
+              <div class="col-md-6 form-group">
+                <label for="branch_name">Bank/Branch</label>
+                <input type="text" id="branch_name" name="branch_name" class="form-control" placeholder="Enter bank and branch name" value="{{ trader.branch_name }}">
+              </div>
+              <div class="col-md-6 form-group">
+                <label for="bank_name">Bank Name in Eng</label>
+                <input type="text" id="bank_name" name="bank_name" class="form-control" placeholder="Enter bank name in English" value="{{ trader.bank_name }}">
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="card-footer text-center">
+            <button type="submit" class="btn btn-primary">{% if trader %}Update{% else %}Submit{% endif %}</button>
+            <a href="{% url 'trader_list' %}" class="btn btn-secondary">Close</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  $(function() {
+    let debounce;
+    $("#full_name").on("keyup", function() {
+      if ($("#auto_translate").is(":checked")) {
+        clearTimeout(debounce);
+        const val = $(this).val();
+        debounce = setTimeout(function() {
+          translateText(val, "name_kannada");
+        }, 500);
+      }
+    });
+
+    $("#address").on("keyup", function() {
+      if ($("#auto_translate").is(":checked")) {
+        clearTimeout(debounce);
+        const val = $(this).val();
+        debounce = setTimeout(function() {
+          translateText(val, "address_kannada");
+        }, 500);
+      }
+    });
+
+    $("#toggle_bank_details").on("click", function() {
+      $("#bank_details_section").slideToggle(function() {
+        const isVisible = $(this).is(":visible");
+        $("#toggle_bank_details").html(isVisible ? '<i class="fas fa-times"></i> Hide Bank Details' : '<i class="fas fa-university mr-1"></i> Show Bank Details');
+        $("#toggle_bank_details").toggleClass('btn-outline-info btn-outline-secondary');
+      });
+    });
+  });
+</script>
+{% endblock %}
+
+

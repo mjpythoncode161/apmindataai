@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Account{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Manage Account</h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">Profile Settings</h3>
+      </div>
+      <form action="{% url 'manage_account' %}" method="POST">
+        {% csrf_token %}
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="full_name">Full Name</label>
+              <input type="text" id="full_name" name="full_name" class="form-control" 
+                     value="{% if user_obj %}{{ user_obj.full_name }}{% else %}{{ request.user.first_name }}{% endif %}" 
+                     placeholder="Enter full name" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="contact">Contact No.</label>
+              <input type="text" id="contact" name="contact" class="form-control" 
+                     value="{% if user_obj %}{{ user_obj.contact }}{% endif %}" 
+                     placeholder="Enter contact number">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="email">Email ID / Username</label>
+              <input type="email" id="email" name="email" class="form-control" 
+                     value="{% if user_obj %}{{ user_obj.email }}{% else %}{{ request.user.email }}{% endif %}" 
+                     placeholder="Enter email ID" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="password">New Password (leave blank to keep current)</label>
+              <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="confirm_password">Confirm New Password</label>
+              <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Re-enter new password">
+            </div>
+          </div>
+        </div>
+        <div class="card-footer text-center">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{% url 'home' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Receipt Voucher List{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0"><i class="fas fa-plus-circle mr-2 text-success"></i>Receipt Voucher List</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+          <li class="breadcrumb-item active">Receipt List</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Filter -->
+    <div class="card card-outline card-success mb-3">
+      <div class="card-body py-2">
+        <form method="get" class="form-inline flex-wrap">
+          <label class="mr-2 font-weight-bold">From:</label>
+          <input type="date" name="from_date" value="{{ from_date }}" class="form-control form-control-sm mr-2 mb-1" />
+          <label class="mr-2 font-weight-bold">To:</label>
+          <input type="date" name="to_date"   value="{{ to_date }}"   class="form-control form-control-sm mr-2 mb-1" />
+          <button class="btn btn-success btn-sm mr-2 mb-1"><i class="fas fa-search mr-1"></i>Search</button>
+          <a href="{% url 'tally_receipt' %}" class="btn btn-outline-success btn-sm mb-1">
+            <i class="fas fa-plus mr-1"></i>New Receipt
+          </a>
+        </form>
+      </div>
+    </div>
+
+    {% if not from_date and not to_date %}
+    <div class="alert alert-info">Select a date range to view receipts.</div>
+    {% elif receipts %}
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="bg-success text-white">
+              <tr>
+                <th>Date</th><th>Mode</th><th>Party</th><th>Bank/Cash</th>
+                <th>Narration</th><th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for r in receipts %}
+            <tr>
+              <td>{{ r.date }}</td>
+              <td><span class="badge badge-secondary">{{ r.voucher_type }}</span></td>
+              <td>
+                {% if r.trader %}
+                  <i class="fas fa-store text-primary mr-1"></i>{{ r.trader.name }}
+                {% elif r.farmer %}
+                  <i class="fas fa-seedling text-success mr-1"></i>{{ r.farmer.name }}
+                {% else %}
+                  {{ r.name|default:"—" }}
+                {% endif %}
+              </td>
+              <td>{{ r.pay_from_ledger.name|default:"—" }}</td>
+              <td>{{ r.narration|default:"—"|truncatechars:50 }}</td>
+              <td class="text-right font-weight-bold text-success">₹{{ r.amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">No receipts found for the selected period.</div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

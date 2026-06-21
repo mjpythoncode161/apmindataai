@@ -1,0 +1,695 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/assets/plugins/fontawesome-free/css/all.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/assets/plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/plugins/select2/css/select2.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/plugins/toastr/toastr.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/plugins/dropzone/min/dropzone.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'assets/dist/css/adminlte.min.css' %}"
+    />
+    <link rel="stylesheet" href="{% static 'assets/dist/css/styles.css' %}" />
+    {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+    <style>
+      /* small adjustments to match old-style minimal look */
+      .brand-text {
+        font-weight: 400;
+      }
+      /* make toastr background solid (avoid transparency) */
+      .toast {
+        opacity: 1 !important;
+      }
+      .nav-sidebar .nav-link i.right {
+        font-size: 0.9rem;
+        position: absolute;
+        right: 0.8rem;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: transform 0.3s ease;
+      }
+      .nav-item.menu-open > .nav-link i.right {
+        transform: translateY(-50%) rotate(-90deg);
+      }
+
+      /* GLOBAL RESPONSIVENESS FIXES */
+      html, body {
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+      }
+
+      @media (max-width: 768px) {
+        .content-header h1 {
+          font-size: 1.25rem;
+          text-align: center;
+          margin-bottom: 10px;
+        }
+        .card-body {
+          padding: 0.75rem !important;
+        }
+        .btn-block-mobile {
+          width: 100% !important;
+          margin-bottom: 8px;
+          display: block;
+        }
+        .table-responsive {
+          border: 0;
+          margin-bottom: 0;
+        }
+        /* Fix for Select2 width on mobile */
+        .select2-container {
+          width: 100% !important;
+        }
+      }
+
+      /* Ensure all tables are scrollable on small screens */
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Better card shadows for modern look */
+      .card {
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        margin-bottom: 1rem;
+      }
+      
+      /* Avoid layout shift on small screens */
+      .main-header .navbar-nav .nav-link {
+          padding-right: 0.5rem;
+          padding-left: 0.5rem;
+      }
+
+      /* Static sidebar — always full width, no mini hover expand */
+      body.layout-fixed .main-sidebar,
+      body.layout-fixed.sidebar-mini .main-sidebar {
+        width: 250px !important;
+      }
+      body.layout-fixed .content-wrapper,
+      body.layout-fixed.sidebar-mini .content-wrapper,
+      body.layout-fixed .main-footer,
+      body.layout-fixed.sidebar-mini .main-footer {
+        margin-left: 250px !important;
+      }
+      body.layout-fixed.sidebar-mini.sidebar-collapse .main-sidebar:hover {
+        width: 250px !important;
+      }
+      body.layout-fixed.sidebar-mini.sidebar-collapse .main-sidebar:hover ~ .content-wrapper,
+      body.layout-fixed.sidebar-mini.sidebar-collapse .main-sidebar:hover ~ .main-footer {
+        margin-left: 250px !important;
+      }
+      .nav-sidebar .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      @media (max-width: 991.98px) {
+        body.layout-fixed .content-wrapper,
+        body.layout-fixed .main-footer {
+          margin-left: 0 !important;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .border-right {
+          border-right: none !important;
+          border-bottom: 1px solid #dee2e6;
+          padding-bottom: 1rem;
+          margin-bottom: 1rem;
+        }
+      }
+
+      .nav-sidebar .nav-link.active {
+        background: #2d6ca2;
+        color: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24);
+      }
+
+      /* ── Clean table styling (light, no dark headers) ── */
+      .content-wrapper .table thead th,
+      .content-wrapper table thead th,
+      .acc-table thead th,
+      .acc-table th,
+      .table-bordered thead th,
+      table.dataTable thead th,
+      table.dataTable thead td {
+        background: #f8f9fa !important;
+        color: #212529 !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem;
+        border-color: #dee2e6 !important;
+        padding: 10px 12px !important;
+        vertical-align: middle !important;
+      }
+      .content-wrapper .table tbody td,
+      .acc-table tbody td,
+      .acc-table td {
+        padding: 9px 12px !important;
+        vertical-align: middle !important;
+        border-color: #dee2e6 !important;
+        color: #212529;
+        background: #fff !important;
+        font-size: 0.9rem;
+      }
+      .content-wrapper .table-striped tbody tr:nth-of-type(odd) td,
+      .acc-table tbody tr:nth-child(odd) td {
+        background-color: #fff !important;
+      }
+      .content-wrapper .table-striped tbody tr:nth-of-type(even) td,
+      .acc-table tbody tr:nth-child(even) td {
+        background-color: #fff !important;
+      }
+      .content-wrapper .table-hover tbody tr:hover td,
+      .acc-table tbody tr:hover td {
+        background-color: #f8f9fa !important;
+      }
+      .content-wrapper .table-bordered,
+      .content-wrapper .table {
+        border: 1px solid #dee2e6 !important;
+      }
+      .content-wrapper .table-bordered td,
+      .content-wrapper .table-bordered th {
+        border: 1px solid #dee2e6 !important;
+      }
+      .content-wrapper .thead-light th {
+        background: #f8f9fa !important;
+        color: #212529 !important;
+      }
+
+      /* ── Print: clean white paper, no table colors ── */
+      @media print {
+        body, .content-wrapper, .card, .card-body {
+          background: #fff !important;
+          color: #000 !important;
+        }
+        .main-header, .main-sidebar, .main-footer, .no-print {
+          display: none !important;
+        }
+        .content-wrapper {
+          margin-left: 0 !important;
+          padding: 0 !important;
+        }
+        table, .table, .report-table, .acc-table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+        }
+        table thead th, table tbody td, table tfoot td,
+        .table thead th, .table tbody td, .table tfoot td,
+        .report-table th, .report-table td,
+        .acc-table th, .acc-table td {
+          background: #fff !important;
+          color: #000 !important;
+          border: 1px solid #000 !important;
+          -webkit-print-color-adjust: economy;
+          print-color-adjust: economy;
+        }
+        tr, td, th, tbody, thead, tfoot {
+          background: #fff !important;
+          color: #000 !important;
+        }
+        .badge, .btn, .info-box-icon {
+          background: #fff !important;
+          color: #000 !important;
+          border: 1px solid #000 !important;
+        }
+        .card { box-shadow: none !important; border: none !important; }
+      }
+    </style>
+  </head>
+  <body class="hold-transition layout-fixed">
+    <div class="wrapper">
+      <!-- Navbar -->
+      <nav class="main-header navbar navbar-expand navbar-primary navbar-dark">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button"
+              ><i class="fas fa-bars"></i
+            ></a>
+          </li>
+          <li class="nav-item d-none d-sm-inline-block">
+            <a href="{% url 'home' %}" class="nav-link text-white"
+              ><strong>{{ system_name|default:"Dashboard" }}</strong></a
+            >
+          </li>
+        </ul>
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link" data-widget="fullscreen" href="#" role="button"
+              ><i class="fas fa-expand-arrows-alt"></i
+            ></a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link" data-toggle="dropdown" href="#">
+              <div class="d-flex align-items-center">
+                <i class="fa fa-user mr-2"></i>
+                <strong
+                  >{% if request.user.first_name %}{{ request.user.first_name
+                  }}{% else %}User{% endif %}</strong
+                >
+                <i class="fa fa-angle-down ml-2"></i>
+              </div>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right">
+              <a class="dropdown-item" href="{% url 'manage_account' %}"
+                ><i class="fa fa-cog mr-2"></i> Manage Account</a
+              >
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" href="{% url 'logout' %}"
+                ><i class="fa fa-power-off mr-2"></i> Logout</a
+              >
+            </div>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Sidebar Container -->
+      <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <a href="{% url 'home' %}" class="brand-link text-left">
+          <span class="brand-text font-weight-light px-2">LandLink</span>
+        </a>
+        <div class="sidebar">
+          <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+              <li class="nav-item">
+                <a href="{% url 'home' %}" class="nav-link"
+                  ><i class="nav-icon fas fa-home text-primary"></i>
+                  <p>Dashboard</p></a
+                >
+              </li>
+              
+              <!-- More items can be added from includes or overridden -->
+              {% block sidebar %}
+
+
+              <li class="nav-item has-treeview">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-users-cog"></i>
+                  <p>ಹೊಸ ಖಾತೆ</p>
+                  <i class="right fas fa-angle-left"></i>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="{% url 'farmer_list' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-success"></i>
+                      <p>Farmer Account</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'trader_list' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-primary"></i>
+                      <p>Trader Account</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+              <li class="nav-item has-treeview">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-truck-loading text-success"></i>
+                  <p>ಅವಾಕ್ ಲಿಸ್ಟ್ (Avak)</p>
+                  <i class="right fas fa-angle-left"></i>
+                </a>
+                <ul class="nav nav-treeview">
+                   <li class="nav-item">
+                    <a href="{% url 'avak_list' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>ಅವಾಕ್ ಲಿಸ್ಟ್ Entry</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'tender_form' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>ಟೆಂಡರ್ ಫಾರ್ಮ್</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+              
+
+
+            <li class="nav-item">
+                <a href="{% url 'bikri_list' %}" class="nav-link">
+                  <i class="nav-icon fas fa-list text-success"></i>
+                  <p>ವಿಕ್ರಿ ಲಿಸ್ಟ್</p>
+                </a>
+              </li>
+
+             
+
+
+
+            <li class="nav-item">
+                <a href="{% url 'kharidi_patti' %}" class="nav-link">
+                  <i class="nav-icon far fa-circle nav-icon text-success"></i>
+                  <p>ಖರೀದಿ ಪಟ್ಟಿ</p>
+                </a>
+              </li>
+                  
+
+
+              <li class="nav-item">
+                <a href="{% url 'delivery_book' %}" class="nav-link">
+                  <i class="nav-icon fas fa-book-open text-success"></i>
+                  <p>ಡೆಲಿವರಿ ಬುಕ್</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'akada' %}" class="nav-link">
+                  <i class="nav-icon fas fa-print text-warning"></i>
+                  <p>ಆಕಡಾ</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'chopada' %}" class="nav-link">
+                  <i class="nav-icon fas fa-file-alt text-danger"></i>
+                  <p>ಚೋಪಡಾ</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'pategalu' %}" class="nav-link">
+                  <i class="nav-icon fas fa-receipt text-secondary"></i>
+                  <p>ಡೈಲಿ ಬಿಲ್ಸ್ (Daily Bills)</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'gst_reports' %}" class="nav-link">
+                  <i class="nav-icon fas fa-file-contract text-white"></i>
+                  <p>ಸೆಸ್/ಜಿಎಸ್ಟಿ</p>
+
+                </a>
+              </li>
+
+              <li class="nav-item">
+                <a href="{% url 'bazar_kharidi' %}" class="nav-link">
+                  <i class="nav-icon fas fa-shopping-cart text-warning"></i>
+                  <p>ಬಜಾರ್ ಖರೀದಿ</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'nondha' %}" class="nav-link">
+                  <i class="nav-icon fas fa-balance-scale text-primary"></i>
+                  <p>ನೊಂದಾ</p>
+                </a>
+              </li>
+
+              <li class="nav-item">
+                <a href="{% url 'edit_cancel_dashboard' %}" class="nav-link">
+                  <i class="nav-icon fas fa-edit text-info"></i>
+                  <p>ತಿದ್ದುಪಡಿ/ಕ್ಯಾನ್ಸಲೇಶನ್</p>
+                </a>
+              </li>
+
+              <li class="nav-item">
+                <a href="{% url 'lot_detail_modification' %}" class="nav-link">
+                  <i class="nav-icon fas fa-exchange-alt text-warning"></i>
+                  <p>ಲಾಟ್ ವಿವರ ತಿದ್ದುಪಡಿ</p>
+                </a>
+              </li>
+
+              <li class="nav-item has-treeview">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-cog text-info"></i>
+                  <p>Settings</p>
+                  <i class="right fas fa-angle-left"></i>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="{% url 'market_rates' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Market Rates</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'bank_master' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-primary"></i>
+                      <p>Bank Master</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+
+              <!-- Tally Voucher System -->
+              <li class="nav-item has-treeview">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-book-open text-warning"></i>
+                  <p>Voucher / Tally</p>
+                  <i class="right fas fa-angle-left"></i>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="{% url 'add_voucher' %}?type=Payment" class="nav-link">
+                      <i class="far fa-circle nav-icon text-danger"></i>
+                      <p>Payment Voucher</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'add_voucher' %}?type=Receipt" class="nav-link">
+                      <i class="far fa-circle nav-icon text-success"></i>
+                      <p>Receipt Voucher</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'add_voucher' %}?type=Journal" class="nav-link">
+                      <i class="far fa-circle nav-icon text-info"></i>
+                      <p>Journal Entry</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'voucher_list' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Voucher List</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'ledger_book' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-primary"></i>
+                      <p>Account Statement</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'trial_balance' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-warning"></i>
+                      <p>Trial Balance</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'profit_and_loss' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-success"></i>
+                      <p>Profit &amp; Loss</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'unified_ledger' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-info"></i>
+                      <p>All Accounts Summary</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'ledger_master' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon"></i>
+                      <p>Create Master</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'grouping_master' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-secondary"></i>
+                      <p>Grouping Master</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+
+              <li class="nav-item has-treeview">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon fas fa-users-cog"></i>
+                  <p>Users</p>
+                  <i class="right fas fa-angle-left"></i>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="{% url 'user_list' %}" class="nav-link"
+                      ><i class="far fa-circle nav-icon"></i>
+                      <p>Users List</p></a
+                    >
+                  </li>
+                </ul>
+              </li>
+              {% if request.user.is_superuser %}
+              <li class="nav-item">
+                <form method="post" action="{% url 'truncate_records' %}" onsubmit="return confirm('Delete all transaction, farmer, trader and user records?\n\nLedger Master and Grouping Master will NOT be deleted.');" style="margin:0;padding:0;">
+                  {% csrf_token %}
+                  <input type="hidden" name="delete_all" value="1">
+                  <button type="submit" class="nav-link btn btn-link text-danger" style="display:flex;align-items:center;padding: .5rem 1rem;border:none;background:none;width:100%;text-align:left;">
+                    <i class="nav-icon fas fa-trash-alt"></i>
+                    <p style="margin:0 0 0 10px">Delete All Records</p>
+                  </button>
+                </form>
+              </li>
+              {% endif %}
+
+              {% endblock %}
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Content Wrapper. Contains page content -->
+      <div class="content-wrapper">{% block content %}{% endblock %}</div>
+
+      <!-- Footer -->
+      <footer class="main-footer text-center">
+        <strong>© Company</strong>
+      </footer>
+    </div>
+
+    <script src="{% static 'assets/plugins/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/jquery-ui/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'assets/assets/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'assets/assets/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+    <script src="{% static 'assets/dist/js/adminlte.min.js' %}"></script>
+    <!-- Plugins used by templates -->
+    <script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/toastr/toastr.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/summernote/summernote-bs4.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+
+    <script>
+      $(function () {
+        // Static sidebar — always open, no collapse on hover
+        $('body').removeClass('sidebar-collapse sidebar-mini');
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('AdminLTE:sidebar:state', 'open');
+        }
+
+        // 1. Get current URL path
+        var url = window.location.pathname;
+
+        // 2. Highlight active links and expand parent menus
+        $('.nav-sidebar .nav-link').each(function() {
+          var href = $(this).attr('href');
+          
+          // Check if this link matches the current URL
+          if (href && (url === href || (url.startsWith(href) && href !== '/'))) {
+            $(this).addClass('active');
+            
+            // Expand the parent treeview if it exists
+            $(this).parents('.has-treeview').addClass('menu-open');
+            $(this).parents('.nav-treeview').css('display', 'block');
+            $(this).parents('.has-treeview').children('.nav-link').addClass('active');
+          }
+        });
+
+        // 3. Specific highlight for GST sub-reports to keep the main GST link active
+        if (url.includes('_report')) {
+            $('.nav-sidebar a[href*="gst-reports"]').addClass('active');
+        }
+
+        // 4. Fallback for Dashboard/Home
+        if (url === "/home/" || url === "/") {
+          $(".nav-sidebar > li:first-child > .nav-link").addClass("active");
+        }
+      });
+    </script>
+
+    <script>
+      function translateText(text, targetId) {
+        if (!text) return;
+        const url = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=kn-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=test`;
+        $.ajax({
+          url: url,
+          type: "GET",
+          success: function (response) {
+            if (response && response[0] === "SUCCESS") {
+              const translated = response[1][0][1][0];
+              $("#" + targetId).val(translated);
+            }
+          },
+        });
+      }
+
+      $(function () {
+        // Auto-dismiss alerts after 3 seconds
+        setTimeout(function () {
+          $(".alert")
+            .fadeTo(500, 0)
+            .slideUp(500, function () {
+              $(this).remove();
+            });
+        }, 3000);
+      });
+    </script>
+
+    <script>
+      $(function () {
+        if (typeof toastr === "undefined") return;
+
+        toastr.options = {
+          closeButton: true,
+          progressBar: true,
+          timeOut: 2500,
+          extendedTimeOut: 1500,
+          positionClass: "toast-top-right",
+        };
+
+        {% if messages %}
+          {% for message in messages %}
+            {% with tags=message.tags %}
+              {% if 'success' in tags %}
+                toastr.success("{{ message|escapejs }}");
+              {% elif 'error' in tags %}
+                toastr.error("{{ message|escapejs }}");
+              {% elif 'warning' in tags %}
+                toastr.warning("{{ message|escapejs }}");
+              {% else %}
+                toastr.info("{{ message|escapejs }}");
+              {% endif %}
+            {% endwith %}
+          {% endfor %}
+        {% endif %}
+      });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+  </body>
+</html>

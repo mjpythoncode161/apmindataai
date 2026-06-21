@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profit &amp; Loss – {{ period_label }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  @media print {
+    .main-header, .main-sidebar, .main-footer, .no-print { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; padding: 0 !important; background: #fff !important; }
+    .pl-card { box-shadow: none !important; padding: 0 !important; }
+    .pl-table { font-size: 8pt !important; }
+  }
+  .pl-card {
+    background: #fff;
+    padding: 18px 22px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.1);
+    border-radius: 6px;
+    margin-top: 16px;
+  }
+  .pl-header { text-align: center; margin-bottom: 14px; line-height: 1.4; }
+  .pl-co { font-size: 15pt; font-weight: 800; }
+  .pl-sub { font-size: 9.5pt; font-weight: 600; }
+  .pl-title { font-size: 11pt; font-weight: 700; margin-top: 6px; text-decoration: underline; }
+  .pl-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+  }
+  .pl-table th, .pl-table td {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    vertical-align: middle;
+  }
+  .pl-table th { text-align: center; font-weight: 700; }
+  .pl-num { text-align: right; white-space: nowrap; }
+  .pl-commodity {
+    font-weight: 700;
+    text-align: center;
+    width: 90px;
+    font-size: 8pt;
+  }
+  .pl-total td { font-weight: 700; font-style: italic; }
+  .pl-section td { font-weight: 800; background: #f5f5f5; }
+  .pl-net td { font-weight: 800; border-top: 3px double #000; }
+  .pl-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+  <div class="container-fluid">
+    <div class="pl-card">
+      <div class="no-print pl-controls">
+        <form method="get" class="form-inline" style="gap:8px;">
+          <div>
+            <label class="small font-weight-bold d-block mb-1">From</label>
+            <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}" />
+          </div>
+          <div>
+            <label class="small font-weight-bold d-block mb-1">To</label>
+            <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search mr-1"></i> Generate</button>
+        </form>
+        <button type="button" class="btn btn-dark btn-sm" onclick="window.print()"><i class="fas fa-print mr-1"></i> Print</button>
+        <a href="{% url 'trial_balance' %}?as_on_date={{ to_date }}" class="btn btn-secondary btn-sm">Trial Balance</a>
+      </div>
+
+      <div class="pl-header">
+        <div class="pl-co">M S B AND COMPANY</div>
+        <div class="pl-sub">APMC YARD, BYADGI</div>
+        <div class="pl-sub">GSTIN : 29CFIPB5465B1ZL &nbsp;|&nbsp; PAN : CFIPB5465B</div>
+        <div class="pl-title">Trading &amp; Profit and Loss Account for {{ period_label }}</div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="pl-table">
+          <thead>
+            <tr>
+              <th style="width:90px;">Commodity</th>
+              <th>Particulars (Dr)</th>
+              <th style="width:72px;">Qty</th>
+              <th style="width:100px;">Amount</th>
+              <th>Particulars (Cr)</th>
+              <th style="width:72px;">Qty</th>
+              <th style="width:100px;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in trading_rows %}
+            <tr>
+              {% if forloop.first %}
+              <td class="pl-commodity" rowspan="{{ commodity_rowspan }}">{{ commodity }}</td>
+              {% endif %}
+              {% if row.debit %}
+              <td>{{ row.debit.label }}</td>
+              <td class="pl-num">{{ row.debit.qty }}</td>
+              <td class="pl-num">{{ row.debit.amount_fmt }}</td>
+              {% else %}
+              <td></td><td></td><td></td>
+              {% endif %}
+              {% if row.credit %}
+              <td>{{ row.credit.label }}</td>
+              <td class="pl-num">{{ row.credit.qty }}</td>
+              <td class="pl-num">{{ row.credit.amount_fmt }}</td>
+              {% else %}
+              <td></td><td></td><td></td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+
+            <tr class="pl-total">
+              <td colspan="2" class="text-right">Trading Total</td>
+              <td class="pl-num">{{ trading_dr_qty_fmt }}</td>
+              <td class="pl-num">{{ trading_dr_total_fmt }}</td>
+              <td class="text-right">Trading Total</td>
+              <td class="pl-num">{{ trading_cr_qty_fmt }}</td>
+              <td class="pl-num">{{ trading_cr_total_fmt }}</td>
+            </tr>
+
+            <tr class="pl-section">
+              <td colspan="4">Profit &amp; Loss — Indirect Expenses</td>
+              <td colspan="3">Profit &amp; Loss — Indirect Income</td>
+            </tr>
+
+            {% for row in pl_rows %}
+            <tr>
+              {% if row.expense %}
+              <td>{{ row.expense.name }}</td>
+              <td></td>
+              <td class="pl-num">{{ row.expense.amount_fmt }}</td>
+              {% else %}
+              <td></td><td></td><td></td>
+              {% endif %}
+              {% if row.income %}
+              <td>{{ row.income.name }}</td>
+              <td></td>
+              <td class="pl-num">{{ row.income.amount_fmt }}</td>
+              {% else %}
+              <td></td><td></td><td></td>
+              {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="text-muted text-center">No expenses</td>
+              <td colspan="3" class="text-muted text-center">No income</td>
+            </tr>
+            {% endfor %}
+
+            <tr class="pl-total">
+              <td colspan="2" class="text-right">Total Expenses</td>
+              <td></td>
+              <td class="pl-num">{{ total_indirect_expenses_fmt }}</td>
+              <td class="text-right">Total Income</td>
+              <td></td>
+              <td class="pl-num">{{ total_indirect_income_fmt }}</td>
+            </tr>
+
+            {% if net_profit > 0 %}
+            <tr class="pl-net">
+              <td colspan="4"></td>
+              <td>Net Profit</td>
+              <td></td>
+              <td class="pl-num">{{ net_profit_fmt }}</td>
+            </tr>
+            {% elif net_loss > 0 %}
+            <tr class="pl-net">
+              <td>Net Loss</td>
+              <td></td>
+              <td class="pl-num">{{ net_loss_fmt }}</td>
+              <td colspan="4"></td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

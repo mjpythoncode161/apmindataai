@@ -1,0 +1,2638 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Bikri Entry (ವಿಕ್ರಿ ಎಂಟ್ರಿ){% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Remove AdminLTE content-wrapper padding so split fills full height */
+  .content-wrapper { padding: 0 !important; overflow: hidden !important; margin-left: 250px !important; }
+
+  /* ── Two-panel split layout ── */
+  .bikri-wrapper {
+    display: flex;
+    height: calc(100vh - 57px);
+    overflow: hidden;
+    width: 100%;
+  }
+  /* LEFT: form panel */
+  .bikri-form-panel {
+    width: 380px;
+    min-width: 380px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 3px solid #17a2b8;
+    background: #fff;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+  }
+  .bikri-form-panel .panel-header {
+    flex-shrink: 0;
+    background: #17a2b8;
+    color: #fff;
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .bikri-form-panel .panel-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .bikri-form-panel #bikriForm {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .bikri-form-panel .panel-fields-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+    min-height: 0;
+  }
+  .bikri-form-panel .panel-save-bar {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-top: 2px solid #28a745;
+    background: #f8fff9;
+  }
+  .vikri-input {
+    height: 38px !important;
+    font-size: 0.95rem !important;
+    padding: 6px 10px !important;
+    border: 2px solid #ced4da !important;
+    border-radius: 4px !important;
+  }
+  .vikri-input:focus, .vikri-input.is-active-field {
+    border-color: #17a2b8 !important;
+    box-shadow: 0 0 0 3px rgba(23,162,184,0.25) !important;
+    outline: none !important;
+  }
+  .vikri-input.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  .form-group-vikri { margin-bottom: 6px !important; }
+  .form-group-vikri label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 3px;
+    display: block;
+  }
+  .form-group-vikri label .req { color: #dc3545; }
+  .form-group-vikri label .key-hint { font-weight: 600; color: #17a2b8; font-size: 0.8rem; }
+  .form-group-vikri.readonly-field label { color: #6c757d; font-weight: 500; }
+  .select2-container--default .select2-selection--single {
+    height: 38px !important;
+    font-size: 0.95rem !important;
+    border: 2px solid #ced4da !important;
+  }
+  .select2-container .select2-selection.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 34px !important;
+  }
+  #saveVikriBtn {
+    font-size: 1rem;
+    padding: 10px;
+    font-weight: 700;
+    margin: 0;
+  }
+  /* RIGHT: farmer detail panel */
+  .bikri-list-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #f4f6f9;
+  }
+  .bikri-list-panel .panel-header {
+    flex-shrink: 0;
+    background: #343a40;
+    color: #fff;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bikri-list-panel .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+  }
+  .farmer-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: #adb5bd;
+  }
+  .farmer-placeholder i { font-size: 4rem; margin-bottom: 12px; display: block; }
+  .bill-preview-table th, .bill-preview-table td { font-size: 0.85rem; vertical-align: middle !important; }
+  .bill-preview-table tfoot tr.net-row td { background: #28a745; color: #fff; font-weight: 700; font-size: 1rem; }
+
+  /* Compact farmer strip — minimal height, Bill Preview visible */
+  .farmer-compact-bar {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-left: 3px solid #28a745;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+  }
+  .farmer-compact-bar .farmer-row-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .farmer-compact-bar .farmer-row-top i { font-size: 1.25rem; color: #28a745; flex-shrink: 0; }
+  .farmer-compact-bar .farmer-name { font-weight: 700; font-size: 0.9rem; line-height: 1.2; }
+  .farmer-compact-bar .farmer-place { font-size: 0.72rem; color: #6c757d; }
+  .farmer-compact-bar .lot-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .farmer-compact-bar .farmer-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding-top: 4px;
+    border-top: 1px solid #eee;
+    font-size: 0.72rem;
+  }
+  .farmer-compact-bar .farmer-stats span { white-space: nowrap; }
+  .farmer-compact-bar .farmer-stats .lbl { color: #6c757d; }
+  .farmer-compact-bar .farmer-stats .val { font-weight: 700; }
+  .farmer-compact-bar .farmer-stats .val-bags { color: #007bff; }
+  .farmer-compact-bar .farmer-stats .val-red { color: #dc3545; }
+  #farmerDetailCard .card.shadow-sm { margin-bottom: 8px !important; }
+  #farmerDetailCard .card-header { padding: 5px 10px !important; font-size: 0.85rem; }
+
+  /* LEFT: inline weight entry panel (no overlay — right boxes stay visible) */
+  .panel-save-bar.save-success-flash {
+    background: #28a745 !important;
+    border-top-color: #1e7e34 !important;
+    animation: saveBarPulse 0.5s ease 3;
+  }
+  .panel-save-bar.save-success-flash #saveVikriBtn {
+    background: #fff !important;
+    color: #28a745 !important;
+    border: 2px solid #fff;
+  }
+  @keyframes saveBarPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(40,167,69,0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(40,167,69,0); }
+  }
+  .weight-entry-panel {
+    overflow-x: hidden;
+    border: 2px solid #17a2b8;
+    border-radius: 6px;
+    background: #e8f7fa;
+    padding: 10px;
+  }
+  .weight-entry-panel .input-group { flex-wrap: nowrap; }
+  .weight-entry-panel .entry-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0c5460;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .weight-entry-panel #temp_weight {
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    height: 44px !important;
+    text-align: center;
+    border: 2px solid #17a2b8 !important;
+  }
+  .weight-entry-hint {
+    font-size: 0.78rem;
+    color: #6c757d;
+    text-align: center;
+    margin-top: 8px;
+    margin-bottom: 0;
+  }
+  .bags-count-display {
+    font-size: 1.15rem;
+    min-height: 38px;
+    line-height: 38px;
+    padding: 0 8px;
+    color: #155724 !important;
+    background: #f0fff4 !important;
+  }
+  .bags-count-display.text-muted {
+    color: #6c757d !important;
+    background: #f8f9fa !important;
+  }
+
+  /* RIGHT: live bag boxes */
+  #bagWeightsSection {
+    margin-bottom: 0;
+    margin-top: 0;
+  }
+  #bagWeightsSection .bags-live-header {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px 6px 0 0;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  #bagWeightsSection .bags-live-body {
+    background: #fff;
+    border: 2px solid #17a2b8;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 8px 10px;
+  }
+  .weight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+    gap: 6px;
+    padding: 4px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .weight-cell {
+    min-height: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ced4da;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.15s;
+    padding: 4px 2px;
+  }
+  .weight-cell.empty {
+    border-style: dashed;
+    background: #fff;
+    color: #6c757d;
+  }
+  .weight-cell:hover { border-color: #007bff; background: #f0f7ff; }
+  .weight-cell.filled {
+    background: #e9fcec;
+    border-color: #28a745;
+    border-style: solid;
+    color: #155724;
+  }
+  .weight-cell.active-bag {
+    border-color: #007bff;
+    border-style: solid;
+    box-shadow: 0 0 0 3px rgba(0,123,255,.25);
+    background: #f0f7ff;
+  }
+  .weight-cell.excess {
+    background: #fff5f5 !important;
+    border-color: #fc8181 !important;
+    border-style: solid !important;
+    color: #c53030 !important;
+  }
+  .weight-cell.segment-locked {
+    border-color: #6f42c1 !important;
+    background: #f3ebff !important;
+    cursor: default;
+    opacity: 0.95;
+  }
+  .weight-cell.segment-locked .bag-label { color: #6f42c1; font-size: 9px; }
+  .weight-cell.segment-other-buyer {
+    border-color: #6f42c1 !important;
+    background: #f3ebff !important;
+    cursor: pointer;
+  }
+  .weight-cell.segment-other-buyer .bag-label { color: #6f42c1; font-size: 9px; }
+  .weight-cell.segment-active-buyer {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 2px rgba(40,167,69,.2);
+  }
+  .weight-cell .bag-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #495057;
+    line-height: 1.1;
+  }
+  .weight-cell.filled .bag-label { color: #155724; }
+  .weight-cell.excess .bag-label { color: #c53030; }
+  .weight-cell .bag-weight {
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 2px;
+    line-height: 1.1;
+  }
+  .weight-cell.empty .bag-weight { display: none; }
+  .weight-cell.preview-live .bag-weight,
+  .weight-cell.filled .bag-weight,
+  .weight-cell.active-bag .bag-weight { display: block; }
+  .weight-cell.preview-live {
+    border-color: #17a2b8 !important;
+    border-style: solid !important;
+    background: #e8f7fa !important;
+  }
+  .weight-cell.preview-live.filled { background: #d4edda !important; }
+  .weight-cell.preview-live.excess { background: #ffe8e8 !important; }
+  .bag-weights-summary { font-size: 0.85rem; }
+  #bagWeightsSection.bag-weights-locked #weightGrid {
+    pointer-events: none;
+    opacity: 0.45;
+    filter: grayscale(0.3);
+  }
+  #bagWeightsSection:not(.bag-weights-locked) #bag_weights_locked_msg { display: none !important; }
+  #bagWeightsSection.edit-bags-enabled,
+  #bagWeightsSection.edit-bags-enabled #weightGrid {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  #bagWeightsSection.edit-bags-enabled .weight-cell {
+    cursor: pointer !important;
+  }
+
+  /* Responsive: stack vertically on small screens */
+  @media (max-width: 768px) {
+    .bikri-wrapper { flex-direction: column; height: auto; }
+    .bikri-form-panel { width: 100%; min-width: unset; border-right: none; border-bottom: 2px solid #dee2e6; }
+    .bikri-list-panel { height: auto; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bikri-wrapper">
+
+  <!-- ══════════════ LEFT: Form Panel ══════════════ -->
+  <div class="bikri-form-panel">
+    <div class="panel-header">
+      <span><i class="fas fa-keyboard mr-1"></i> {% if is_edit %}Edit ವಿಕ್ರಿ{% else %}ವಿಕ್ರಿ ಎಂಟ್ರಿ{% endif %}</span>
+      <span class="badge badge-light text-dark">{{ date_value }}</span>
+    </div>
+    <div class="panel-body">
+      <form method="post" id="bikriForm" autocomplete="off">
+        <div class="panel-fields-scroll">
+        {% csrf_token %}
+        <input type="hidden" name="lot_id" id="lot_id" value="{{ bikri.avak_id }}">
+        <input type="hidden" name="weights_json" id="weights_json" value="{{ weights_json }}">
+
+        <!-- Bill No + Date (compact row) -->
+        <div class="row mx-0 mb-1">
+          <div class="form-group-vikri readonly-field col-6 pl-0 pr-1 mb-0">
+            <label>Bill No</label>
+            <input type="text" name="bill_no" id="bill_no"
+              class="form-control vikri-input bg-light"
+              value="{{ bikri.bill_no|default:'' }}"
+              placeholder="Auto" autocomplete="off" tabindex="-1">
+          </div>
+          <div class="form-group-vikri col-6 pr-0 pl-1 mb-0">
+            <label>Date <span class="key-hint">↵</span></label>
+            <input type="date" name="date" id="entry_date" class="form-control vikri-input vikri-req-field bg-light" value="{{ date_value }}" required tabindex="1">
+          </div>
+        </div>
+        <small id="bill_no_feedback" class="text-danger font-weight-bold d-block mb-1" style="display:none;"></small>
+
+        <!-- Lot No -->
+        <div class="form-group-vikri mb-2">
+          <label><span class="req">*</span>Lot No <span class="key-hint">↵</span></label>
+          <input type="text" id="lot_number" name="lot_number" class="form-control vikri-input vikri-req-field" placeholder="Lot No"
+            value="{% if prefill_lot %}{{ prefill_lot }}{% else %}{{ bikri.avak.lot_number }}{% endif %}" required tabindex="2">
+          <div id="other_lots_hint" class="mt-1 small" style="display:none; color:#d63384;"></div>
+          <small id="lot_order_error" class="text-danger font-weight-bold" style="display:none;"></small>
+          <input type="hidden" name="next_lot_id" id="next_lot_id">
+        </div>
+
+        <!-- Farmer + Avak Bags (compact row) -->
+        <div class="row mx-0 mb-1">
+          <div class="form-group-vikri readonly-field col-7 pl-0 pr-1 mb-0">
+            <label>Farmer</label>
+            <input type="text" id="farmer_name" class="form-control vikri-input bg-light font-weight-bold border-0"
+              style="color:#155724;" value="{{ bikri.avak.farmer.name }}" readonly tabindex="-1">
+          </div>
+          <div class="form-group-vikri readonly-field col-5 pr-0 pl-1 mb-0">
+            <label>Bags</label>
+            <input type="hidden" name="no_of_bags" id="no_of_bags"
+              value="{% if is_edit and avak_total_bags %}{{ avak_total_bags }}{% elif bikri.no_of_bags %}{{ bikri.no_of_bags }}{% endif %}">
+            <div id="bags_display" class="bags-count-display form-control vikri-input bg-light font-weight-bold border-0 text-center text-muted" tabindex="-1">—</div>
+          </div>
+        </div>
+
+        <!-- Buyer Code -->
+        <div class="form-group-vikri mb-2">
+          <label><span class="req">*</span>Buyer <span class="key-hint">↵</span></label>
+          <select name="buyer_id" id="buyer_select" class="form-control vikri-input select2 vikri-req-field" required tabindex="3">
+            {% if is_edit %}
+              <option value="{{ bikri.buyer_id }}" selected>{{ bikri.buyer.short_code }}</option>
+            {% elif prefill_buyer %}
+              <option value="{{ prefill_buyer.id }}" selected>{{ prefill_buyer.short_code }}</option>
+            {% else %}
+              <option value="">Select Buyer</option>
+            {% endif %}
+          </select>
+          <input type="text" id="enterprise_name" class="form-control vikri-input bg-light border-0 mt-1"
+            placeholder="Enterprise Name"
+            value="{% if prefill_buyer %}{{ prefill_buyer.name }}{% else %}{{ bikri.buyer.name }}{% endif %}" readonly tabindex="-1">
+        </div>
+
+        <!-- Rate -->
+        <div class="form-group-vikri mb-2">
+          <label><span class="req">*</span>Rate <span class="key-hint">↵</span></label>
+          <input type="number" step="0.01" name="rate" id="rate"
+            class="form-control vikri-input font-weight-bold vikri-req-field"
+            value="{% if prefill_rate %}{{ prefill_rate }}{% else %}{{ bikri.rate }}{% endif %}" required tabindex="4">
+        </div>
+
+        <!-- Weight / Avg Weight (hidden; bags field is above) -->
+        <div class="row mx-0 mb-2" style="display:none;">
+          <div class="col-6 pl-0 pr-1">
+            <label class="small font-weight-bold mb-1">Weight:</label>
+            <input type="number" step="0.001" name="total_weight" id="total_weight"
+              class="form-control form-control-sm bg-light font-weight-bold" value="{{ bikri.total_weight }}" readonly>
+          </div>
+          <div class="col-6 pr-0 pl-1">
+            <label class="small font-weight-bold mb-1">Avg Wt:</label>
+            <input type="number" id="avg_bag_weight" class="form-control form-control-sm text-primary" value="51">
+          </div>
+        </div>
+
+        <!-- Deductions -->
+        <div style="display:none; border-top:1px solid #dee2e6; padding-top:8px; margin-bottom:8px;">
+          <div class="row mx-0 mb-1">
+            <div class="col-6 pl-0 pr-1">
+              <label class="small text-danger font-weight-bold mb-1">Rent (ಬಾಡಿಗೆ):</label>
+              <input type="number" step="0.01" name="rent" id="rent"
+                class="form-control form-control-sm" value="{{ bikri.rent|default:'0' }}">
+            </div>
+            <div class="col-6 pr-0 pl-1">
+              <label class="small text-danger font-weight-bold mb-1">Unloading:</label>
+              <input type="number" step="0.01" name="unload_fee" id="unload_fee"
+                class="form-control form-control-sm bg-light" value="{{ bikri.unload_fee|default:'0' }}" readonly>
+            </div>
+          </div>
+          <div class="row mx-0 mb-1">
+            <div class="col-6 pl-0 pr-1">
+              <label class="small text-danger font-weight-bold mb-1">Cash (<span id="rakham_percent_label">0.00</span>%):</label>
+              <input type="number" step="0.01" name="cash_deduct" id="cash_deduct"
+                class="form-control form-control-sm bg-light" value="{{ bikri.cash_deduct|default:'0' }}" readonly>
+            </div>
+            <div class="col-6 pr-0 pl-1">
+              <label class="small text-danger font-weight-bold mb-1">ಇತರೆ 1:</label>
+              <input type="number" step="0.01" name="other_fee_1" id="other_fee_1"
+                class="form-control form-control-sm" value="{{ bikri.other_fee_1|default:'0' }}">
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden calculation fields -->
+        <input type="hidden" name="amount" id="amount" value="{{ bikri.amount }}">
+        <input type="hidden" name="dalali" id="dalali" value="{{ bikri.dalali|default:'0' }}">
+        <input type="hidden" name="cess" id="cess" value="{{ bikri.cess|default:'0' }}">
+        <input type="hidden" name="gst" id="gst" value="{{ bikri.gst|default:'0' }}">
+        <input type="hidden" name="hamali" id="hamali" value="{{ bikri.hamali|default:'0' }}">
+        <input type="hidden" name="packing" id="packing" value="{{ bikri.packing|default:'0' }}">
+        <input type="hidden" name="weighman_fee" id="weighman_fee" value="{{ bikri.weighman_fee|default:'0' }}">
+        <input type="hidden" name="total_amount" id="total_amount" value="{{ bikri.total_amount }}">
+        <input type="hidden" name="farmer_hamali" id="farmer_hamali" value="{{ bikri.farmer_hamali|default:'0' }}">
+        <input type="hidden" name="farmer_packing" id="farmer_packing" value="{{ bikri.farmer_packing|default:'0' }}">
+        <input type="hidden" name="net_payable" id="net_payable" value="{{ bikri.net_payable|default:'0' }}">
+        <input type="hidden" name="other_fee_2" id="other_fee_2" value="{{ bikri.other_fee_2|default:'0' }}">
+        <input type="hidden" name="hamali_rate" id="hamali_rate" value="{{ bikri.hamali_rate|default:'0' }}">
+        <input type="hidden" name="packing_rate" id="packing_rate" value="{{ bikri.packing_rate|default:'0' }}">
+        <input type="hidden" name="dalali_rate" id="dalali_rate" value="{{ bikri.dalali_rate|default:'0' }}">
+        <input type="hidden" name="cess_rate" id="cess_rate" value="{{ bikri.cess_rate|default:'0' }}">
+        <input type="hidden" name="gst_rate" id="gst_rate" value="{{ bikri.gst_rate|default:'0' }}">
+        <input type="hidden" name="farmer_hamali_rate" id="farmer_hamali_rate" value="{{ bikri.farmer_hamali_rate|default:'0' }}">
+        <input type="hidden" name="farmer_packing_rate" id="farmer_packing_rate" value="{{ bikri.farmer_packing_rate|default:'0' }}">
+        <input type="hidden" name="farmer_unloading_rate" id="farmer_unloading_rate" value="{{ bikri.farmer_unloading_rate|default:'0' }}">
+
+        <!-- Weight entry — LEFT (boxes show live on RIGHT panel) -->
+        <div id="weightEntryPanel" class="weight-entry-panel mb-2" style="display:none;">
+          <div class="entry-title"><i class="fas fa-weight mr-1"></i> <span id="modal_bag_label">Bag 1</span></div>
+          <div class="input-group input-group-lg">
+            <input type="text" inputmode="decimal" id="temp_weight"
+              class="form-control" placeholder="kg" autocomplete="off">
+            <div class="input-group-append"><span class="input-group-text font-weight-bold">kg</span></div>
+          </div>
+          <div id="modal_error" class="text-danger mt-2 font-weight-bold text-center" style="display:none;"></div>
+          <div class="d-flex mt-3">
+            <button type="button" class="btn btn-light flex-fill mr-1" id="cancelWeightBtn">Cancel</button>
+            <button type="button" class="btn btn-info flex-fill font-weight-bold" id="saveWeightBtn">OK ↵</button>
+          </div>
+          <p class="weight-entry-hint mb-0"><kbd>Enter</kbd> = OK</p>
+        </div>
+        <input type="text" id="weight_validation" required
+          style="position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;">
+
+        </div><!-- /panel-fields-scroll -->
+
+        <div class="panel-save-bar">
+          <button type="submit" id="saveVikriBtn" class="btn btn-success btn-block font-weight-bold" tabindex="5">
+            <i class="fas fa-save mr-1"></i> {% if is_edit %}Update Vikri{% else %}Save Vikri{% endif %}
+          </button>
+        </div>
+      </form>
+    </div><!-- /panel-body -->
+  </div><!-- /form panel -->
+
+  <!-- ══════════════ RIGHT: Farmer Detail Panel ══════════════ -->
+  <div class="bikri-list-panel">
+    <div class="panel-header">
+      <i class="fas fa-user-circle mr-2"></i>
+      <span class="font-weight-bold" style="font-size:0.95rem;">Farmer Details</span>
+      <span id="farmerDetailDate" class="badge badge-light text-dark ml-auto px-2">{{ date_value }}</span>
+    </div>
+    <div class="panel-body">
+
+      <!-- Placeholder (shown when no lot selected) -->
+      <div id="farmerDetailPlaceholder" class="farmer-placeholder">
+        <i class="fas fa-user-circle"></i>
+        <p class="mb-1 font-weight-bold">No Farmer Selected</p>
+        <small>Enter a Lot No on the left — bags appear here live while you enter weights.</small>
+      </div>
+
+      <!-- Saved Bill Card (shown after successful save) -->
+      <div id="savedBillCard" style="display:none;">
+        <div class="alert alert-success d-flex align-items-center mb-3 py-2 px-3">
+          <i class="fas fa-check-circle fa-lg mr-2"></i>
+          <div>
+            <strong>ವಿಕ್ರಿ ಎಂಟ್ರಿ ಸೇವ್ ಆಯಿತು!</strong>
+            <span class="ml-2">Bill No: <strong id="saved_bill_no">—</strong></span>
+          </div>
+        </div>
+        <div class="card shadow-sm mb-3" style="border-left:4px solid #28a745;">
+          <div class="card-body py-2 px-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-user-circle fa-2x text-success mr-2"></i>
+              <div>
+                <div class="font-weight-bold" style="font-size:1.1rem;" id="saved_farmer_name">—</div>
+              </div>
+              <span class="badge badge-dark ml-auto px-3 py-2" style="font-size:1rem;">Lot&nbsp;<span id="saved_lot_no">—</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white py-2">
+            <i class="fas fa-file-invoice-dollar mr-1"></i>
+            <span class="font-weight-bold">Saved Bill Summary</span>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-bordered table-sm mb-0 bill-preview-table">
+              <thead class="thead-dark">
+                <tr>
+                  <th>Bags</th><th class="text-right">Weight</th>
+                  <th class="text-right">Rate</th><th class="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td id="saved_bags">—</td>
+                  <td class="text-right" id="saved_weight">—</td>
+                  <td class="text-right" id="saved_rate">—</td>
+                  <td class="text-right font-weight-bold" id="saved_amount">—</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" class="text-right text-danger small font-weight-bold">Hamali</td>
+                  <td class="text-right text-danger font-weight-bold" id="saved_hamali">—</td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="text-right text-success small font-weight-bold">Packing(+)</td>
+                  <td class="text-right text-success font-weight-bold" id="saved_packing">—</td>
+                </tr>
+                <tr class="net-row">
+                  <td colspan="3" class="text-right">Net Payable</td>
+                  <td class="text-right" id="saved_net_payable">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="text-center mt-3">
+          <a id="saved_print_link" href="#" target="_blank" class="btn btn-sm btn-outline-dark mr-2">
+            <i class="fas fa-print mr-1"></i> Print Bill
+          </a>
+        </div>
+      </div>
+
+      <!-- Farmer Detail Card (hidden until lot is loaded) -->
+      <div id="farmerDetailCard" style="display:none;">
+
+        <!-- Farmer Info — compact strip -->
+        <div class="farmer-compact-bar">
+          <div class="farmer-row-top">
+            <i class="fas fa-user-circle"></i>
+            <div class="flex-grow-1 min-width-0">
+              <div class="farmer-name text-truncate" id="detail_farmer_name">—</div>
+              <div class="farmer-place text-truncate" id="detail_place">—</div>
+            </div>
+            <span class="badge badge-dark lot-badge">Lot&nbsp;<span id="detail_lot_no">—</span></span>
+          </div>
+          <div class="farmer-stats">
+            <span><span class="lbl">ಪ.ಸಂ:</span> <span class="val" id="detail_patti_no">—</span></span>
+            <span><span class="lbl">Bags:</span> <span class="val val-bags" id="detail_avak_bags">—</span></span>
+            <span><span class="lbl">Freight:</span> <span class="val val-red" id="detail_freight">—</span></span>
+            <span><span class="lbl">Advance:</span> <span class="val val-red" id="detail_advance">—</span></span>
+          </div>
+        </div>
+
+        <!-- Bill Preview Table -->
+        <div class="card shadow-sm mb-2">
+          <div class="card-header bg-dark text-white py-2">
+            <i class="fas fa-file-invoice-dollar mr-1"></i>
+            <span class="font-weight-bold">Bill Preview</span>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-bordered table-sm mb-0 bill-preview-table">
+              <thead class="thead-dark">
+                <tr>
+                  <th class="text-center" style="width:36px;">S.No</th>
+                  <th class="text-center">Lot No</th>
+                  <th class="text-center">Buyer</th>
+                  <th class="text-center">No Of Bags</th>
+                  <th class="text-right">Weight</th>
+                  <th class="text-right">Rate</th>
+                  <th class="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="preview_tbody">
+              </tbody>
+              <tfoot>
+                <!-- Hamali deduction -->
+                <tr>
+                  <td colspan="6" class="text-right text-danger small font-weight-bold">Hamali</td>
+                  <td class="text-right text-danger font-weight-bold" id="preview_hamali_farmer">—</td>
+                </tr>
+                <!-- After hamali subtotal -->
+                <tr class="bg-light">
+                  <td colspan="6" class="text-right text-muted small"></td>
+                  <td class="text-right font-weight-bold" id="preview_after_hamali">—</td>
+                </tr>
+                <!-- Packing (+) -->
+                <tr>
+                  <td colspan="6" class="text-right text-success small font-weight-bold">Packing(+)</td>
+                  <td class="text-right text-success font-weight-bold" id="preview_packing_farmer">—</td>
+                </tr>
+                <!-- Net Amount -->
+                <tr class="net-row">
+                  <td colspan="6" class="text-right">Net Amount</td>
+                  <td class="text-right" id="preview_net_amount">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- LIVE Bag Boxes — below Bill Preview -->
+        <div id="bagWeightsSection" style="display:none;" class="mt-2 bag-weights-locked">
+          <div class="bags-live-header d-flex align-items-center">
+            <i class="fas fa-th-large mr-2"></i>
+            <span>Bag Weights (ಬಿಡಿ ತೂಕ) — Live</span>
+            <span class="badge badge-light text-dark ml-auto" id="bag_weights_progress">0 / 0</span>
+          </div>
+          <div class="bags-live-body">
+            <p id="bag_weights_locked_msg" class="text-warning small mb-2 font-weight-bold">
+              <i class="fas fa-lock mr-1"></i> Enter bags count and press Enter to enable bag weights.
+            </p>
+            <p class="text-muted small mb-2 bag-weights-summary">
+              Total: <strong id="left_bag_count">—</strong> bags &nbsp;|&nbsp;
+              Filled: <strong id="left_bag_entered">0</strong> &nbsp;|&nbsp;
+              Wt: <strong id="left_total_weight">—</strong> kg
+            </p>
+            <p id="edit_multi_buyer_hint" class="text-info small mb-2 font-weight-bold" style="display:none;">
+              <i class="fas fa-hand-pointer mr-1"></i> Click any bag to edit — switches to that buyer automatically.
+            </p>
+            <div id="weightGrid" class="weight-grid"></div>
+          </div>
+        </div>
+
+      </div><!-- /farmerDetailCard -->
+    </div><!-- /panel-body -->
+  </div><!-- /farmer detail panel -->
+
+</div><!-- /bikri-wrapper -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  $(function () {
+    let bagWeights = {};
+    let bagsConfirmed = false;
+    let isEdit = {{ is_edit|yesno:'true,false' }};
+    let currentBikriId = "{{ bikri.id|default:'' }}";
+
+    const VIKRI_REQ_ORDER = ['#entry_date', '#lot_number', '#buyer_select', '#rate'];
+
+    function canUseBagWeights() {
+      const count = parseInt($('#no_of_bags').val(), 10) || 0;
+      if (isEdit && count > 0) return true;
+      return bagsConfirmed && count > 0;
+    }
+
+    function lockBagWeights() {
+      $('#bagWeightsSection').addClass('bag-weights-locked');
+      $('#weightEntryPanel').hide();
+      $('#modal_error').hide();
+      currentBag = null;
+    }
+
+    function unlockBagWeights() {
+      const count = parseInt($('#no_of_bags').val(), 10) || 0;
+      if (isEdit && count > 0) {
+        bagsConfirmed = true;
+        $('#bagWeightsSection').removeClass('bag-weights-locked');
+        return;
+      }
+      if (!canUseBagWeights()) return;
+      $('#bagWeightsSection').removeClass('bag-weights-locked');
+    }
+
+    function setBagsDisplay(count) {
+      const n = parseInt(count, 10);
+      if (n > 0) {
+        $('#no_of_bags').val(n);
+        $('#bags_display').text(n).removeClass('text-muted');
+      } else {
+        $('#no_of_bags').val('');
+        $('#bags_display').text('—').addClass('text-muted');
+      }
+    }
+
+    function autoConfirmBagsFromAvak(count) {
+      const bags = parseInt(count, 10) || 0;
+      setBagsDisplay(bags);
+      bagsConfirmed = bags > 0;
+      if (bagsConfirmed) {
+        unlockBagWeights();
+        renderWeightGrid();
+      } else {
+        lockBagWeights();
+        $('#weightGrid').empty();
+      }
+    }
+
+    function getBuyerLabel() {
+      const data = $('#buyer_select').select2('data');
+      if (data && data[0]) {
+        return data[0].text || data[0].full_name || '—';
+      }
+      return $('#enterprise_name').val() || '—';
+    }
+
+    function focusStartField() {
+      setTimeout(function () { focusVikriField($('#entry_date')); }, 300);
+    }
+
+    function flashSaveBar() {
+      const $bar = $('.panel-save-bar');
+      $bar.addClass('save-success-flash');
+      setTimeout(function () { $bar.removeClass('save-success-flash'); }, 2500);
+    }
+
+    function showSaveSuccessAlert(res, thenReload) {
+      flashSaveBar();
+      const billNo = (res && res.bill_no) ? res.bill_no : ($('#bill_no').val() || '—');
+      const lotNo = (res && res.lot_no) ? res.lot_no : ($('#lot_number').val() || '—');
+      Swal.fire({
+        title: 'ವಿಕ್ರಿ ಸೇವ್ ಆಯಿತು!',
+        html: '<p class="mb-1">Bill No: <strong class="text-success">' + billNo + '</strong></p>' +
+              '<p class="mb-1">Lot: <strong>' + lotNo + '</strong></p>' +
+              '<p class="text-muted small mt-2 mb-0">Press <kbd>Enter</kbd> for next entry</p>',
+        icon: 'success',
+        confirmButtonText: 'OK (Enter ↵)',
+        confirmButtonColor: '#28a745',
+        focusConfirm: true,
+        allowEnterKey: true,
+      }).then(function () {
+        if (thenReload) {
+          reloadPageAfterSave(res);
+        } else {
+          focusStartField();
+        }
+      });
+    }
+
+    function highlightVikriField($el) {
+      $('.vikri-input, .select2-selection').removeClass('is-active-field');
+      if ($el.hasClass('select2-hidden-accessible')) {
+        $el.next('.select2-container').find('.select2-selection').addClass('is-active-field');
+      } else {
+        $el.addClass('is-active-field');
+      }
+    }
+
+    function focusVikriField($el) {
+      if (!$el || !$el.length) return;
+      highlightVikriField($el);
+      if ($el.hasClass('select2-hidden-accessible')) {
+        $el.select2('open');
+      } else {
+        $el.focus();
+        if ($el.is('input[type="text"], input[type="number"]')) {
+          try { $el[0].select(); } catch (e) {}
+        }
+      }
+    }
+
+    function focusNextVikriField(currentEl) {
+      const $cur = $(currentEl);
+      let idx = -1;
+      VIKRI_REQ_ORDER.forEach(function (sel, i) {
+        if ($cur.is(sel) || $cur.attr('id') === $(sel).attr('id')) idx = i;
+      });
+      if (idx >= 0 && idx < VIKRI_REQ_ORDER.length - 1) {
+        focusVikriField($(VIKRI_REQ_ORDER[idx + 1]));
+      } else if (idx === VIKRI_REQ_ORDER.length - 1) {
+        openFirstBagWeight();
+      }
+    }
+
+    function openFirstBagWeight() {
+      if (!canUseBagWeights()) {
+        alert('Select a lot first — bags load from Avak automatically.');
+        focusVikriField($('#lot_number'));
+        return;
+      }
+      const nextBag = getNextEmptyBag();
+      if (nextBag && typeof openWeightModal === 'function') {
+        openWeightModal(nextBag);
+      } else {
+        focusVikriField($('#saveVikriBtn'));
+      }
+    }
+
+    function waitForLotThenFocusBuyer() {
+      let tries = 0;
+      const timer = setInterval(function () {
+        tries++;
+        if ($('#lot_id').val()) {
+          clearInterval(timer);
+          focusVikriField($('#buyer_select'));
+        } else if (tries > 30 || !$('#lot_number').val().trim()) {
+          clearInterval(timer);
+        }
+      }, 100);
+    }
+
+    $('#entry_date').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        focusVikriField($('#lot_number'));
+      }
+    });
+
+    $('#lot_number').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $(this).trigger('input');
+        waitForLotThenFocusBuyer();
+      }
+    });
+
+    $('#buyer_select').on('change', function () {
+      if (bagsConfirmed) calculateTotals();
+    });
+
+    // buyer change handled after select2 init (see buyerSegmentQueue below)
+
+    $('#rate').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        openFirstBagWeight();
+      }
+    });
+
+    $('#bikriForm').on('focus', 'input.vikri-req-field', function () {
+      highlightVikriField($(this));
+    });
+
+    // ── Reload page immediately after save ──
+    function reloadPageAfterSave(res) {
+      const entryDate = res.entry_date || $('input[name="date"]').val();
+      let url = window.location.pathname + '?date=' + encodeURIComponent(entryDate) + '&saved=1';
+      if (res.next_lot_id) {
+        url += '&lot_no=' + encodeURIComponent(res.next_lot_id);
+        if (res.buyer_id) url += '&buyer_id=' + encodeURIComponent(res.buyer_id);
+        if (res.rate) url += '&rate=' + encodeURIComponent(res.rate);
+      }
+      window.location.href = url;
+    }
+
+    // Auto-fill Bill No for new entries (day-scoped, matches ಪ.ಸಂ)
+    function fetchNextBillNo() {
+      if (isEdit) return;
+      const entryDate = $('input[name="date"]').val();
+      $.getJSON('{% url "get_next_bill_no" %}', { date: entryDate }, function(data) {
+        $('#bill_no').val(data.next_bill_no);
+        $('#detail_patti_no').text(data.next_bill_no);
+      });
+    }
+    fetchNextBillNo();
+
+    // Keep ಪ.ಸಂ badge in sync with bill_no input
+    $('#bill_no').on('input', function() {
+      $('#detail_patti_no').text($(this).val() || '—');
+    });
+
+    // If edit, load saved bag weights for the current buyer segment
+    if (isEdit) {
+      const data = JSON.parse('{{ weights_json|safe }}');
+      data.forEach(item => { bagWeights[item.bag_no] = item.weight; });
+      bagsConfirmed = true;
+    }
+    if ($('#no_of_bags').val()) {
+      setBagsDisplay($('#no_of_bags').val());
+    }
+
+    let currentBag = null;
+    let hamaliRate = 0;
+
+    $("#buyer_select").select2({
+      ajax: {
+        url: '{% url "get_traders" %}',
+        dataType: "json",
+        data: function (params) { return { q: params.term }; },
+        processResults: function (data) { return { results: data.results }; },
+      },
+      placeholder: "Select Buyer",
+    });
+
+    $('#buyer_select').on('change', function() {
+      const selectedData = $(this).select2('data')[0];
+      if (selectedData) {
+        $('#enterprise_name').val(selectedData.full_name || selectedData.text);
+      }
+      if (bagsConfirmed) calculateTotals();
+    });
+
+    $('#buyer_select').on('select2:select', function (e) {
+      const data = e.params.data;
+      const newBuyerId = String(data.id);
+      const newBuyerLabel = data.text || data.full_name || '—';
+      const newBuyerFullName = data.full_name || data.text || '';
+
+      if (!isEdit && lastBuyerId && newBuyerId !== String(lastBuyerId) && Object.keys(bagWeights).length > 0) {
+        $('#buyer_select').val(lastBuyerId).trigger('change.select2');
+        confirmBuyerChange(newBuyerId, newBuyerLabel, newBuyerFullName);
+        return;
+      }
+
+      lastBuyerId = newBuyerId;
+      lastBuyerLabel = newBuyerLabel;
+      $('#enterprise_name').val(newBuyerFullName || newBuyerLabel);
+      setTimeout(function () { focusVikriField($('#rate')); }, 100);
+    });
+
+    // Track the max and used lot numbers for the current bikri date
+    let currentMaxLot = null;
+    let usedLots = [];
+    let lotValidationPending = false;
+
+    // Fetch max and used lot numbers for the selected bikri date
+    function fetchMaxLotForDate(date, callback) {
+      const excludeId = isEdit ? ('{{ bikri.id }}' || '') : '';
+      $.getJSON('{% url "get_bikri_last_lot" %}', {date: date, exclude_id: excludeId}, function(res) {
+        if (res.success) {
+          currentMaxLot = res.max_lot;
+          usedLots = res.used_lots || [];
+        } else {
+          currentMaxLot = null;
+          usedLots = [];
+        }
+        if (typeof callback === 'function') callback();
+      });
+    }
+
+    // Validate that the entered lot number is strictly greater than currentMaxLot for the date
+    function validateLotOrder(lotNo) {
+      const $err = $('#lot_order_error');
+      const $input = $('#lot_number');
+
+      if (isEdit) {
+        $err.hide();
+        $input.removeClass('is-invalid');
+        return true;
+      }
+
+      if (!lotNo || !String(lotNo).match(/^\d+$/)) {
+        // Non-numeric lots – skip ordering validation
+        $err.hide();
+        $input.removeClass('is-invalid');
+        return true;
+      }
+
+      const lotInt = parseInt(lotNo, 10);
+
+      // Block if this lot already has Vikri on this date
+      if (usedLots.includes(lotInt)) {
+        $err.text(`❌ Lot ${lotInt} already has a Vikri entry for this date.`).show();
+        $input.addClass('is-invalid');
+        return false;
+      }
+
+      // 2. We used to block everything <= currentMaxLot (Strictly Ascending).
+      // Now, we allow it ONLY IF it's not in usedLots (meaning it's a backfill/correction).
+      // If it IS greater than max, it's a normal new entry.
+      $err.hide();
+      $input.removeClass('is-invalid');
+      return true;
+    }
+
+    let fetchTimeout = null;
+    $('#lot_number').on('input', function() {
+      clearTimeout(fetchTimeout);
+      $('#lot_order_error').hide();
+      $('#lot_number').removeClass('is-invalid');
+      if (!$(this).val().trim()) {
+        $('#lot_id').val('');
+        $('#farmer_name').val('');
+        setBagsDisplay('');
+        resetVikriEntryState(true);
+        return;
+      }
+      fetchTimeout = setTimeout(() => {
+        resetBillPreview();
+        fetchLotDetails();
+      }, 300);
+    });
+
+    let otherLotsForFarmer = [];
+    let persistedLots = []; // already saved lots from existing bill for same customer/date/buyer
+    let sessionDoneLots = new Set(); // lots whose bags are fully entered this session
+    let lotQueue = []; // lots completed in multi-lot mode, waiting for combined save
+    let buyerSegmentQueue = []; // buyer splits on same lot, waiting for combined save
+    let savedBuyerSegments = []; // already saved to DB for this lot (partial entry resume)
+    let lockedBagNos = {}; // bag_no -> {buyer_name, weight}
+    let lastBuyerId = null;
+    let lastBuyerLabel = '';
+    let autoOpenWeightModal = false; // auto-open next bag popup after lot/buyer change
+    let editLotSegments = {};       // bikri_id -> segment (multi-buyer edit)
+    let activeEditSegmentId = null;
+    let bagToSegmentMap = {};       // bag_no -> bikri_id string
+    let editMultiBuyer = false;
+    let pendingEditBagNo = null;
+
+    function initEditLotSegments(segments) {
+      editLotSegments = {};
+      bagToSegmentMap = {};
+      if (!segments || !segments.length) return;
+      segments.forEach(function (seg) {
+        const id = String(seg.bikri_id);
+        editLotSegments[id] = Object.assign({}, seg);
+        (seg.weights || []).forEach(function (w) {
+          bagToSegmentMap[w.bag_no] = id;
+        });
+      });
+      activeEditSegmentId = String(currentBikriId);
+      editMultiBuyer = segments.length > 1;
+      savedBuyerSegments = [];
+      lockedBagNos = {};
+      if (editMultiBuyer) {
+        $('#edit_multi_buyer_hint').show();
+      }
+      loadEditSegment(activeEditSegmentId, false);
+    }
+
+    function getSegmentBagWeight(segId, bagNo) {
+      if (!segId || !editLotSegments[segId]) return undefined;
+      if (segId === activeEditSegmentId && bagWeights[bagNo] !== undefined) {
+        return bagWeights[bagNo];
+      }
+      const weights = editLotSegments[segId].weights || [];
+      for (let i = 0; i < weights.length; i++) {
+        if (weights[i].bag_no === bagNo) return weights[i].weight;
+      }
+      return undefined;
+    }
+
+    function syncActiveEditSegment() {
+      if (!editMultiBuyer || !activeEditSegmentId) return;
+      const weights = Object.keys(bagWeights).sort(function (a, b) { return a - b; }).map(function (k) {
+        return { bag_no: parseInt(k, 10), weight: bagWeights[k] };
+      });
+      let totalWeight = 0;
+      weights.forEach(function (w) { totalWeight += w.weight; });
+      const segmentBags = weights.length;
+      const rate = parseFloat($('#rate').val()) || 0;
+      const amount = (totalWeight / 100) * rate;
+      const rp = Math.max(0, Math.min(100, parseFloat(currentRates.rakham_percent) || 0));
+      const cash = (amount * rp) / 100;
+      const f_hamali = segmentBags * currentRates.farmer_hamali_per_bag;
+      const f_packing = segmentBags * currentRates.farmer_packing_per_bag;
+      const f_unloading_rate = parseFloat($('#farmer_unloading_rate').val()) || 0;
+      const unload = segmentBags * f_unloading_rate;
+      const prev = editLotSegments[activeEditSegmentId] || {};
+      editLotSegments[activeEditSegmentId] = Object.assign(prev, {
+        buyer_id: $('#buyer_select').val(),
+        buyer_name: getBuyerLabel(),
+        buyer_full_name: $('#enterprise_name').val(),
+        bags: segmentBags,
+        weights: weights,
+        weights_json: JSON.stringify(weights),
+        rate: rate,
+        weight: totalWeight,
+        amount: amount,
+        farmer_hamali: f_hamali,
+        farmer_packing: f_packing,
+        net_payable: amount - f_hamali + f_packing - cash - parseFloat(prev.rent || 0) - unload - parseFloat(prev.other_fee_1 || 0) - parseFloat(prev.other_fee_2 || 0),
+        total_weight: totalWeight.toFixed(3),
+        cash_deduct: cash.toFixed(2),
+        unload_fee: unload.toFixed(2),
+      });
+      weights.forEach(function (w) { bagToSegmentMap[w.bag_no] = activeEditSegmentId; });
+    }
+
+    function loadEditSegment(bikriId, openBag) {
+      if (!editLotSegments[String(bikriId)]) return;
+      if (activeEditSegmentId && activeEditSegmentId !== String(bikriId)) {
+        syncActiveEditSegment();
+      }
+      activeEditSegmentId = String(bikriId);
+      const seg = editLotSegments[activeEditSegmentId];
+      bagWeights = {};
+      (seg.weights || []).forEach(function (w) { bagWeights[w.bag_no] = w.weight; });
+      $('#rate').val(seg.rate || '');
+      if (seg.buyer_id) {
+        if ($('#buyer_select').find('option[value="' + seg.buyer_id + '"]').length === 0) {
+          const opt = new Option(seg.buyer_name || seg.buyer_full_name, seg.buyer_id, true, true);
+          $('#buyer_select').append(opt);
+        }
+        $('#buyer_select').val(String(seg.buyer_id)).trigger('change.select2');
+      }
+      $('#enterprise_name').val(seg.buyer_full_name || seg.buyer_name || '');
+      lastBuyerId = String(seg.buyer_id || '');
+      lastBuyerLabel = seg.buyer_name || '—';
+      calculateTotals();
+      renderWeightGrid();
+      if (openBag) {
+        currentBag = openBag;
+        $('#modal_bag_label').text('Bag ' + openBag + ' (' + (seg.buyer_name || '') + ')');
+        $('#temp_weight').val(bagWeights[openBag] !== undefined ? bagWeights[openBag] : '');
+        showWeightEntryPanel();
+      }
+    }
+
+    function editAllBagsFilled() {
+      if (!editMultiBuyer) return Object.keys(bagWeights).length > 0;
+      syncActiveEditSegment();
+      const total = parseInt($('#no_of_bags').val(), 10) || 0;
+      let filled = 0;
+      Object.keys(editLotSegments).forEach(function (id) {
+        filled += (editLotSegments[id].weights || []).length;
+      });
+      return total > 0 && filled === total;
+    }
+
+    function editSegmentsForPreview() {
+      syncActiveEditSegment();
+      const lotNo = $('#lot_number').val();
+      return Object.keys(editLotSegments).sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); }).map(function (id) {
+        const seg = editLotSegments[id];
+        return {
+          lot_no: lotNo,
+          buyer_name: seg.buyer_name || '—',
+          bags: seg.bags || (seg.weights || []).length,
+          weight: parseFloat(seg.weight) || 0,
+          rate: parseFloat(seg.rate) || 0,
+          amount: parseFloat(seg.amount) || 0,
+          farmer_hamali: parseFloat(seg.farmer_hamali) || 0,
+          farmer_packing: parseFloat(seg.farmer_packing) || 0,
+          saved: true,
+        };
+      });
+    }
+
+    function appendSegmentFormData(fd, seg, sharedBillNo, lotId, entryDate) {
+      fd.append('date', entryDate);
+      fd.append('bill_no', sharedBillNo);
+      fd.append('lot_id', lotId);
+      fd.append('buyer_id', seg.buyer_id);
+      fd.append('no_of_bags', seg.bags || (seg.weights || []).length);
+      fd.append('rate', seg.rate);
+      fd.append('total_weight', seg.total_weight || seg.weight);
+      fd.append('amount', seg.amount);
+      fd.append('hamali', seg.hamali || '0');
+      fd.append('packing', seg.packing || '0');
+      fd.append('dalali', seg.dalali || '0');
+      fd.append('cess', seg.cess || '0');
+      fd.append('weighman_fee', seg.weighman_fee || '0');
+      fd.append('gst', seg.gst || '0');
+      fd.append('total_amount', seg.total_amount || '0');
+      fd.append('farmer_hamali', seg.farmer_hamali || '0');
+      fd.append('farmer_packing', seg.farmer_packing || '0');
+      fd.append('rent', seg.rent || '0');
+      fd.append('unload_fee', seg.unload_fee || '0');
+      fd.append('cash_deduct', seg.cash_deduct || '0');
+      fd.append('other_fee_1', seg.other_fee_1 || '0');
+      fd.append('other_fee_2', seg.other_fee_2 || '0');
+      fd.append('net_payable', seg.net_payable || '0');
+      fd.append('hamali_rate', seg.hamali_rate || '0');
+      fd.append('packing_rate', seg.packing_rate || '0');
+      fd.append('dalali_rate', seg.dalali_rate || '0');
+      fd.append('cess_rate', seg.cess_rate || '0');
+      fd.append('gst_rate', seg.gst_rate || '0');
+      fd.append('farmer_hamali_rate', seg.farmer_hamali_rate || '0');
+      fd.append('farmer_packing_rate', seg.farmer_packing_rate || '0');
+      fd.append('farmer_unloading_rate', seg.farmer_unloading_rate || '0');
+      fd.append('weights_json', seg.weights_json || JSON.stringify(seg.weights || []));
+    }
+
+    function recalcEditSegmentFromWeights(seg) {
+      const weights = seg.weights || [];
+      let totalWeight = 0;
+      weights.forEach(function (w) { totalWeight += parseFloat(w.weight) || 0; });
+      const segmentBags = weights.length;
+      const rate = parseFloat(seg.rate) || 0;
+      const amount = (totalWeight / 100) * rate;
+      const rp = Math.max(0, Math.min(100, parseFloat(currentRates.rakham_percent) || 0));
+      const cash = (amount * rp) / 100;
+      const dalali = (amount * currentRates.dalali_percent) / 100;
+      const cess = (amount * currentRates.cess_percent) / 100;
+      const gst = (amount * currentRates.gst_percent) / 100;
+      const hamali = segmentBags * currentRates.trader_hamali_per_bag;
+      const packing = segmentBags * currentRates.trader_packing_per_bag;
+      const weighman = segmentBags * currentRates.weighman_fee_per_bag;
+      const f_hamali = segmentBags * currentRates.farmer_hamali_per_bag;
+      const f_packing = segmentBags * currentRates.farmer_packing_per_bag;
+      const f_unloading_rate = parseFloat(seg.farmer_unloading_rate || $('#farmer_unloading_rate').val() || 0);
+      const unload = segmentBags * f_unloading_rate;
+      const rent = parseFloat(seg.rent || 0);
+      const other1 = parseFloat(seg.other_fee_1 || 0);
+      const other2 = parseFloat(seg.other_fee_2 || 0);
+      const netTotal = amount + dalali + cess + gst + hamali + packing + weighman;
+      const billAmount = amount - f_hamali + f_packing;
+      const netPayable = billAmount - cash - rent - unload - other1 - other2;
+      return Object.assign({}, seg, {
+        bags: segmentBags,
+        weight: totalWeight,
+        amount: amount,
+        total_weight: totalWeight.toFixed(3),
+        dalali: dalali.toFixed(2),
+        cess: cess.toFixed(2),
+        gst: gst.toFixed(2),
+        hamali: hamali.toFixed(2),
+        packing: packing.toFixed(2),
+        weighman_fee: weighman.toFixed(2),
+        total_amount: netTotal.toFixed(2),
+        farmer_hamali: f_hamali.toFixed(2),
+        farmer_packing: f_packing.toFixed(2),
+        unload_fee: unload.toFixed(2),
+        cash_deduct: cash.toFixed(2),
+        net_payable: netPayable.toFixed(2),
+        weights_json: JSON.stringify(weights),
+      });
+    }
+
+    function saveAllEditSegments() {
+      syncActiveEditSegment();
+      const segments = Object.keys(editLotSegments).map(function (k) {
+        return recalcEditSegmentFromWeights(editLotSegments[k]);
+      });
+      if (!segments.length) return;
+      const sharedBillNo = ($('#bill_no').val() || '').trim();
+      const entryDate = $('input[name="date"]').val();
+      const lotId = $('#lot_id').val();
+
+      function saveNext(remaining, results) {
+        if (!remaining.length) {
+          Swal.fire({
+            title: 'ವಿಕ್ರಿ ಅಪ್‌ಡೇಟ್ ಆಯಿತು!',
+            html: '<p class="mb-0">All buyer segments saved.</p>',
+            icon: 'success',
+            confirmButtonText: 'OK',
+          }).then(function () { window.location.href = '{% url "bikri_list" %}'; });
+          return;
+        }
+        const seg = remaining[0];
+        const rest = remaining.slice(1);
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', $('[name=csrfmiddlewaretoken]').val());
+        appendSegmentFormData(fd, seg, sharedBillNo, lotId, entryDate);
+        $.ajax({
+          url: '/bikri/edit/' + seg.bikri_id + '/',
+          method: 'POST',
+          data: fd,
+          processData: false,
+          contentType: false,
+          headers: {'X-Requested-With': 'XMLHttpRequest'},
+          success: function (res) {
+            if (res.success) { results.push(res); saveNext(rest, results); }
+            else { alert('Error updating ' + (seg.buyer_name || 'buyer') + ': ' + (res.error || 'Unknown error')); }
+          },
+          error: function () { alert('Network error updating ' + (seg.buyer_name || 'buyer') + '.'); }
+        });
+      }
+      saveNext(segments, []);
+    }
+
+    function rebuildLockedBags() {
+      if (isEdit || editMultiBuyer) {
+        lockedBagNos = {};
+        return;
+      }
+      lockedBagNos = {};
+      function lockSegment(seg) {
+        const weights = seg.weights || [];
+        if (weights.length) {
+          weights.forEach(function (w) {
+            lockedBagNos[w.bag_no] = {
+              buyer_name: seg.buyer_name || '—',
+              weight: w.weight,
+            };
+          });
+        } else if (seg.weights_json) {
+          try {
+            JSON.parse(seg.weights_json).forEach(function (w) {
+              lockedBagNos[w.bag_no] = {
+                buyer_name: seg.buyer_name || '—',
+                weight: w.weight,
+              };
+            });
+          } catch (e) {}
+        }
+      }
+      savedBuyerSegments.forEach(lockSegment);
+      buyerSegmentQueue.forEach(lockSegment);
+    }
+
+    function getLockedBagNos() {
+      return Object.keys(lockedBagNos).map(function (k) { return parseInt(k, 10); });
+    }
+
+    function getQueuedSegmentBagCount() {
+      let n = 0;
+      buyerSegmentQueue.forEach(function (s) { n += parseInt(s.bags, 10) || 0; });
+      savedBuyerSegments.forEach(function (s) { n += parseInt(s.bags, 10) || 0; });
+      return n;
+    }
+
+    function getTotalBagsAccounted() {
+      return getQueuedSegmentBagCount() + Object.keys(bagWeights).length;
+    }
+
+    function isLotComplete() {
+      const total = parseInt($('#no_of_bags').val(), 10) || 0;
+      return total > 0 && getTotalBagsAccounted() === total;
+    }
+
+    function getNextEmptyBag() {
+      const total = parseInt($('#no_of_bags').val(), 10) || 0;
+      if (editMultiBuyer) {
+        syncActiveEditSegment();
+        for (let i = 1; i <= total; i++) {
+          if (getSegmentBagWeight(bagToSegmentMap[i], i) === undefined) return i;
+        }
+        return null;
+      }
+      const locked = new Set(getLockedBagNos());
+      for (let i = 1; i <= total; i++) {
+        if (!locked.has(i) && bagWeights[i] === undefined) return i;
+      }
+      return null;
+    }
+
+    function segmentLotsForPreview() {
+      if (editMultiBuyer) return editSegmentsForPreview();
+      const lotNo = $('#lot_number').val();
+      const rows = [];
+      savedBuyerSegments.forEach(function (seg) {
+        rows.push({
+          lot_no: lotNo,
+          buyer_name: seg.buyer_name || '—',
+          bags: seg.bags || 0,
+          weight: parseFloat(seg.weight) || 0,
+          rate: parseFloat(seg.rate) || 0,
+          amount: parseFloat(seg.amount) || 0,
+          farmer_hamali: parseFloat(seg.farmer_hamali) || 0,
+          farmer_packing: parseFloat(seg.farmer_packing) || 0,
+          saved: true,
+        });
+      });
+      buyerSegmentQueue.forEach(function (seg) {
+        rows.push({
+          lot_no: lotNo,
+          buyer_name: seg.buyer_name || '—',
+          bags: seg.bags || 0,
+          weight: parseFloat(seg.weight) || 0,
+          rate: parseFloat(seg.rate) || 0,
+          amount: parseFloat(seg.amount) || 0,
+          farmer_hamali: parseFloat(seg.farmer_hamali) || 0,
+          farmer_packing: parseFloat(seg.farmer_packing) || 0,
+          saved: true,
+        });
+      });
+      return rows;
+    }
+
+    function buildBuyerSegmentSnapshot() {
+      const segmentBags = Object.keys(bagWeights).length;
+      const snap = snapshotCurrentLot();
+      snap.bags = segmentBags;
+      snap.no_of_bags = String(segmentBags);
+      snap.weights = Object.keys(bagWeights).sort(function (a, b) { return a - b; }).map(function (k) {
+        return { bag_no: parseInt(k, 10), weight: bagWeights[k] };
+      });
+      snap.weights_json = JSON.stringify(snap.weights);
+      const isFirstSegment = buyerSegmentQueue.length === 0 && savedBuyerSegments.length === 0;
+      if (!isFirstSegment) {
+        snap.rent = '0';
+        snap.other_fee_1 = '0';
+        snap.other_fee_2 = '0';
+        snap.unload_fee = '0';
+        const billAmount = snap.amount - snap.farmer_hamali + snap.farmer_packing;
+        snap.net_payable = (
+          billAmount - parseFloat(snap.cash_deduct || 0)
+        ).toFixed(2);
+      }
+      return snap;
+    }
+
+    function applySavedSegments(segments) {
+      if (isEdit) return;
+      savedBuyerSegments = segments || [];
+      rebuildLockedBags();
+      renderWeightGrid();
+      calculateTotals();
+    }
+
+    function confirmBuyerChange(newBuyerId, newBuyerLabel, newBuyerFullName) {
+      const entered = Object.keys(bagWeights).length;
+      const totalBags = parseInt($('#no_of_bags').val(), 10) || 0;
+      const remainingAfterCurrent = totalBags - getQueuedSegmentBagCount() - entered;
+
+      Swal.fire({
+        title: 'Change Buyer?',
+        html: 'Save <strong>' + entered + '</strong> bag(s) for <strong>' + lastBuyerLabel + '</strong> ' +
+              'and continue with <strong>' + newBuyerLabel + '</strong>?' +
+              (remainingAfterCurrent > 0
+                ? '<p class="text-muted small mt-2 mb-0">' + remainingAfterCurrent + ' bag(s) remaining for new buyer.</p>'
+                : ''),
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Save & Change Buyer (Enter ↵)',
+        cancelButtonText: 'Cancel (Esc)',
+        confirmButtonColor: '#28a745',
+        focusConfirm: true,
+        allowEnterKey: true,
+      }).then(function (result) {
+        if (result.isConfirmed) {
+          buyerSegmentQueue.push(buildBuyerSegmentSnapshot());
+          bagWeights = {};
+          rebuildLockedBags();
+          lastBuyerId = newBuyerId;
+          lastBuyerLabel = newBuyerLabel;
+          $('#buyer_select').val(newBuyerId).trigger('change.select2');
+          $('#enterprise_name').val(newBuyerFullName || newBuyerLabel);
+          hideWeightEntryPanel(false);
+          currentBag = null;
+          renderWeightGrid();
+          calculateTotals();
+          autoOpenWeightModal = true;
+          focusVikriField($('#rate'));
+        } else {
+          $('#buyer_select').val(lastBuyerId).trigger('change.select2');
+        }
+      });
+    }
+
+    function initBuyerTracking() {
+      lastBuyerId = $('#buyer_select').val() || null;
+      lastBuyerLabel = getBuyerLabel();
+    }
+
+    // ── Snapshot all current form values for a lot / buyer segment ──
+    function snapshotCurrentLot() {
+      const segmentBags = Object.keys(bagWeights).length;
+      const useBags = segmentBags > 0 ? segmentBags : (parseInt($('#no_of_bags').val(), 10) || 0);
+      const weights = Object.keys(bagWeights).sort(function (a, b) { return a - b; }).map(function (k) {
+        return { bag_no: parseInt(k, 10), weight: bagWeights[k] };
+      });
+      return {
+        lot_id:               $('#lot_id').val(),
+        lot_no:               $('#lot_number').val(),
+        farmer_name:          $('#farmer_name').val(),
+        bags:                 useBags,
+        weight:               parseFloat($('#total_weight').val()) || 0,
+        rate:                 parseFloat($('#rate').val()) || 0,
+        amount:               parseFloat($('#amount').val()) || 0,
+        farmer_hamali:        parseFloat($('#farmer_hamali').val()) || 0,
+        farmer_packing:       parseFloat($('#farmer_packing').val()) || 0,
+        net_payable:          parseFloat($('#net_payable').val()) || 0,
+        date:                 $('input[name="date"]').val(),
+        buyer_name:           getBuyerLabel(),
+        buyer_id:             $('#buyer_select').val(),
+        no_of_bags:           String(useBags),
+        total_weight:         $('#total_weight').val(),
+        dalali:               $('#dalali').val(),
+        cess:                 $('#cess').val(),
+        gst:                  $('#gst').val(),
+        hamali:               $('#hamali').val(),
+        packing:              $('#packing').val(),
+        weighman_fee:         $('#weighman_fee').val(),
+        total_amount:         $('#total_amount').val(),
+        rent:                 $('#rent').val(),
+        unload_fee:           $('#unload_fee').val(),
+        cash_deduct:          $('#cash_deduct').val(),
+        other_fee_1:          $('#other_fee_1').val(),
+        other_fee_2:          $('#other_fee_2').val(),
+        hamali_rate:          $('#hamali_rate').val(),
+        packing_rate:         $('#packing_rate').val(),
+        dalali_rate:          $('#dalali_rate').val(),
+        cess_rate:            $('#cess_rate').val(),
+        gst_rate:             $('#gst_rate').val(),
+        farmer_hamali_rate:   $('#farmer_hamali_rate').val(),
+        farmer_packing_rate:  $('#farmer_packing_rate').val(),
+        farmer_unloading_rate:$('#farmer_unloading_rate').val(),
+        weights_json:         weights.length ? JSON.stringify(weights) : $('#weights_json').val(),
+        weights:              weights,
+      };
+    }
+
+    function resetBillPreview() {
+      $('#preview_tbody').empty();
+      $('#preview_hamali_farmer').text('—');
+      $('#preview_after_hamali').text('—');
+      $('#preview_packing_farmer').text('—');
+      $('#preview_net_amount').text('—');
+    }
+
+    function resetVikriEntryState(hideFarmerCard) {
+      resetBillPreview();
+      bagWeights = {};
+      bagsConfirmed = false;
+      lockBagWeights();
+      $('#weightGrid').empty();
+      $('#bagWeightsSection').hide();
+      hideWeightEntryPanel(false);
+      currentBag = null;
+      $('#weight_validation').val('');
+      $('#weights_json').val('[]');
+      lotQueue = [];
+      buyerSegmentQueue = [];
+      savedBuyerSegments = [];
+      lockedBagNos = {};
+      lastBuyerId = null;
+      lastBuyerLabel = '';
+      persistedLots = [];
+      setBagsDisplay('');
+      if (hideFarmerCard) {
+        $('#farmerDetailCard').hide();
+        $('#savedBillCard').hide();
+        $('#farmerDetailPlaceholder').show();
+      }
+      updateBagWeightsSummary();
+    }
+
+    // ── Bill Preview: queued + live entry only (clears when nothing to show) ──
+    function renderLotQueue(currentLot) {
+      resetBillPreview();
+      const segmentRows = segmentLotsForPreview();
+      const allLots = persistedLots.concat(lotQueue).concat(segmentRows).concat(currentLot ? [currentLot] : []);
+      if (allLots.length === 0) return;
+
+      const tbody = $('#preview_tbody');
+      let totalBags = 0, totalWeight = 0, totalAmount = 0;
+      let totalHamali = 0, totalPacking = 0;
+      const savedRowCount = persistedLots.length + lotQueue.length + segmentRows.length;
+
+      allLots.forEach(function (lot, idx) {
+        const saved = idx < savedRowCount;
+        tbody.append(
+          '<tr' + (saved ? ' class="table-success"' : '') + '>' +
+          '<td class="text-center">' + (idx + 1) + '</td>' +
+          '<td class="text-center">' + (lot.lot_no || '—') + '</td>' +
+          '<td class="text-center">' + (lot.buyer_name || '—') + '</td>' +
+          '<td class="text-center">' + (lot.bags > 0 ? lot.bags : '—') + '</td>' +
+          '<td class="text-right">' + (lot.weight > 0 ? lot.weight.toFixed(2) : '—') + '</td>' +
+          '<td class="text-right">' + (lot.rate > 0 ? lot.rate.toFixed(2) : '—') + '</td>' +
+          '<td class="text-right font-weight-bold">' + (lot.amount > 0 ? lot.amount.toFixed(2) : '—') + '</td>' +
+          '</tr>'
+        );
+        totalBags   += (lot.bags   || 0);
+        totalWeight += (lot.weight || 0);
+        totalAmount += (lot.amount || 0);
+        totalHamali += (lot.farmer_hamali  || 0);
+        totalPacking+= (lot.farmer_packing || 0);
+      });
+
+      tbody.append(
+        '<tr class="bg-light">' +
+        '<td colspan="3" class="border-0"></td>' +
+        '<td class="text-center font-weight-bold">' + (totalBags > 0 ? totalBags : '—') + '</td>' +
+        '<td class="text-right font-weight-bold">' + (totalWeight > 0 ? totalWeight.toFixed(2) : '—') + '</td>' +
+        '<td></td>' +
+        '<td class="text-right font-weight-bold">' + (totalAmount > 0 ? totalAmount.toFixed(2) : '—') + '</td>' +
+        '</tr>'
+      );
+
+      const afterHamali = totalAmount - totalHamali;
+      const netAmount   = afterHamali + totalPacking;
+      $('#preview_hamali_farmer').text(totalHamali  > 0 ? totalHamali.toFixed(2)   : '—');
+      $('#preview_after_hamali').text(totalAmount   > 0 ? afterHamali.toFixed(2)   : '—');
+      $('#preview_packing_farmer').text(totalPacking> 0 ? totalPacking.toFixed(2)  : '—');
+      $('#preview_net_amount').text(totalAmount     > 0 ? netAmount.toFixed(2)     : '—');
+
+      $('#farmerDetailPlaceholder').hide();
+      $('#farmerDetailCard').show();
+    }
+
+    // ── Save all lots sequentially via AJAX, then reset form ──
+    function saveAllFromQueue(queue) {
+      if (!queue.length) return;
+
+      function saveNext(remaining, results, sharedBillNo) {
+        if (!remaining.length) {
+          sessionDoneLots.clear();
+          showSaveSuccessAlert(results[results.length - 1], true);
+          return;
+        }
+        const lot  = remaining[0];
+        const rest = remaining.slice(1);
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', $('[name=csrfmiddlewaretoken]').val());
+        fd.append('date',                   lot.date);
+        fd.append('bill_no',                sharedBillNo);
+        fd.append('lot_id',                 lot.lot_id);
+        fd.append('buyer_id',               lot.buyer_id);
+        fd.append('no_of_bags',             lot.no_of_bags);
+        fd.append('rate',                   lot.rate);
+        fd.append('total_weight',           lot.total_weight);
+        fd.append('amount',                 lot.amount);
+        fd.append('hamali',                 lot.hamali);
+        fd.append('packing',                lot.packing);
+        fd.append('dalali',                 lot.dalali);
+        fd.append('cess',                   lot.cess);
+        fd.append('weighman_fee',           lot.weighman_fee);
+        fd.append('gst',                    lot.gst);
+        fd.append('total_amount',           lot.total_amount);
+        fd.append('farmer_hamali',          lot.farmer_hamali);
+        fd.append('farmer_packing',         lot.farmer_packing);
+        fd.append('rent',                   lot.rent);
+        fd.append('unload_fee',             lot.unload_fee);
+        fd.append('cash_deduct',            lot.cash_deduct);
+        fd.append('other_fee_1',            lot.other_fee_1);
+        fd.append('other_fee_2',            lot.other_fee_2);
+        fd.append('net_payable',            lot.net_payable);
+        fd.append('hamali_rate',            lot.hamali_rate);
+        fd.append('packing_rate',           lot.packing_rate);
+        fd.append('dalali_rate',            lot.dalali_rate);
+        fd.append('cess_rate',              lot.cess_rate);
+        fd.append('gst_rate',               lot.gst_rate);
+        fd.append('farmer_hamali_rate',     lot.farmer_hamali_rate);
+        fd.append('farmer_packing_rate',    lot.farmer_packing_rate);
+        fd.append('farmer_unloading_rate',  lot.farmer_unloading_rate);
+        fd.append('weights_json',           lot.weights_json);
+        fd.append('next_lot_id',            '');
+        $.ajax({
+          url: window.location.pathname,
+          method: 'POST',
+          data: fd,
+          processData: false,
+          contentType: false,
+          headers: {'X-Requested-With': 'XMLHttpRequest'},
+          success: function(res) {
+            if (res.success) { results.push(res); saveNext(rest, results, sharedBillNo); }
+            else { alert('Error saving Lot ' + lot.lot_no + ': ' + (res.error || 'Unknown error')); }
+          },
+          error: function() { alert('Network error saving Lot ' + lot.lot_no + '. Please try again.'); }
+        });
+      }
+
+      const enteredBillNo = ($('#bill_no').val() || '').trim();
+      if (enteredBillNo) {
+        saveNext(queue, [], enteredBillNo);
+      } else {
+        $.getJSON('{% url "get_next_bill_no" %}', {date: queue[0].date}, function(data) {
+          const autoBillNo = String(data.next_bill_no || '').trim();
+          $('#bill_no').val(autoBillNo);
+          $('#detail_patti_no').text(autoBillNo || '—');
+          saveNext(queue, [], autoBillNo);
+        });
+      }
+    }
+
+    function applyAvakTenderPrefill(data) {
+      if (!data || isEdit) return;
+
+      const buyerId = data.buyer_id;
+      const tenderRate = parseFloat(data.tender_rate);
+      const hasRate = !isNaN(tenderRate) && tenderRate > 0;
+
+      if (buyerId) {
+        const buyerCode = data.buyer_code || '';
+        const buyerName = data.buyer_name || buyerCode;
+        if ($('#buyer_select').find('option[value="' + buyerId + '"]').length === 0) {
+          $('#buyer_select').append(new Option(buyerCode || buyerName, buyerId, true, true));
+        }
+        $('#buyer_select').val(String(buyerId)).trigger('change.select2');
+        $('#enterprise_name').val(buyerName);
+        lastBuyerId = String(buyerId);
+        lastBuyerLabel = buyerCode || buyerName;
+      }
+
+      if (hasRate) {
+        $('#rate').val(tenderRate.toFixed(2));
+      }
+    }
+
+    function fetchLotDetails(options) {
+      options = options || {};
+      const preserveWeights = !!options.preserveWeights;
+      const savedWeights = preserveWeights ? Object.assign({}, bagWeights) : null;
+
+      const lotNo = $('#lot_number').val();
+      const entryDate = $('input[name="date"]').val();
+      const buyerId = $('#buyer_select').val();
+      if (!lotNo) return;
+
+      const apiParams = {lot_no: lotNo, date: entryDate, buyer_id: buyerId};
+      if (isEdit && currentBikriId) {
+        apiParams.exclude_bikri_id = currentBikriId;
+      }
+
+      fetchMaxLotForDate(entryDate, function() {
+        validateLotOrder(lotNo);
+
+        $.getJSON('{% url "get_lot_details" %}', apiParams, function(res) {
+          if (res.success) {
+            const avakBags = parseInt(String(res.data.no_of_bags || '0'), 10) || 0;
+            const bagCount = avakBags;
+
+            $('#lot_id').val(res.data.id);
+            $('#farmer_name').val(res.data.farmer_name);
+            autoConfirmBagsFromAvak(bagCount);
+
+            if (!isEdit) {
+              applyAvakTenderPrefill(res.data);
+            }
+
+            if (res.data.already_sold && !isEdit) {
+              $('#lot_order_error').text('❌ This lot already has a Vikri entry for this date.').show();
+              $('#lot_number').addClass('is-invalid');
+            } else {
+              $('#lot_order_error').hide();
+              $('#lot_number').removeClass('is-invalid');
+            }
+
+            if (preserveWeights && savedWeights) {
+              bagWeights = savedWeights;
+            } else if (!isEdit) {
+              bagWeights = {};
+              buyerSegmentQueue = [];
+            }
+
+            if (isEdit && editMultiBuyer) {
+              renderWeightGrid();
+            } else if (!isEdit) {
+              applySavedSegments(res.data.saved_segments || []);
+              initBuyerTracking();
+              if ((res.data.saved_segments || []).length > 0 && getNextEmptyBag()) {
+                autoOpenWeightModal = true;
+              }
+            }
+
+            $('#rent').val(res.data.freight || '0.00');
+            $('#other_fee_1').val(res.data.empty_bags || '0');
+            $('#other_fee_2').val(res.data.advance || '0.00');
+            $('#farmer_unloading_rate').val(res.data.hamali_rate || '0.00');
+            $('#cash_deduct').val('0.00');
+
+            $('#detail_farmer_name').text(res.data.farmer_name);
+            $('#detail_place').text(res.data.place || '—');
+            $('#detail_lot_no').text(lotNo);
+            $('#detail_avak_bags').text(res.data.no_of_bags);
+            $('#detail_freight').text(parseFloat(res.data.freight || 0).toFixed(2));
+            $('#detail_advance').text(parseFloat(res.data.advance || 0).toFixed(2));
+            if (!isEdit && res.data.suggested_bill_no) {
+              $('#bill_no').val(res.data.suggested_bill_no);
+            }
+            $('#detail_patti_no').text($('#bill_no').val() || '—');
+            $('#farmerDetailPlaceholder').hide();
+            $('#farmerDetailCard').show();
+
+            const currentLotNo = String(lotNo);
+            persistedLots = (res.data.previous_bill_lots || []).filter(function(lot) {
+              return String(lot.lot_no || '') !== currentLotNo;
+            });
+
+            otherLotsForFarmer = res.data.other_lots || [];
+            if (otherLotsForFarmer.length > 0) {
+              const lotList = otherLotsForFarmer.map(l => `Lot ${l}`).join(', ');
+              $('#other_lots_hint').text(`👉 This person also has ${lotList}`).show();
+            } else {
+              $('#other_lots_hint').hide();
+            }
+
+            updateHamali();
+            if (isEdit) {
+              bagsConfirmed = true;
+              unlockBagWeights();
+            }
+            renderWeightGrid();
+            calculateTotals();
+
+            if (!isEdit) {
+              if ($('#buyer_select').val() && $('#rate').val()) {
+                setTimeout(function () { focusVikriField($('#rate')); }, 150);
+              } else if (!$('#buyer_select').val()) {
+                setTimeout(function () { focusVikriField($('#buyer_select')); }, 150);
+              } else if (!$('#rate').val()) {
+                setTimeout(function () { focusVikriField($('#rate')); }, 150);
+              }
+            }
+          } else {
+            setBagsDisplay('');
+            $('#lot_id').val('');
+            $('#farmer_name').val('');
+            $('#lot_order_error').text('❌ Lot not found for this date.').show();
+            $('#lot_number').addClass('is-invalid');
+          }
+        });
+      });
+    }
+
+    function initEditMode() {
+      if (!isEdit) return;
+      $('#bagWeightsSection').addClass('edit-bags-enabled');
+      $('#farmerDetailPlaceholder').hide();
+      $('#farmerDetailCard').show();
+      bagsConfirmed = true;
+      unlockBagWeights();
+      {% if is_edit %}
+      initEditLotSegments({{ lot_segments_json|safe }});
+      {% endif %}
+      if ($('#lot_number').val()) {
+        fetchLotDetails({ preserveWeights: true });
+      } else {
+        renderWeightGrid();
+        calculateTotals();
+      }
+    }
+
+    let currentRates = {
+      dalali_percent: 2.0,
+      cess_percent: 0.6,
+      gst_percent: 5.0,
+      rakham_percent: 0.0,
+      trader_hamali_per_bag: 4.85,
+      trader_packing_per_bag: 5.0,
+      weighman_fee_per_bag: 1.75,
+      farmer_hamali_per_bag: 4.85,
+      farmer_packing_per_bag: 5.0,
+      farmer_unloading_per_bag: 3.7
+    };
+
+    function updateHamali() {
+      const entryDate = $('input[name="date"]').val();
+      $.getJSON('{% url "get_market_rates" %}', {date: entryDate}, function(rates) {
+        if (rates) {
+          currentRates = rates;
+          const rp = Math.max(0, Math.min(100, parseFloat(rates.rakham_percent) || 0));
+          $('#rakham_percent_label').text(rp.toFixed(2));
+          // Sync hidden rate fields for saving
+          $('#dalali_rate').val(rates.dalali_percent);
+          $('#cess_rate').val(rates.cess_percent);
+          $('#gst_rate').val(rates.gst_percent);
+          $('#hamali_rate').val(rates.trader_hamali_per_bag);
+          $('#packing_rate').val(rates.trader_packing_per_bag);
+          $('#farmer_hamali_rate').val(rates.farmer_hamali_per_bag);
+          $('#farmer_packing_rate').val(rates.farmer_packing_per_bag);
+
+          // Only overwrite unloading rate if we haven't loaded a specific lot yet
+          if ($('#lot_id').val() === '') {
+            $('#farmer_unloading_rate').val(rates.farmer_unloading_per_bag);
+          }
+
+          calculateTotals();
+        }
+      });
+    }
+
+    // Call on load and on date change
+    $(document).ready(updateHamali);
+    $('input[name="date"]').on('change', updateHamali);
+
+    function calculateCellClasses(weight) {
+      if (!weight && weight !== 0) return '';
+      const avg = parseFloat($('#avg_bag_weight').val()) || 0;
+      const w = parseFloat(weight);
+      if (!isNaN(w) && w > avg) return 'excess';
+      return 'filled';
+    }
+
+    function updateBagWeightsSummary(liveBag, liveVal) {
+      const count = parseInt($('#no_of_bags').val()) || 0;
+      let entered;
+      if (editMultiBuyer) {
+        syncActiveEditSegment();
+        entered = 0;
+        Object.keys(editLotSegments).forEach(function (id) {
+          entered += (editLotSegments[id].weights || []).length;
+        });
+      } else {
+        entered = Object.keys(bagWeights).length + getLockedBagNos().length;
+      }
+      let totalWt = 0;
+      if (editMultiBuyer) {
+        Object.keys(editLotSegments).forEach(function (id) {
+          (editLotSegments[id].weights || []).forEach(function (w) {
+            if (liveBag && w.bag_no === liveBag) return;
+            totalWt += parseFloat(w.weight) || 0;
+          });
+        });
+      } else {
+        Object.keys(lockedBagNos).forEach(function (k) {
+          totalWt += parseFloat(lockedBagNos[k].weight) || 0;
+        });
+      }
+      Object.keys(bagWeights).forEach(function (k) {
+        const n = parseInt(k, 10);
+        if (liveBag && n === liveBag) return;
+        totalWt += bagWeights[k];
+      });
+      const liveStr = liveVal !== undefined && liveVal !== null ? String(liveVal).trim() : '';
+      if (liveBag && liveStr && !liveStr.endsWith('.') && !isNaN(parseFloat(liveStr))) {
+        totalWt += parseFloat(liveStr);
+      }
+      $('#left_bag_count').text(count > 0 ? count : '—');
+      $('#left_bag_entered').text(entered);
+      $('#left_total_weight').text((entered > 0 || (liveBag && liveStr)) ? totalWt.toFixed(3) : '—');
+      $('#bag_weights_progress').text(entered + ' / ' + (count || 0));
+    }
+
+    function previewCell(bagNo, valStr) {
+      if (!bagNo) return;
+      const cell = $('.weight-cell[data-bag="' + bagNo + '"]');
+      if (!cell.length) return;
+      const trimmed = String(valStr).trim();
+
+      $('.weight-cell').removeClass('active-bag preview-live');
+      cell.addClass('active-bag');
+
+      if (!trimmed) {
+        const saved = bagWeights[bagNo];
+        cell.removeClass('preview-live filled excess');
+        if (saved !== undefined && saved !== '') {
+          cell.find('.bag-weight').text(saved);
+          cell.addClass(calculateCellClasses(saved));
+        } else {
+          cell.addClass('empty');
+          cell.find('.bag-weight').text('');
+        }
+        updateBagWeightsSummary();
+        return;
+      }
+
+      cell.removeClass('empty');
+      cell.addClass('preview-live');
+      cell.find('.bag-weight').text(trimmed);
+
+      if (!trimmed.endsWith('.') && !isNaN(parseFloat(trimmed))) {
+        cell.removeClass('filled excess');
+        const cls = calculateCellClasses(parseFloat(trimmed));
+        if (cls) cell.addClass(cls);
+      } else {
+        cell.removeClass('excess').addClass('filled');
+      }
+
+      updateBagWeightsSummary(bagNo, trimmed);
+
+      const el = cell[0];
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+
+    function renderWeightGrid() {
+      const count = parseInt($('#no_of_bags').val(), 10) || 0;
+      const grid = $('#weightGrid');
+
+      if (count <= 0) {
+        $('#bagWeightsSection').hide();
+        updateBagWeightsSummary();
+        return;
+      }
+
+      $('#bagWeightsSection').show();
+      if (!canUseBagWeights()) {
+        lockBagWeights();
+        grid.empty();
+        updateBagWeightsSummary();
+        return;
+      }
+
+      unlockBagWeights();
+      grid.empty();
+      Object.keys(bagWeights).forEach(function (k) {
+        if (parseInt(k, 10) > count) delete bagWeights[k];
+      });
+
+      for (let i = 1; i <= count; i++) {
+        const segId = bagToSegmentMap[i];
+        if (isEdit && editMultiBuyer) {
+          const seg = segId ? editLotSegments[segId] : null;
+          const isActive = segId === activeEditSegmentId;
+          const weight = segId ? getSegmentBagWeight(segId, i) : bagWeights[i];
+          const hasWeight = weight !== undefined && weight !== '';
+          const stateClass = hasWeight ? calculateCellClasses(weight) : 'empty';
+          const active = currentBag === i ? ' active-bag' : '';
+          const buyerClass = isActive ? ' segment-active-buyer' : (segId ? ' segment-other-buyer' : '');
+          const label = seg ? (seg.buyer_name || ('Bag ' + i)) : ('Bag ' + i);
+          grid.append(
+            '<div class="weight-cell ' + stateClass + active + buyerClass + '" data-bag="' + i + '" onclick="openWeightModal(' + i + ')" title="' + label + ' — Bag ' + i + ' (click to edit)">' +
+            '<span class="bag-label">' + label + '</span>' +
+            '<span class="bag-weight">' + (hasWeight ? weight : '') + '</span>' +
+            '</div>'
+          );
+          continue;
+        }
+        const locked = lockedBagNos[i];
+        if (locked && !isEdit) {
+          grid.append(
+            '<div class="weight-cell segment-locked filled" data-bag="' + i + '" title="' + locked.buyer_name + '">' +
+            '<span class="bag-label">' + locked.buyer_name + '</span>' +
+            '<span class="bag-weight">' + locked.weight + '</span>' +
+            '</div>'
+          );
+          continue;
+        }
+        const weight = bagWeights[i];
+        const hasWeight = weight !== undefined && weight !== '';
+        const stateClass = hasWeight ? calculateCellClasses(weight) : 'empty';
+        const active = currentBag === i ? ' active-bag' : '';
+        grid.append(
+          '<div class="weight-cell ' + stateClass + active + '" data-bag="' + i + '" onclick="openWeightModal(' + i + ')" title="Bag ' + i + '">' +
+          '<span class="bag-label">Bag ' + i + '</span>' +
+          '<span class="bag-weight">' + (hasWeight ? weight : '') + '</span>' +
+          '</div>'
+        );
+      }
+
+      updateBagWeightsSummary();
+
+      if (autoOpenWeightModal && count > 0) {
+        autoOpenWeightModal = false;
+        const nextBag = getNextEmptyBag();
+        if (nextBag) {
+          setTimeout(function () { openWeightModal(nextBag); }, 200);
+        }
+      }
+    }
+
+    function refreshCell(bagNo, weight) {
+      const cell = $('.weight-cell[data-bag="' + bagNo + '"]');
+      const hasWeight = weight !== undefined && weight !== '' && weight !== null;
+      cell.find('.bag-weight').text(hasWeight ? weight : '');
+      cell.removeClass('empty filled excess active-bag preview-live');
+      if (hasWeight) {
+        cell.addClass(calculateCellClasses(weight));
+      } else {
+        cell.addClass('empty');
+      }
+      if (currentBag === bagNo) cell.addClass('active-bag');
+      updateBagWeightsSummary();
+    }
+
+    if (isEdit) {
+      bagsConfirmed = true;
+      unlockBagWeights();
+    }
+
+    function showWeightEntryPanel() {
+      $('#weightEntryPanel').show();
+      setTimeout(function () {
+        $('#temp_weight').focus().select();
+        previewCell(currentBag, $('#temp_weight').val());
+        const section = document.getElementById('bagWeightsSection');
+        if (section && section.scrollIntoView) {
+          section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      }, 50);
+    }
+
+    function hideWeightEntryPanel(revert) {
+      if (revert !== false && currentBag) {
+        refreshCell(currentBag, bagWeights[currentBag]);
+      }
+      $('#weightEntryPanel').hide();
+      $('#modal_error').hide();
+    }
+
+    window.openWeightModal = function(bagNo) {
+      if (!canUseBagWeights()) {
+        alert('Select a lot first — bags load from Avak automatically.');
+        focusVikriField($('#lot_number'));
+        return;
+      }
+      if (editMultiBuyer) {
+        const segId = bagToSegmentMap[bagNo];
+        if (segId && segId !== activeEditSegmentId) {
+          loadEditSegment(segId, bagNo);
+          return;
+        }
+        if (!segId && activeEditSegmentId) {
+          bagToSegmentMap[bagNo] = activeEditSegmentId;
+        }
+      } else if (!isEdit && lockedBagNos[bagNo]) {
+        return;
+      }
+      currentBag = bagNo;
+      renderWeightGrid();
+      const buyerHint = editMultiBuyer && activeEditSegmentId && editLotSegments[activeEditSegmentId]
+        ? ' (' + (editLotSegments[activeEditSegmentId].buyer_name || '') + ')' : '';
+      $('#modal_bag_label').text('Bag ' + currentBag + buyerHint);
+      $('#temp_weight').val(bagWeights[currentBag] !== undefined ? bagWeights[currentBag] : '');
+      $('#modal_error').hide();
+      showWeightEntryPanel();
+    };
+
+    $('#cancelWeightBtn').on('click', function () {
+      hideWeightEntryPanel(true);
+      currentBag = null;
+      renderWeightGrid();
+    });
+
+    $(document).on('keydown', function (e) {
+      if (e.key === 'Escape' && $('#weightEntryPanel').is(':visible')) {
+        e.preventDefault();
+        hideWeightEntryPanel(true);
+        currentBag = null;
+        renderWeightGrid();
+      }
+    });
+
+    $('#temp_weight').on('input', function() {
+      let val = $(this).val();
+      val = val.replace(/[^0-9.]/g, '');
+      const dots = val.split('.');
+      if (dots.length > 2) val = dots[0] + '.' + dots.slice(1).join('');
+      if (dots.length === 2 && dots[1].length > 2) val = dots[0] + '.' + dots[1].substring(0, 2);
+      $(this).val(val);
+      $('#modal_error').hide();
+      previewCell(currentBag, val);
+    });
+
+    $('#temp_weight').on('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $('#saveWeightBtn').click();
+      }
+    });
+
+    function proceedAfterWeightSave(weight) {
+      bagWeights[currentBag] = weight;
+      if (editMultiBuyer && activeEditSegmentId) {
+        bagToSegmentMap[currentBag] = activeEditSegmentId;
+      }
+      refreshCell(currentBag, weight);
+      calculateTotals();
+
+      if (editMultiBuyer ? editAllBagsFilled() : isLotComplete()) {
+        hideWeightEntryPanel(false);
+        currentBag = null;
+        renderWeightGrid();
+        onAllBagsComplete();
+        return;
+      }
+
+      const nextBag = getNextEmptyBag();
+      if (nextBag) {
+        const prevBag = currentBag;
+        currentBag = nextBag;
+        $('#modal_bag_label').text('Bag ' + currentBag);
+        $('.weight-cell').removeClass('active-bag preview-live');
+        $('.weight-cell[data-bag="' + prevBag + '"]').removeClass('active-bag preview-live');
+        $('.weight-cell[data-bag="' + currentBag + '"]').addClass('active-bag');
+        $('#temp_weight').val(bagWeights[currentBag] !== undefined ? bagWeights[currentBag] : '').focus().select();
+        previewCell(currentBag, $('#temp_weight').val());
+      } else {
+        hideWeightEntryPanel(false);
+        currentBag = null;
+        renderWeightGrid();
+      }
+    }
+
+    $('#saveWeightBtn').on('click', function() {
+      const valStr = $('#temp_weight').val();
+      const avg = parseFloat($('#avg_bag_weight').val()) || 0;
+
+      if (valStr === '') {
+        delete bagWeights[currentBag];
+        refreshCell(currentBag, '');
+        calculateTotals();
+        hideWeightEntryPanel(false);
+        currentBag = null;
+        renderWeightGrid();
+        return;
+      }
+
+      if (valStr.endsWith('.') || isNaN(parseFloat(valStr))) {
+        $('#modal_error').text('Enter the correct value').show();
+        $('#temp_weight').focus();
+        return;
+      }
+
+      const weight = parseFloat(valStr);
+      if (weight > 100) {
+        $('#modal_error').text('Invalid Weight (Max 100kg)').show();
+        return;
+      }
+
+      if (weight > avg) {
+        Swal.fire({
+          title: 'Excess Weight',
+          html: 'Bag weight <strong>' + weight + '</strong> exceeds average <strong>' + avg + '</strong>.<br>Press <kbd>Enter</kbd> to continue.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Continue (Enter ↵)',
+          cancelButtonText: 'Edit (Esc)',
+          focusConfirm: true,
+          allowEnterKey: true,
+        }).then(function (result) {
+          if (result.isConfirmed) {
+            proceedAfterWeightSave(weight);
+          } else {
+            $('#temp_weight').focus().select();
+          }
+        });
+        return;
+      }
+
+      proceedAfterWeightSave(weight);
+    });
+
+    function triggerVikriSave() {
+      $('#bikriForm').trigger('submit');
+    }
+
+    function onAllBagsComplete() {
+      hideWeightEntryPanel(false);
+      currentBag = null;
+      renderWeightGrid();
+      const doneLot = parseInt($('#lot_number').val(), 10);
+
+      if (doneLot) {
+        sessionDoneLots.add(doneLot);
+      }
+
+      const pendingLots = otherLotsForFarmer.filter(function (l) {
+        return !sessionDoneLots.has(parseInt(l, 10));
+      });
+      const nextLot = pendingLots.length > 0 ? pendingLots[0] : null;
+
+      const htmlMsg = nextLot
+        ? '<p class="mb-1">Press <kbd>Enter</kbd> to <strong>Save</strong></p>' +
+          '<p class="mb-0 text-muted small">Tab + Enter → continue Lot ' + nextLot + '</p>'
+        : '<p class="mb-0">Press <kbd>Enter</kbd> to <strong>Save Vikri</strong></p>';
+
+      Swal.fire({
+        title: 'Lot ' + doneLot + ' Bags Done!',
+        html: htmlMsg,
+        icon: 'success',
+        showConfirmButton: true,
+        showDenyButton: !!nextLot,
+        showCancelButton: true,
+        confirmButtonText: 'Save (Enter ↵)',
+        denyButtonText: nextLot ? 'Continue Lot ' + nextLot : undefined,
+        cancelButtonText: 'Edit (Esc)',
+        confirmButtonColor: '#28a745',
+        denyButtonColor: '#17a2b8',
+        cancelButtonColor: '#6c757d',
+        focusConfirm: true,
+        allowEnterKey: true,
+        reverseButtons: true,
+        didOpen: function () {
+          const confirmBtn = Swal.getConfirmButton();
+          if (confirmBtn) confirmBtn.focus();
+        },
+      }).then(function (result) {
+        if (result.isConfirmed) {
+          triggerVikriSave();
+        } else if (result.isDenied && nextLot) {
+          if (buyerSegmentQueue.length > 0) {
+            lotQueue = lotQueue.concat(buyerSegmentQueue);
+            if (Object.keys(bagWeights).length > 0) {
+              lotQueue.push(buildBuyerSegmentSnapshot());
+            }
+            buyerSegmentQueue = [];
+            savedBuyerSegments = [];
+            lockedBagNos = {};
+          } else {
+            lotQueue.push(snapshotCurrentLot());
+          }
+          renderLotQueue(null);
+          bagWeights = {};
+          autoOpenWeightModal = true;
+          $('#lot_number').val(nextLot).trigger('input');
+        } else {
+          setTimeout(function () { focusVikriField($('#saveVikriBtn')); }, 200);
+        }
+      });
+    }
+
+    $('#rate, #hamali, #packing, #avg_bag_weight, #dalali, #cess, #gst, #weighman_fee, #rent, #unload_fee, #cash_deduct, #other_fee_1, #farmer_unloading_rate').on('input', function() {
+      if ($(this).attr('id') === 'avg_bag_weight') {
+        Object.keys(bagWeights).forEach(function (k) { refreshCell(k, bagWeights[k]); });
+      }
+      calculateTotals();
+    });
+
+    function calculateTotals() {
+      let totalWeight = 0;
+      Object.values(bagWeights).forEach(w => totalWeight += w);
+      $('#total_weight').val(totalWeight.toFixed(3));
+
+      const segmentBags = Object.keys(bagWeights).length;
+      const bagsForBuyer = segmentBags;
+      const rate = parseFloat($('#rate').val()) || 0;
+      const amount = (totalWeight / 100) * rate;
+      $('#amount').val(amount.toFixed(2));
+
+      // Rakham deduction: (Amount × Rakham%) / 100
+      const rakhamPercent = Math.max(0, Math.min(100, parseFloat(currentRates.rakham_percent) || 0));
+      const rakhamAmount = (amount * rakhamPercent) / 100;
+      $('#cash_deduct').val(rakhamAmount.toFixed(2));
+
+      // Calculate Expenses using currentRates
+      const dalali = (amount * currentRates.dalali_percent) / 100;
+      const cess = (amount * currentRates.cess_percent) / 100;
+      const gst = (amount * currentRates.gst_percent) / 100;
+
+      const hamali = bagsForBuyer * currentRates.trader_hamali_per_bag;
+      const packing = bagsForBuyer * currentRates.trader_packing_per_bag;
+      const weighman = bagsForBuyer * currentRates.weighman_fee_per_bag;
+
+      $('#dalali').val(dalali.toFixed(2));
+      $('#cess').val(cess.toFixed(2));
+      $('#gst').val(gst.toFixed(2));
+      $('#hamali').val(hamali.toFixed(2));
+      $('#packing').val(packing.toFixed(2));
+      $('#weighman_fee').val(weighman.toFixed(2));
+
+      // Purchase Bill: Amount + Expenses
+      const netTotal = amount + dalali + cess + gst + hamali + packing + weighman;
+      $('#total_amount').val(netTotal.toFixed(2));
+
+      // Farmer calculations
+      const f_hamali = bagsForBuyer * currentRates.farmer_hamali_per_bag;
+      const f_packing = bagsForBuyer * currentRates.farmer_packing_per_bag;
+      const f_unloading_rate = parseFloat($('#farmer_unloading_rate').val()) || 0;
+      const unload_fee = bagsForBuyer * f_unloading_rate;
+
+      $('#farmer_hamali').val(f_hamali.toFixed(2));
+      $('#farmer_packing').val(f_packing.toFixed(2));
+      $('#unload_fee').val(unload_fee.toFixed(2));
+
+      const rent = parseFloat($('#rent').val()) || 0;
+      const unload = parseFloat($('#unload_fee').val()) || 0;
+      const cash = parseFloat($('#cash_deduct').val()) || 0;
+      const other1 = parseFloat($('#other_fee_1').val()) || 0;
+      const other2 = parseFloat($('#other_fee_2').val()) || 0;
+
+      const billAmount = amount - f_hamali + f_packing;
+      const netPayable = billAmount - cash - rent - unload - other1 - other2;
+      $('#net_payable').val(netPayable.toFixed(2));
+
+      // ── Bill Preview: queued lots/segments + live row ──
+      const segmentRows = segmentLotsForPreview();
+      const hasQueued = persistedLots.length > 0 || lotQueue.length > 0 || segmentRows.length > 0;
+      const hasWeights = segmentBags > 0;
+      const showCurrent = !editMultiBuyer && $('#lot_id').val() && bagsConfirmed && hasWeights;
+      if (hasQueued || showCurrent) {
+        renderLotQueue(showCurrent ? {
+          lot_no:        $('#lot_number').val(),
+          buyer_name:    getBuyerLabel(),
+          bags:          segmentBags,
+          weight:        totalWeight,
+          rate:          rate,
+          amount:        amount,
+          farmer_hamali: f_hamali,
+          farmer_packing:f_packing,
+        } : null);
+      } else if (segmentRows.length === 0) {
+        resetBillPreview();
+      }
+
+      const arr = [];
+      Object.keys(bagWeights).sort((a,b) => a-b).forEach(k => arr.push({bag_no: parseInt(k), weight: bagWeights[k]}));
+      $('#weights_json').val(JSON.stringify(arr));
+
+      // Native validation — all lot bags (new) or current segment bags (edit)
+      if (isEdit) {
+        if (editMultiBuyer) {
+          $('#weight_validation').val(editAllBagsFilled() ? 'valid' : '');
+        } else if (segmentBags > 0 && arr.length === segmentBags) {
+          $('#weight_validation').val('valid');
+        } else {
+          $('#weight_validation').val('');
+        }
+      } else if (isLotComplete()) {
+        $('#weight_validation').val('valid');
+      } else {
+        $('#weight_validation').val('');
+      }
+      updateBagWeightsSummary();
+    }
+
+    $('input[name="date"]').on('change', function() {
+      currentMaxLot = null;
+      $('#lot_order_error').hide();
+      $('#lot_number').removeClass('is-invalid').val('');
+      $('#lot_id').val('');
+      $('#farmer_name').val('');
+      setBagsDisplay('');
+      resetVikriEntryState(true);
+      sessionDoneLots.clear();
+      fetchNextBillNo();
+      updateHamali();
+    });
+
+    // When user types a new lot, hide saved bill card and show farmer detail again
+    $('#lot_number').on('focus input', function() {
+      if ($('#savedBillCard').is(':visible')) {
+        $('#savedBillCard').hide();
+        resetBillPreview();
+        $('#farmerDetailPlaceholder').show();
+      }
+    });
+
+    function resetFormAfterSave(savedData) {
+      resetVikriEntryState(false);
+      $('#lot_number').val('').removeClass('is-invalid');
+      $('#lot_id').val('');
+      $('#farmer_name').val('');
+      setBagsDisplay('');
+      $('#rate').val('');
+      $('#next_lot_id').val('');
+      $('#other_lots_hint').hide();
+      $('#lot_order_error').hide();
+      $('#bill_no_feedback').hide();
+      $('#bill_no').removeClass('is-invalid');
+      // Reset hidden calc fields
+      ['amount','dalali','cess','gst','hamali','packing','weighman_fee','total_amount',
+       'farmer_hamali','farmer_packing','net_payable','other_fee_2'].forEach(id => $('#'+id).val('0'));
+      $('#rent').val('0'); $('#unload_fee').val('0'); $('#other_fee_1').val('0'); $('#cash_deduct').val('0');
+      // Fetch next bill number
+      fetchNextBillNo();
+      // Show saved bill in right panel
+      $('#detail_patti_no').text('—');
+      $('#farmerDetailCard').hide();
+      $('#farmerDetailPlaceholder').hide();
+      $('#saved_bill_no').text(savedData.bill_no || '—');
+      $('#saved_lot_no').text(savedData.lot_no || '—');
+      $('#saved_farmer_name').text(savedData.farmer_name || '—');
+      $('#saved_bags').text(savedData.no_of_bags || '—');
+      $('#saved_weight').text(parseFloat(savedData.total_weight || 0).toFixed(2));
+      $('#saved_rate').text(parseFloat(savedData.rate || 0).toFixed(2));
+      $('#saved_amount').text(parseFloat(savedData.amount || 0).toFixed(2));
+      $('#saved_hamali').text(parseFloat(savedData.farmer_hamali || 0).toFixed(2));
+      $('#saved_packing').text(parseFloat(savedData.farmer_packing || 0).toFixed(2));
+      $('#saved_net_payable').text(parseFloat(savedData.net_payable || 0).toFixed(2));
+      $('#saved_print_link').attr('href', '/bikri/view/' + savedData.bikri_id + '/');
+      $('#savedBillCard').show();
+      persistedLots = [];
+      $('#lot_number').focus();
+    }
+
+    function doAjaxSave() {
+      const formData = new FormData($('#bikriForm')[0]);
+      $.ajax({
+        url: $('#bikriForm').attr('action') || window.location.pathname,
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: function(res) {
+          if (res.success) {
+            showSaveSuccessAlert(res, true);
+          } else {
+            alert('Error: ' + (res.error || 'Unknown error'));
+          }
+        },
+        error: function() {
+          alert('Network error. Please try again.');
+        }
+      });
+    }
+
+    $('#saveVikriBtn').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        triggerVikriSave();
+      }
+    });
+
+    // Block form submission if lot ordering is invalid (re-fetch to avoid stale state)
+    $('#bikriForm').on('submit', function(e) {
+      e.preventDefault();
+      const lotNo = $('#lot_number').val();
+      const entryDate = $('input[name="date"]').val();
+
+      function doSave() {
+        if (isEdit) {
+          if (editMultiBuyer) {
+            if (!editAllBagsFilled()) {
+              alert('Please enter weights for all bags before saving.');
+              return;
+            }
+            saveAllEditSegments();
+            return;
+          }
+          const segmentBags = Object.keys(bagWeights).length;
+          if (segmentBags <= 0) {
+            alert('Please enter bag weights for this buyer before saving.');
+            return;
+          }
+          calculateTotals();
+          $('#no_of_bags').val(String(segmentBags));
+          const arr = [];
+          Object.keys(bagWeights).sort(function (a, b) { return a - b; }).forEach(function (k) {
+            arr.push({ bag_no: parseInt(k, 10), weight: bagWeights[k] });
+          });
+          $('#weights_json').val(JSON.stringify(arr));
+          $('#bikriForm')[0].submit();
+          return;
+        }
+        if (buyerSegmentQueue.length > 0) {
+          if (!isLotComplete()) {
+            alert('Please enter weights for all remaining bags before saving.');
+            return;
+          }
+          const allSegments = buyerSegmentQueue.slice();
+          if (Object.keys(bagWeights).length > 0) {
+            allSegments.push(buildBuyerSegmentSnapshot());
+          }
+          buyerSegmentQueue = [];
+          saveAllFromQueue(allSegments);
+        } else if (lotQueue.length > 0) {
+          // Multi-lot: add current lot to queue and save all together
+          const allLots = lotQueue.concat([snapshotCurrentLot()]);
+          lotQueue = [];
+          saveAllFromQueue(allLots);
+        } else {
+          if (Object.keys(bagWeights).length > 0 && !isLotComplete()) {
+            alert('Please enter weights for all bags before saving.');
+            return;
+          }
+          doAjaxSave();
+        }
+      }
+
+      if (!isEdit && lotNo && String(lotNo).match(/^\d+$/)) {
+        fetchMaxLotForDate(entryDate, function() {
+          if (validateLotOrder(lotNo)) { doSave(); }
+          else { $('#lot_number').focus(); }
+        });
+      } else {
+        doSave();
+      }
+    });
+
+    // After reload from save — flash bar + start at Date
+    const urlParams = new URLSearchParams(window.location.search);
+    const wasJustSaved = urlParams.get('saved') === '1';
+    if (wasJustSaved) {
+      flashSaveBar();
+      urlParams.delete('saved');
+      const cleanQs = urlParams.toString();
+      history.replaceState({}, '', window.location.pathname + (cleanQs ? '?' + cleanQs : ''));
+    }
+
+    // Trigger on load — edit waits until currentRates + all helpers exist
+    if ($('#lot_number').val() && !isEdit) {
+      fetchLotDetails();
+    } else if (!isEdit) {
+      initBuyerTracking();
+    }
+    if (isEdit) {
+      initEditMode();
+    } else if ($('#lot_number').val()) {
+      initBuyerTracking();
+    }
+
+    // Always start keyboard flow at Date → Lot No
+    if (!$('#lot_number').val() || wasJustSaved) {
+      focusStartField();
+    } else if ($('#lot_number').val() && !$('#buyer_select').val()) {
+      setTimeout(function () { focusVikriField($('#buyer_select')); }, 400);
+    } else if ($('#lot_number').val() && $('#buyer_select').val() && !$('#rate').val()) {
+      setTimeout(function () { focusVikriField($('#rate')); }, 400);
+    }
+  });
+</script>
+{% endblock %}

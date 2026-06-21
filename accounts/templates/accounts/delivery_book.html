@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಡೆಲಿವರಿ ಬುಕ್ (Delivery Book){% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Base Container */
+  .delivery-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 0;
+  }
+
+  /* Top Black Bar header */
+  .delivery-title-bar {
+    background: #333;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 15px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: default;
+  }
+
+  /* Control Section */
+  .delivery-controls {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Date formatting */
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    color: #666;
+  }
+  .date-row input {
+    width: 145px;
+    padding: 2px 5px;
+    border: 1px solid #ccc;
+    text-align: center;
+  }
+
+  .total-billed-label {
+    font-weight: bold;
+    margin-top: 5px;
+    color: #333;
+  }
+
+  /* Table Container */
+  .table-section {
+    width: 100%;
+    border: 1px solid #333;
+    background-color: #79ccca; /* The teal background from screenshot */
+    margin-top: 5px;
+  }
+
+  .delivery-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* Header */
+  .delivery-table thead tr {
+    background-color: #2c6ca2; /* Blue header from screenshot */
+    color: #fff;
+  }
+  .delivery-table th {
+    padding: 4px 8px;
+    border: 1px solid #333;
+    font-weight: 500;
+  }
+
+  /* Body */
+  .delivery-table tbody td {
+    padding: 4px 8px;
+    border: 1px solid #333;
+    font-weight: 500;
+  }
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+
+  /* Footer */
+  .delivery-table tfoot tr {
+    background-color: #333; /* Black footer from screenshot */
+    color: #fff;
+    font-weight: bold;
+  }
+  .delivery-table tfoot td {
+    padding: 4px 8px;
+    border: 1px solid #333;
+  }
+
+  .btn-print {
+    background-color: #2c6ca2;
+    color: white;
+    padding: 8px 30px;
+    border: none;
+    border-radius: 2px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  @media print {
+    .btn-print-box, .sidebar, .main-header, .main-footer, .content-header, .no-print { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; font-size: 14pt !important; }
+    .delivery-container { width: 100% !important; max-width: 100% !important; box-shadow: none !important; border: none !important; margin: 0 !important; }
+    .delivery-title-bar { -webkit-print-color-adjust: exact; background-color: #333 !important; }
+    .delivery-table thead tr { -webkit-print-color-adjust: exact; background-color: #2c6ca2 !important; }
+    .delivery-table tfoot tr { -webkit-print-color-adjust: exact; background-color: #333 !important; }
+    .table-section { -webkit-print-color-adjust: exact; background-color: #79ccca !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content" style="padding: 20px;">
+  <div class="delivery-container shadow-sm border">
+    <!-- Header Title Bar -->
+    <div class="delivery-title-bar">
+      <span>ಡೆಲಿವರಿ ಬುಕ್</span>
+      <span>MSBC-2025-26</span>
+    </div>
+
+    <!-- Center Content -->
+    <div class="delivery-controls">
+      <div class="no-print" style="display: flex; justify-content: space-between; width: 100%; align-items: start; margin-bottom: 10px;">
+        <div class="date-row">
+          <span>Date:</span>
+          <input type="date" id="deliveryDate" value="{{ selected_date }}" class="no-print" onchange="loadDelivery()">
+          <span class="d-none d-print-inline">{{ selected_date_display }}</span>
+        </div>
+        <div class="no-print d-flex">
+          <button onclick="window.print()" class="btn-print">Print</button>
+        </div>
+      </div>
+
+      <div class="total-billed-label">
+        Total Bags Billed in Vikri: {{ total_bikri_bags }}
+      </div>
+
+      <!-- Table -->
+      <div class="table-section">
+        <table class="delivery-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">S.No</th>
+              <th style="text-align: left;">Trader</th>
+              <th style="width: 150px; text-align: right;">Bags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in trader_data %}
+            <tr>
+              <td class="text-center">{{ forloop.counter }}</td>
+              <td>{{ row.short_code }}</td>
+              <td class="text-right">{{ row.bikri_bags }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" class="text-center">Total</td>
+              <td class="text-right">{{ total_bikri_bags }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function loadDelivery() {
+    const d = $('#deliveryDate').val();
+    if (d) window.location.href = '{% url "delivery_book" %}?date=' + d;
+  }
+</script>
+{% endblock %}

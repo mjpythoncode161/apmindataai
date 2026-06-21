@@ -1,0 +1,884 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Avak Entry (ಅವಾಕ್ ಎಂಟ್ರಿ){% endblock %}
+
+{% block extra_head %}
+<!-- DataTables -->
+<link
+  rel="stylesheet"
+  href="{% static 'assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}"
+/>
+<link
+  rel="stylesheet"
+  href="{% static 'assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css' %}"
+/>
+<style>
+  .avk-container {
+    padding: 10px;
+    background-color: #f4f6f9;
+  }
+  .avk-header {
+    background-color: #343a40;
+    color: white;
+    padding: 5px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px 4px 0 0;
+  }
+  .avk-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  .side-by-side {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-top: 5px;
+  }
+  @media (max-width: 991px) {
+    .side-by-side {
+      flex-direction: column;
+      height: auto !important;
+    }
+    .form-section {
+      flex: none;
+      width: 100%;
+    }
+    .table-container {
+      height: auto !important;
+      min-height: 300px;
+    }
+  }
+  .form-section {
+    flex: 0 0 380px;
+    background: #fff;
+    padding: 0;
+    border: 2px solid #17a2b8;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .form-section-title {
+    background: #17a2b8;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 8px 12px;
+    margin: 0;
+    border-radius: 4px 4px 0 0;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+  .avak-form-layout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .form-fields-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 10px 14px;
+  }
+  .panel-save-bar {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border-top: 2px solid #28a745;
+    background: #f8fff9;
+  }
+  #saveBtn {
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 10px;
+    margin: 0;
+  }
+  .panel-save-bar.save-success-flash {
+    background: #28a745 !important;
+    border-top-color: #1e7e34 !important;
+    animation: avakSavePulse 0.5s ease 3;
+  }
+  .panel-save-bar.save-success-flash #saveBtn {
+    background: #fff !important;
+    color: #28a745 !important;
+    border: 2px solid #fff;
+  }
+  @keyframes avakSavePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(40,167,69,0.55); }
+    50% { box-shadow: 0 0 0 8px rgba(40,167,69,0); }
+  }
+  .avak-save-popup.swal2-popup {
+    font-size: 1.15rem;
+    padding: 1.75rem 1.5rem;
+    border: 3px solid #28a745;
+  }
+  .avak-save-popup .swal2-title { font-size: 1.6rem; font-weight: 800; color: #155724; }
+  .avak-save-popup .swal2-icon { transform: scale(1.15); margin: 0.5rem auto 1rem; }
+  .form-group {
+    margin-bottom: 8px;
+  }
+  .form-group label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 3px;
+    display: block;
+    color: #212529;
+  }
+  .form-group label .req { color: #dc3545; margin-right: 2px; }
+  .form-group label .key-hint { font-weight: 600; color: #17a2b8; }
+  .form-group.optional-field label { color: #6c757d; font-weight: 500; }
+  .avak-input {
+    height: 38px !important;
+    padding: 6px 10px !important;
+    font-size: 0.95rem !important;
+    border: 2px solid #ced4da !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .avak-input:focus {
+    border-color: #17a2b8 !important;
+    box-shadow: 0 0 0 3px rgba(23,162,184,0.25) !important;
+    outline: none !important;
+  }
+  .avak-input.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  .form-control-sm {
+    height: 38px;
+    padding: 6px 10px;
+    font-size: 0.95rem;
+  }
+  .btn-brown {
+    background-color: #8b4513;
+    color: white;
+    font-size: 0.85rem;
+  }
+  .btn-brown:hover {
+    background-color: #6d3a10;
+    color: white;
+  }
+  .btn-green {
+    background-color: #28a745;
+    color: white;
+    font-weight: bold;
+  }
+  .btn-green:hover {
+    background-color: #218838;
+    color: white;
+  }
+  .avak-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .avak-table th {
+    background-color: #343a40;
+    color: white;
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #454d55;
+    position: sticky;
+    top: 0;
+  }
+  .avak-table td {
+    padding: 6px 8px;
+    border: 1px solid #dee2e6;
+  }
+  .avak-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  .avak-table tr.selected {
+    background-color: #cce5ff !important;
+  }
+  .footer-totals {
+    background-color: #343a40;
+    color: white;
+    padding: 8px 15px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 30px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    border-radius: 0 0 4px 4px;
+  }
+  .select2-container--default .select2-selection--single {
+    height: 38px !important;
+    font-size: 0.95rem !important;
+    padding: 0 10px !important;
+    border: 2px solid #ced4da !important;
+    border-radius: 4px !important;
+  }
+  .select2-container--default.select2-container--focus .select2-selection--single,
+  .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #17a2b8 !important;
+    box-shadow: 0 0 0 3px rgba(23,162,184,0.25) !important;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 34px !important;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
+  }
+  .select2-container .select2-selection.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  #lot_number_feedback {
+      font-size: 0.75rem;
+  }
+  .list-section {
+    flex: 1;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+  .table-container {
+      height: calc(100vh - 250px);
+      overflow-y: auto;
+      background-color: #fdfdfd;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="avk-container">
+  <div class="avk-header flex-column flex-sm-row py-2">
+    <h5 class="mb-2 mb-sm-0">ಅವಕ್ ಎಂಟ್ರಿ (Avak Entry)</h5>
+    <div class="d-flex align-items-center flex-wrap justify-content-center">
+      <span class="mr-2 border-right pr-2">Date: <strong>{{ date_value }}</strong></span>
+      <span class="mr-2">Bags: <strong>{{ totals.bags }}</strong></span>
+      <a href="{% url 'view_all_avak' %}?date={{ date_value }}" class="btn btn-xs btn-info" target="_blank">View All</a>
+    </div>
+  </div>
+
+  <div class="side-by-side">
+    <!-- Form Section -->
+    <div class="form-section">
+      <div class="form-section-title"><i class="fas fa-keyboard mr-1"></i> ENTRY FORM</div>
+      <form method="post" action="{% url 'add_avak' %}" autocomplete="off" id="avakForm" class="avak-form-layout">
+        <div class="form-fields-scroll">
+        {% csrf_token %}
+        <input type="hidden" name="list_date" id="list_date" value="{{ date_value }}" />
+        
+        <div class="form-group">
+          <label>Date <span class="key-hint">↵</span></label>
+          <input type="date" name="date" id="entry_date" class="form-control avak-input avak-req-field" value="{{ form_values.date }}" required tabindex="1" />
+        </div>
+
+        <div class="row">
+          <div class="col-8 form-group mb-2">
+            <label><span class="req">*</span>Place <span class="key-hint">ಸ್ಥಳ ↵</span></label>
+            <select id="place_select" name="place" class="form-control select2 avak-req-field" style="width: 100%" required tabindex="2">
+              {% if form_values.place %}<option value="{{ form_values.place }}" selected>{{ form_values.place }}</option>{% endif %}
+            </select>
+          </div>
+          <div class="col-4 d-flex align-items-end form-group">
+            <a href="{% url 'farmer_list' %}?date={{ date_value }}" class="btn btn-brown btn-sm btn-block" tabindex="-1">ಹೊಸ ಖಾತೆ</a>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label><span class="req">*</span>Name <span class="key-hint">ಹೆಸರು ↵</span></label>
+          <select name="farmer_id" id="farmer_select" class="form-control select2 avak-req-field" required style="width: 100%" tabindex="3">
+            <option value="">Select Farmer</option>
+          </select>
+        </div>
+
+        <div class="form-group optional-field">
+          <label>Lot No <span class="text-muted" style="font-size:0.75rem;">(auto)</span></label>
+          <input type="text" id="lot_number" name="lot_number" class="form-control avak-input" 
+                 value="{{ form_values.lot_number }}" 
+                 data-check-url="{% url 'check_lot_number' %}" 
+                 required tabindex="-1" />
+          <div id="lot_number_feedback" class="text-danger" style="display: none"></div>
+        </div>
+
+        <div class="form-group optional-field">
+            <label>Variety</label>
+            <input type="text" name="variety" class="form-control avak-input" placeholder="Optional" tabindex="-1" />
+        </div>
+
+        <div class="form-group optional-field">
+          <label>Buyer (ಖರೀದಿದಾರ)</label>
+          <select name="buyer_id" id="buyer_select" class="form-control select2" style="width: 100%" tabindex="-1">
+            <option value="">Select Buyer</option>
+            {% for t in traders %}
+            <option value="{{ t.id }}" {% if form_values.buyer_id == t.id|stringformat:"s" %}selected{% endif %}>
+              {{ t.short_code|default:t.name }} - {{ t.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label><span class="req">*</span>Bags <span class="key-hint">↵ Save</span></label>
+          <input type="number" id="no_of_bags" name="no_of_bags" class="form-control avak-input avak-req-field" min="1" step="1" value="{% if form_values.no_of_bags %}{{ form_values.no_of_bags }}{% endif %}" required tabindex="4" />
+        </div>
+
+        <div class="row">
+          <div class="col-6 form-group optional-field">
+            <label>Un.Hamali</label>
+            <input type="number" step="0.01" id="hamali_total" name="hamali_total" class="form-control avak-input bg-light" value="{{ form_values.hamali_total }}" readonly tabindex="-1" />
+          </div>
+          <div class="col-6 form-group optional-field">
+            <label>Rate</label>
+            <input type="number" step="0.01" id="hamali_rate" name="hamali_rate" class="form-control avak-input" value="{{ form_values.hamali_rate }}" required tabindex="-1" />
+          </div>
+        </div>
+
+        <div class="row">
+            <div class="col-4 form-group optional-field">
+                <label>Freight</label>
+                <input type="number" step="0.01" name="freight" class="form-control avak-input" value="{{ form_values.freight }}" tabindex="-1" />
+            </div>
+            <div class="col-4 form-group optional-field">
+                <label>Empty</label>
+                <input type="number" name="empty_bags" class="form-control avak-input" value="{{ form_values.empty_bags }}" tabindex="-1" />
+            </div>
+            <div class="col-4 form-group optional-field">
+                <label>Advance</label>
+                <input type="number" step="0.01" name="advance" class="form-control avak-input" value="{{ form_values.advance }}" tabindex="-1" />
+            </div>
+        </div>
+
+        </div><!-- /form-fields-scroll -->
+
+        <div class="panel-save-bar">
+          <button type="submit" id="saveBtn" class="btn btn-green btn-block" tabindex="5">Save</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- List Section -->
+    <div class="list-section">
+      <div class="table-container table-responsive p-0">
+        <table class="avak-table table-head-fixed text-nowrap" id="avakTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">Lot No</th>
+              <th>Farmer Name</th>
+              <th>Place</th>
+              <th style="width: 60px;">Bags</th>
+              <th style="width: 80px;">Freight</th>
+              <th style="width: 80px;">Empty</th>
+              <th style="width: 80px;">Advance</th>
+              <th style="width: 80px;">Un Hamali</th>
+              <th style="width: 70px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in avaks %}
+            <tr>
+              <td>{{ a.lot_number }}</td>
+              <td>{% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}</td>
+              <td>{{ a.place|default:"-" }}</td>
+              <td>{{ a.no_of_bags }}</td>
+              <td>{{ a.freight }}</td>
+              <td>{{ a.empty_bags }}</td>
+              <td>{{ a.advance }}</td>
+              <td>{{ a.hamali_total }}</td>
+              <td>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light border py-0 px-1 dropdown-toggle-no-caret" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-xs"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right shadow-sm border-0" style="min-width: 100px;">
+                        <a class="dropdown-item py-1" href="{% url 'view_avak' a.id %}"><i class="fas fa-eye fa-xs mr-2 text-info"></i>View</a>
+                        <button type="button" class="dropdown-item py-1 edit-btn" 
+                                data-id="{{ a.id }}" 
+                                data-date="{{ a.date|date:'Y-m-d' }}"
+                                data-place="{{ a.place|default:'' }}"
+                                data-farmer-id="{{ a.farmer.id }}"
+                                data-farmer-name="{{ a.farmer.name }}"
+                                data-lot="{{ a.lot_number }}"
+                                data-variety="{{ a.variety|default:'' }}"
+                                data-bags="{{ a.no_of_bags }}"
+                                data-rate="{{ a.hamali_rate }}"
+                                data-hamali="{{ a.hamali_total }}"
+                                data-freight="{{ a.freight }}"
+                                data-empty="{{ a.empty_bags }}"
+                                data-advance="{{ a.advance }}"
+                                data-buyer-id="{{ a.buyer_id|default:'' }}">
+                            <i class="fas fa-edit fa-xs mr-2 text-primary"></i>Edit
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item py-1 text-danger" href="{% url 'delete_avak' a.id %}" onclick="return confirm('Delete this entry?')">
+                            <i class="fas fa-trash fa-xs mr-2"></i>Delete
+                        </a>
+                    </div>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="9" class="text-center">No entries for today</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot style="background-color: #343a40; color: #ffffffff; font-weight: bold;">
+            <tr>
+              <td colspan="3" class="text-right">Total:</td>
+              <td>{{ totals.bags }}</td>
+              <td>{{ totals.freight|floatformat:2 }}</td>
+              <td>{{ totals.empty_bags }}</td>
+              <td>{{ totals.advance|floatformat:2 }}</td>
+              <td>{{ totals.hamali|floatformat:2 }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="footer-totals d-lg-none py-2 px-3 small">
+        <span>Bags: {{ totals.bags }}</span>
+        <span>Amt: {{ totals.hamali|floatformat:0 }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<style>
+    .avak-table th { background-color: #3e444a; border-color: #555; }
+    .avak-table tr:hover { background-color: #77def0ff; color: black; cursor: pointer; }
+    .avak-table tr.selected {color: black; background-color: #77def0ff !important; outline: 1px solid #0c5460; }
+    .side-by-side { height: calc(100vh - 120px); }
+    .form-section { min-height: 0; }
+</style>
+<script>
+  $(function () {
+    // Required ↵ flow: Date → Place → Name → Bags → Save
+    const REQ_FIELD_ORDER = [
+      '#entry_date',
+      '#place_select',
+      '#farmer_select',
+      '#no_of_bags',
+    ];
+
+    let avakKbLock = false;
+
+    function focusStartField() {
+      focusEntryField($('#entry_date'), false);
+    }
+
+    function focusPlaceField() {
+      focusEntryField($('#place_select'), true);
+    }
+
+    function focusEntryField($el, openSelect2) {
+      if (!$el || !$el.length) return;
+      $('#no_of_bags').blur().removeClass('is-active-field');
+      $('.form-fields-scroll').scrollTop(0);
+      function tryFocus() {
+        highlightField($el);
+        if ($el.hasClass('select2-hidden-accessible')) {
+          if (openSelect2) $el.select2('open');
+          else $el.next('.select2-container').find('.select2-selection').trigger('focus');
+        } else {
+          const el = $el[0];
+          if (el) el.focus({ preventScroll: false });
+        }
+      }
+      setTimeout(tryFocus, 100);
+      setTimeout(tryFocus, 350);
+      setTimeout(tryFocus, 650);
+    }
+
+    function bindSelect2Keyboard($select, nextSelector) {
+      $select.on('select2:select', function () {
+        if (avakKbLock) return;
+        setTimeout(function () { focusField($(nextSelector)); }, 100);
+      });
+      $select.on('select2:close', function () {
+        highlightField($select);
+      });
+      $select.next('.select2-container').find('.select2-selection').on('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        if ($select.select2('isOpen')) return;
+        e.preventDefault();
+        if (!$select.val()) {
+          $select.select2('open');
+        } else {
+          focusField($(nextSelector));
+        }
+      });
+    }
+
+    function getReqFieldEls() {
+      return REQ_FIELD_ORDER.map(function (sel) {
+        const $el = $(sel);
+        return $el.length ? $el : null;
+      }).filter(Boolean);
+    }
+
+    function highlightField($el) {
+      $('.avak-input, .select2-selection').removeClass('is-active-field');
+      if ($el.hasClass('select2-hidden-accessible')) {
+        $el.next('.select2-container').find('.select2-selection').addClass('is-active-field');
+      } else {
+        $el.addClass('is-active-field');
+      }
+    }
+
+    function focusField($el) {
+      if (!$el || !$el.length) return;
+      highlightField($el);
+      if ($el.hasClass('select2-hidden-accessible')) {
+        $el.select2('open');
+      } else {
+        $el.focus();
+        if ($el.is('input[type="text"], input[type="number"]')) {
+          $el[0].select && $el[0].select();
+        }
+      }
+    }
+
+    function validateBags() {
+      const bags = parseInt($('#no_of_bags').val(), 10);
+      if (!bags || bags < 1) {
+        $('#no_of_bags').addClass('is-invalid');
+        showSaveErrorAlert('Bags must be at least 1.');
+        focusField($('#no_of_bags'));
+        return false;
+      }
+      $('#no_of_bags').removeClass('is-invalid');
+      return true;
+    }
+
+    function focusNextReqField(currentEl) {
+      const fields = getReqFieldEls();
+      const $cur = $(currentEl);
+      let idx = -1;
+      fields.forEach(function ($f, i) {
+        if ($f.is($cur) || $f.attr('id') === $cur.attr('id')) idx = i;
+      });
+      if (idx >= 0 && idx < fields.length - 1) {
+        focusField(fields[idx + 1]);
+      } else if (idx === fields.length - 1) {
+        // Bags ↵ → Save (minimum 1 bag)
+        if (!$('#saveBtn').prop('disabled') && validateBags()) {
+          $(currentEl).blur().removeClass('is-active-field');
+          $('#avakForm').submit();
+        }
+      }
+    }
+
+    // Enter on required inputs → next required field
+    $('#avakForm').on('keydown', 'input.avak-req-field', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        focusNextReqField(this);
+      }
+    });
+
+    // Highlight on focus (required fields)
+    $('#avakForm').on('focus', 'input.avak-req-field', function () {
+      highlightField($(this));
+    });
+
+    // Initialize Place Select2
+    $("#place_select").select2({
+      ajax: {
+        url: '{% url "get_places" %}',
+        dataType: "json",
+        delay: 250,
+        data: function (params) {
+          return { q: params.term };
+        },
+        processResults: function (data) {
+          return { results: data.results };
+        },
+        cache: true,
+      },
+      placeholder: "Search Place",
+      minimumInputLength: 0,
+      tags: true
+    });
+
+    // Initialize Farmer Select2
+    $("#farmer_select").select2({
+      ajax: {
+        url: '{% url "get_farmers" %}',
+        dataType: "json",
+        delay: 250,
+        data: function (params) {
+          return {
+            q: params.term,
+            place: $("#place_select").val(),
+          };
+        },
+        processResults: function (data) {
+          return { results: data.results };
+        },
+        cache: true,
+      },
+      placeholder: "Select Farmer",
+      minimumInputLength: 0,
+    });
+
+    $("#buyer_select").select2({
+      theme: 'bootstrap4',
+      placeholder: 'Select Buyer',
+      allowClear: true
+    });
+
+    // Select2 keyboard: Enter opens dropdown or moves to next field
+    bindSelect2Keyboard($('#place_select'), '#farmer_select');
+    bindSelect2Keyboard($('#farmer_select'), '#no_of_bags');
+
+    // Flag to suppress place-change side effects while populating edit form
+    let isEditPopulating = false;
+
+    // When place changes, clear farmer (keyboard flow handled by select2:select)
+    $("#place_select").on("change", function() {
+        if (isEditPopulating) return;
+        $("#farmer_select").val(null).trigger('change');
+    });
+
+    // Calculations — always recalc when bags or rate change (both add & edit mode)
+    function calculateHamali() {
+      const bags = parseFloat($("#no_of_bags").val()) || 0;
+      const rate = parseFloat($("#hamali_rate").val()) || 0;
+      $("#hamali_total").val((bags * rate).toFixed(2));
+    }
+    $("#no_of_bags, #hamali_rate").on("input change", calculateHamali);
+    $("#no_of_bags").on("input", function () {
+      if (parseInt($(this).val(), 10) >= 1) $(this).removeClass('is-invalid');
+    });
+
+    // Auto-fetch unloading hamali rate from market settings (add mode only)
+    function fetchAvakHamaliRate(dateVal) {
+      if (!$("#hamali_total").prop('readonly')) return; // skip in edit mode
+      $.getJSON('{% url "get_market_rates" %}', { date: dateVal }, function(rates) {
+        if (rates && rates.farmer_unloading_per_bag !== undefined) {
+          $("#hamali_rate").val(parseFloat(rates.farmer_unloading_per_bag).toFixed(2));
+          calculateHamali();
+        }
+      });
+    }
+    fetchAvakHamaliRate($("input[name='date']").val());
+    $("input[name='date']").on("change", function() { fetchAvakHamaliRate($(this).val()); });
+
+    // Duplicate Lot Check
+    let lotCheckTimer = null;
+    $("#lot_number").on("input", function() {
+        const lot = $(this).val();
+        const date = $("input[name='date']").val();
+        const url = $(this).data('check-url');
+        
+        clearTimeout(lotCheckTimer);
+        lotCheckTimer = setTimeout(() => {
+            if(lot && date) {
+                $.getJSON(url, {lot_number: lot, date: date}, function(data) {
+                    if(data.exists) {
+                        $("#lot_number").addClass('is-invalid');
+                        $("#lot_number_feedback").text("Already exists!").show();
+                        $("#saveBtn").prop('disabled', true);
+                    } else {
+                        $("#lot_number").removeClass('is-invalid');
+                        $("#lot_number_feedback").hide();
+                        $("#saveBtn").prop('disabled', false);
+                    }
+                });
+            }
+        }, 300);
+    });
+
+    // Automatically highlight row on click based on current selectedId if handled by button
+    $('#avakTable tbody tr').on('click', function () {
+        if ($(this).find('td[colspan]').length > 0) return;
+        $(this).toggleClass('selected').siblings().removeClass('selected');
+    });
+
+    // Edit button functionality same-page (from dropdown)
+    $(document).on('click', '.edit-btn', function(e) {
+        e.stopPropagation();
+        const data = $(this).data();
+        
+        // Populate form
+        $("#avakForm").attr('action', `/avak/edit/${data.id}/`);
+        $("input[name='date']").val(data.date);
+        
+        // Update Select2 for Place (suppress change handler side effects)
+        isEditPopulating = true;
+        $("#place_select option").remove(); // clear stale options
+        if (data.place) {
+            const placeOption = new Option(data.place, data.place, true, true);
+            $("#place_select").append(placeOption).trigger('change');
+        } else {
+            $("#place_select").val(null).trigger('change');
+        }
+
+        $("#lot_number").val(data.lot);
+        $("input[name='variety']").val(data.variety);
+        $("#no_of_bags").val(data.bags);
+        $("#hamali_rate").val(data.rate);
+        // Set stored hamali_total — make editable; auto-recalc will keep it in sync on future changes
+        $("#hamali_total").val(data.hamali).prop('readonly', false).removeClass('bg-light').addClass('bg-white');
+        $("input[name='freight']").val(data.freight);
+        $("input[name='empty_bags']").val(data.empty);
+        $("input[name='advance']").val(data.advance);
+        if (data.buyerId) {
+            $("#buyer_select").val(String(data.buyerId)).trigger('change');
+        } else {
+            $("#buyer_select").val(null).trigger('change');
+        }
+
+        // Update Select2 for Farmer, then release the edit-populate flag
+        setTimeout(() => {
+            if (data.farmerId) {
+                $("#farmer_select option").remove(); // clear stale options
+                const newOption = new Option(data.farmerName, data.farmerId, true, true);
+                $("#farmer_select").append(newOption).trigger('change');
+            }
+            isEditPopulating = false;
+        }, 150);
+
+        // Change mode
+        $("#saveBtn").text("Update").removeClass('btn-green').addClass('btn-primary');
+        if ($("#cancelEditBtn").length === 0) {
+            $("#saveBtn").after('<button type="button" id="cancelEditBtn" class="btn btn-secondary btn-block mt-2">Cancel Edit</button>');
+        }
+        // Disable auto-calc while editing (hamali_total is now editable)
+        
+        // Scroll to form
+        $(".form-fields-scroll").animate({scrollTop: 0}, "slow");
+    });
+
+    // Cancel Edit functionality
+    function cancelEditMode(shouldFocusDate) {
+        $("#avakForm").attr('action', "{% url 'add_avak' %}");
+        $("#avakForm")[0].reset();
+        $("#place_select, #farmer_select").val(null).trigger('change');
+        $("#saveBtn").text("Save").removeClass('btn-primary').addClass('btn-green');
+        $("#hamali_total").prop('readonly', true).removeClass('bg-white').addClass('bg-light');
+        $("#cancelEditBtn").remove();
+        fetchAvakHamaliRate($("#entry_date").val());
+        const date = $("#entry_date").val();
+        if (date) {
+            $.getJSON("{% url 'get_next_lot_number' %}", {date: date}, function(data) {
+                if (data.success) $("#lot_number").val(data.next_lot);
+            });
+        }
+        if (shouldFocusDate !== false) focusPlaceField();
+    }
+
+    $(document).on('click', '#cancelEditBtn', function() {
+        cancelEditMode(true);
+    });
+
+    const PAGE_DATE = "{{ date_value }}";
+
+    function flashSaveBar() {
+        const $bar = $('.panel-save-bar');
+        $bar.addClass('save-success-flash');
+        setTimeout(function () { $bar.removeClass('save-success-flash'); }, 2800);
+    }
+
+    function showSaveErrorAlert(msg) {
+        Swal.fire({
+            title: 'Save Failed',
+            text: msg || 'Could not save entry.',
+            icon: 'error',
+            confirmButtonColor: '#dc3545',
+            focusConfirm: true,
+            allowEnterKey: true,
+        });
+    }
+
+    function reloadPageAfterSave(data, focusTarget) {
+        const a = (data && data.avak) ? data.avak : {};
+        const entryDate = a.date || $('#entry_date').val() || PAGE_DATE;
+        const focus = focusTarget || 'place';
+        window.location.href =
+            window.location.pathname +
+            '?date=' + encodeURIComponent(entryDate) +
+            '&saved=1&focus=' + encodeURIComponent(focus);
+    }
+
+    function handleSaveSuccess(data, isEdit) {
+        $('#no_of_bags').blur().removeClass('is-active-field');
+        $('#saveBtn').prop('disabled', true).text('Saved...');
+        flashSaveBar();
+        reloadPageAfterSave(data, isEdit ? 'date' : 'place');
+    }
+
+    // AJAX save — reload page with clean form for next entry
+    $("#avakForm").on("submit", function(e) {
+        e.preventDefault();
+        if (!validateBags()) return;
+        const actionUrl = $(this).attr('action');
+        const isEdit = actionUrl.indexOf('/edit/') !== -1;
+        const formData = new FormData(this);
+        const saveBtn = $("#saveBtn");
+        const originalText = saveBtn.text();
+        saveBtn.text(isEdit ? 'Updating...' : 'Saving...').prop('disabled', true);
+
+        fetch(actionUrl, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (data.success) {
+                handleSaveSuccess(data, isEdit);
+            } else {
+                saveBtn.text(originalText).prop('disabled', false);
+                showSaveErrorAlert(data.error || 'Failed to save.');
+            }
+        })
+        .catch(function (err) {
+            console.error(err);
+            saveBtn.text(originalText).prop('disabled', false);
+            showSaveErrorAlert('Network error occurred.');
+        });
+    });
+
+    // Save button Enter
+    $('#saveBtn').on('keydown', function (e) {
+      if (e.key === 'Enter' && !$(this).prop('disabled')) {
+        e.preventDefault();
+        $('#avakForm').submit();
+      }
+    });
+
+    // Trigger date change refresh
+    $("#entry_date").on('change', function() {
+        window.location.href = `?date=${this.value}`;
+    });
+
+    // After reload from save — green flash + cursor on Place (or Date)
+    const urlParams = new URLSearchParams(window.location.search);
+    const wasJustSaved = urlParams.get('saved') === '1';
+    const focusParam = urlParams.get('focus');
+    if (wasJustSaved) {
+      flashSaveBar();
+    }
+    urlParams.delete('saved');
+    urlParams.delete('focus');
+    const cleanQs = urlParams.toString();
+    history.replaceState({}, '', window.location.pathname + (cleanQs ? '?' + cleanQs : ''));
+
+    if (focusParam === 'place') {
+      focusPlaceField();
+    } else {
+      focusStartField();
+    }
+  });
+</script>
+{% endblock %}

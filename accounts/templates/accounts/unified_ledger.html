@@ -1,0 +1,479 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Unified Account Statement – Accountments{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Summary card colours ── */
+  .section-badge { font-size:0.82rem; padding:4px 10px; border-radius:20px; }
+  .tbl-sm th, .tbl-sm td { font-size:0.82rem; padding:4px 6px; }
+  .acc-card { border-left:4px solid #dee2e6; margin-bottom:12px; }
+  .acc-card.farmer  { border-left-color:#28a745; }
+  .acc-card.trader  { border-left-color:#007bff; }
+  .acc-card.expense { border-left-color:#fd7e14; }
+  .acc-card.bank    { border-left-color:#6f42c1; }
+  .acc-header {
+    background:#f8f9fa; padding:8px 14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .acc-header:hover { background:#e9ecef; }
+  .acc-name { font-weight:700; font-size:0.95rem; }
+  .bal-chip { font-size:0.82rem; font-weight:700; padding:3px 10px; border-radius:12px; }
+  .bal-chip.dr { background:#ffe0e0; color:#c0392b; }
+  .bal-chip.cr { background:#e0f4e0; color:#1e7e34; }
+  .no-entry { color:#adb5bd; font-style:italic; font-size:0.82rem; }
+  .section-header {
+    background:#343a40; color:#fff; padding:10px 16px;
+    border-radius:6px; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .section-header h5 { margin:0; font-size:1rem; }
+  .filter-card { background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:14px 18px; margin-bottom:18px; }
+  .summary-box { border:1px solid #dee2e6; border-radius:8px; padding:16px; background:#fff; margin-bottom:18px; }
+  .tab-pills .nav-link { border-radius:20px; font-weight:700; font-size:0.85rem; padding:5px 16px; }
+  .tab-pills .nav-link.active { background:#343a40; color:#fff; }
+  @media print {
+    .filter-card, .tab-pills, .btn, .breadcrumb, .main-header, .main-sidebar,
+    .content-header { display:none !important; }
+    .acc-body { display:block !important; }
+    body { background:#fff; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-7">
+        <h1 class="m-0">
+          <i class="fas fa-book-open mr-2 text-dark"></i>
+          Accountments  <small class="text-muted" style="font-size:0.7em;">Unified Account Statement</small>
+        </h1>
+      </div>
+      <div class="col-sm-5">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+          <li class="breadcrumb-item active">Accountments</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Filter -->
+    <div class="filter-card">
+      <form method="get" class="form-inline flex-wrap">
+        <label class="mr-2 font-weight-bold">From:</label>
+        <input type="date" name="from_date" value="{{ from_date }}"
+          class="form-control form-control-sm mr-3 mb-1" />
+        <label class="mr-2 font-weight-bold">To:</label>
+        <input type="date" name="to_date" value="{{ to_date }}"
+          class="form-control form-control-sm mr-3 mb-1" />
+        <input type="hidden" name="section" id="sectionHidden" value="{{ show_section }}" />
+        <button class="btn btn-dark btn-sm mr-2 mb-1">
+          <i class="fas fa-search mr-1"></i>Search
+        </button>
+        <a href="{% url 'unified_ledger' %}" class="btn btn-outline-secondary btn-sm mr-2 mb-1">
+          <i class="fas fa-times mr-1"></i>Clear
+        </a>
+        <button type="button" onclick="window.print()" class="btn btn-outline-dark btn-sm mb-1">
+          <i class="fas fa-print mr-1"></i>Print
+        </button>
+      </form>
+    </div>
+
+    <!-- Section tabs -->
+    <ul class="nav tab-pills mb-3" id="sectionTabs">
+      {% for val, label, icon, color in section_choices %}
+      <li class="nav-item mr-1 mb-1">
+        <a class="nav-link {% if show_section == val %}active{% endif %}"
+           href="?from_date={{ from_date }}&to_date={{ to_date }}&section={{ val }}">
+          <i class="{{ icon }} mr-1"></i>{{ label }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <!-- Summary row -->
+    {% if from_date or to_date %}
+    <div class="row mb-3">
+      <div class="col-6 col-md-3">
+        <div class="small-box bg-success">
+          <div class="inner">
+            <h4>₹{{ grand_farmer_balance|floatformat:2 }}</h4>
+            <p>Farmers Balance</p>
+          </div>
+          <div class="icon"><i class="fas fa-seedling"></i></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small-box bg-primary">
+          <div class="inner">
+            <h4>₹{{ grand_trader_balance|floatformat:2 }}</h4>
+            <p>Traders Balance</p>
+          </div>
+          <div class="icon"><i class="fas fa-store"></i></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small-box bg-warning">
+          <div class="inner">
+            <h4>₹{{ grand_expense_dr|floatformat:2 }}</h4>
+            <p>Total Expenses</p>
+          </div>
+          <div class="icon"><i class="fas fa-receipt"></i></div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small-box bg-info">
+          <div class="inner">
+            <h4>₹{{ grand_expense_cr|floatformat:2 }}</h4>
+            <p>Total Income</p>
+          </div>
+          <div class="icon"><i class="fas fa-coins"></i></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ════════ FARMERS ════════ -->
+    {% if show_section == "all" or show_section == "farmers" %}
+    {% if farmer_rows %}
+    <div class="section-header">
+      <h5><i class="fas fa-seedling mr-2 text-success"></i>ರೈತರ ಖಾತೆ  (Farmer Accounts)</h5>
+      <span class="badge badge-success">{{ farmer_rows|length }} Farmers</span>
+    </div>
+
+    {% for row in farmer_rows %}
+    <div class="card acc-card farmer mb-2">
+      <div class="acc-header" data-toggle="collapse" data-target="#f{{ row.id }}">
+        <div>
+          <span class="acc-name"><i class="fas fa-user-circle text-success mr-2"></i>{{ row.name }}</span>
+          {% if row.phone %}<small class="text-muted ml-2">{{ row.phone }}</small>{% endif %}
+        </div>
+        <div class="d-flex align-items-center">
+          <small class="text-muted mr-3">{{ row.entries|length }} entries</small>
+          <span class="bal-chip {% if row.closing_type == 'Cr' %}cr{% else %}dr{% endif %}">
+            ₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}
+          </span>
+          <i class="fas fa-angle-down ml-2 text-muted"></i>
+        </div>
+      </div>
+      <div id="f{{ row.id }}" class="collapse">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm tbl-sm mb-0">
+              <thead class="thead-light">
+                <tr>
+                  <th>Date</th><th>Bill No</th><th>Type</th><th>Reference</th><th>Narration</th>
+                  <th class="text-right text-danger">Debit (Dr)</th>
+                  <th class="text-right text-success">Credit (Cr)</th>
+                  <th class="text-right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="table-light">
+                  <td colspan="7" class="font-weight-bold">Opening Balance</td>
+                  <td class="text-right font-weight-bold">
+                    ₹{{ row.ob|floatformat:2 }} {{ row.ob_type }}
+                  </td>
+                </tr>
+                {% for e in row.entries %}
+                <tr>
+                  <td>{{ e.date }}</td>
+                  <td class="text-center">{% if e.bill_no %}<strong>{{ e.bill_no }}</strong>{% else %}—{% endif %}</td>
+                  <td><span class="badge badge-light">{{ e.type }}</span></td>
+                  <td class="text-muted">{{ e.ref_no }}</td>
+                  <td>{{ e.narration|truncatechars:40 }}</td>
+                  <td class="text-right text-danger">
+                    {% if e.debit > 0 %}₹{{ e.debit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right text-success">
+                    {% if e.credit > 0 %}₹{{ e.credit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right font-weight-bold">
+                    ₹{{ e.balance|floatformat:2 }} {{ e.bal_type }}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="no-entry text-center py-3">No transactions in period</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light font-weight-bold">
+                <tr>
+                  <td colspan="5">Closing Balance</td>
+                  <td class="text-right text-danger">₹{{ row.total_dr|floatformat:2 }}</td>
+                  <td class="text-right text-success">₹{{ row.total_cr|floatformat:2 }}</td>
+                  <td class="text-right">₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-light border">No farmer data found. Select a date range above.</div>
+    {% endif %}
+    {% endif %}
+
+
+    <!-- ════════ TRADERS ════════ -->
+    {% if show_section == "all" or show_section == "traders" %}
+    {% if trader_rows %}
+    <div class="section-header mt-3">
+      <h5><i class="fas fa-store mr-2 text-primary"></i>ವ್ಯಾಪಾರಿ ಖಾತೆ  (Trader Accounts)</h5>
+      <span class="badge badge-primary">{{ trader_rows|length }} Traders</span>
+    </div>
+
+    {% for row in trader_rows %}
+    <div class="card acc-card trader mb-2">
+      <div class="acc-header" data-toggle="collapse" data-target="#t{{ row.id }}">
+        <div>
+          <span class="acc-name"><i class="fas fa-store text-primary mr-2"></i>{{ row.name }}</span>
+          {% if row.phone %}<small class="text-muted ml-2">{{ row.phone }}</small>{% endif %}
+        </div>
+        <div class="d-flex align-items-center">
+          <small class="text-muted mr-3">{{ row.entries|length }} entries</small>
+          <span class="bal-chip {% if row.closing_type == 'Cr' %}cr{% else %}dr{% endif %}">
+            ₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}
+          </span>
+          <i class="fas fa-angle-down ml-2 text-muted"></i>
+        </div>
+      </div>
+      <div id="t{{ row.id }}" class="collapse">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm tbl-sm mb-0">
+              <thead class="thead-light">
+                <tr>
+                  <th>Date</th><th>Bill No</th><th>Type</th><th>Reference</th><th>Narration</th>
+                  <th class="text-right text-danger">Debit (Dr)</th>
+                  <th class="text-right text-success">Credit (Cr)</th>
+                  <th class="text-right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="table-light">
+                  <td colspan="7" class="font-weight-bold">Opening Balance</td>
+                  <td class="text-right font-weight-bold">₹{{ row.ob|floatformat:2 }} {{ row.ob_type }}</td>
+                </tr>
+                {% for e in row.entries %}
+                <tr>
+                  <td>{{ e.date }}</td>
+                  <td class="text-center">{% if e.bill_no %}<strong>{{ e.bill_no }}</strong>{% else %}—{% endif %}</td>
+                  <td><span class="badge badge-light">{{ e.type }}</span></td>
+                  <td class="text-muted">{{ e.ref_no }}</td>
+                  <td>{{ e.narration|truncatechars:40 }}</td>
+                  <td class="text-right text-danger">
+                    {% if e.debit > 0 %}₹{{ e.debit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right text-success">
+                    {% if e.credit > 0 %}₹{{ e.credit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right font-weight-bold">₹{{ e.balance|floatformat:2 }} {{ e.bal_type }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="no-entry text-center py-3">No transactions in period</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light font-weight-bold">
+                <tr>
+                  <td colspan="5">Closing Balance</td>
+                  <td class="text-right text-danger">₹{{ row.total_dr|floatformat:2 }}</td>
+                  <td class="text-right text-success">₹{{ row.total_cr|floatformat:2 }}</td>
+                  <td class="text-right">₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-light border">No trader data found. Select a date range above.</div>
+    {% endif %}
+    {% endif %}
+
+
+    <!-- ════════ EXPENSES / INCOME ════════ -->
+    {% if show_section == "all" or show_section == "expenses" %}
+    {% if expense_rows %}
+    <div class="section-header mt-3">
+      <h5><i class="fas fa-receipt mr-2 text-warning"></i>ವೆಚ್ಚ / ಆದಾಯ  (Expenses & Income)</h5>
+      <span class="badge badge-warning">{{ expense_rows|length }} Ledgers</span>
+    </div>
+
+    {% for row in expense_rows %}
+    <div class="card acc-card expense mb-2">
+      <div class="acc-header" data-toggle="collapse" data-target="#ex_{{ forloop.counter }}">
+        <div>
+          <span class="acc-name">
+            <i class="fas fa-coins text-warning mr-2"></i>{{ row.name }}
+          </span>
+          <small class="text-muted ml-2">{{ row.group }} · {{ row.nature }}</small>
+        </div>
+        <div class="d-flex align-items-center">
+          <small class="text-muted mr-3">{{ row.entries|length }} entries</small>
+          <span class="bal-chip {% if row.closing_type == 'Cr' %}cr{% else %}dr{% endif %}">
+            ₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}
+          </span>
+          <i class="fas fa-angle-down ml-2 text-muted"></i>
+        </div>
+      </div>
+      <div id="ex_{{ forloop.counter }}" class="collapse">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm tbl-sm mb-0">
+              <thead class="thead-light">
+                <tr>
+                  <th>Date</th><th>Bill No</th><th>Voucher Type</th><th>Voucher No</th><th>Narration</th>
+                  <th class="text-right text-danger">Dr</th>
+                  <th class="text-right text-success">Cr</th>
+                  <th class="text-right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="table-light">
+                  <td colspan="7" class="font-weight-bold">Opening Balance</td>
+                  <td class="text-right font-weight-bold">₹{{ row.ob|floatformat:2 }} {{ row.ob_type }}</td>
+                </tr>
+                {% for e in row.entries %}
+                <tr>
+                  <td>{{ e.date }}</td>
+                  <td class="text-center">{% if e.bill_no %}<strong>{{ e.bill_no }}</strong>{% else %}—{% endif %}</td>
+                  <td><span class="badge badge-light">{{ e.type }}</span></td>
+                  <td class="text-muted">{{ e.ref_no }}</td>
+                  <td>{{ e.narration|truncatechars:40 }}</td>
+                  <td class="text-right text-danger">
+                    {% if e.debit > 0 %}₹{{ e.debit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right text-success">
+                    {% if e.credit > 0 %}₹{{ e.credit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right font-weight-bold">₹{{ e.balance|floatformat:2 }} {{ e.bal_type }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="no-entry text-center py-3">No voucher entries in period</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light font-weight-bold">
+                <tr>
+                  <td colspan="5">Closing Balance</td>
+                  <td class="text-right text-danger">₹{{ row.total_dr|floatformat:2 }}</td>
+                  <td class="text-right text-success">₹{{ row.total_cr|floatformat:2 }}</td>
+                  <td class="text-right">₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-light border">No expense/income ledgers found. Set up Ledger Master first.</div>
+    {% endif %}
+    {% endif %}
+
+
+    <!-- ════════ BANK / CASH ════════ -->
+    {% if show_section == "all" or show_section == "bank" %}
+    {% if bank_rows %}
+    <div class="section-header mt-3">
+      <h5><i class="fas fa-university mr-2" style="color:#6f42c1"></i>ಬ್ಯಾಂಕ್ / ನಗದು  (Bank & Cash)</h5>
+      <span class="badge" style="background:#6f42c1;color:#fff;">{{ bank_rows|length }} Accounts</span>
+    </div>
+
+    {% for row in bank_rows %}
+    <div class="card acc-card bank mb-2">
+      <div class="acc-header" data-toggle="collapse" data-target="#bk_{{ forloop.counter }}">
+        <div>
+          <span class="acc-name">
+            {% if 'cash' in row.name|lower %}
+              <i class="fas fa-money-bill-wave text-success mr-2"></i>
+            {% else %}
+              <i class="fas fa-university mr-2" style="color:#6f42c1"></i>
+            {% endif %}
+            {{ row.name }}
+          </span>
+        </div>
+        <div class="d-flex align-items-center">
+          <small class="text-muted mr-3">{{ row.entries|length }} entries</small>
+          <span class="bal-chip {% if row.closing_type == 'Cr' %}cr{% else %}dr{% endif %}">
+            ₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}
+          </span>
+          <i class="fas fa-angle-down ml-2 text-muted"></i>
+        </div>
+      </div>
+      <div id="bk_{{ forloop.counter }}" class="collapse">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm tbl-sm mb-0">
+              <thead class="thead-light">
+                <tr>
+                  <th>Date</th><th>Bill No</th><th>Type</th><th>Reference</th><th>Narration</th>
+                  <th class="text-right text-success">In (Dr)</th>
+                  <th class="text-right text-danger">Out (Cr)</th>
+                  <th class="text-right">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="table-light">
+                  <td colspan="7" class="font-weight-bold">Opening Balance</td>
+                  <td class="text-right font-weight-bold">₹{{ row.ob|floatformat:2 }} {{ row.ob_type }}</td>
+                </tr>
+                {% for e in row.entries %}
+                <tr>
+                  <td>{{ e.date }}</td>
+                  <td class="text-center">{% if e.bill_no %}<strong>{{ e.bill_no }}</strong>{% else %}—{% endif %}</td>
+                  <td><span class="badge badge-light">{{ e.type }}</span></td>
+                  <td class="text-muted">{{ e.ref_no }}</td>
+                  <td>{{ e.narration|truncatechars:40 }}</td>
+                  <td class="text-right text-success">
+                    {% if e.debit > 0 %}₹{{ e.debit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right text-danger">
+                    {% if e.credit > 0 %}₹{{ e.credit|floatformat:2 }}{% else %}—{% endif %}
+                  </td>
+                  <td class="text-right font-weight-bold">₹{{ e.balance|floatformat:2 }} {{ e.bal_type }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="no-entry text-center py-3">No transactions in period</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light font-weight-bold">
+                <tr>
+                  <td colspan="5">Closing Balance</td>
+                  <td class="text-right text-success">₹{{ row.total_dr|floatformat:2 }}</td>
+                  <td class="text-right text-danger">₹{{ row.total_cr|floatformat:2 }}</td>
+                  <td class="text-right">₹{{ row.closing|floatformat:2 }} {{ row.closing_type }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-light border">No bank/cash accounts found. Set up Ledger Master first.</div>
+    {% endif %}
+    {% endif %}
+
+    {% if not from_date and not to_date %}
+    <div class="alert alert-info mt-3">
+      <i class="fas fa-info-circle mr-1"></i>
+      Select a <strong>From Date</strong> and <strong>To Date</strong> above and click Search to load the full statement.
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

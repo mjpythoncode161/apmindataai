@@ -1,0 +1,557 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Voucher{% else %}Voucher Entry{% endif %}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  .voucher-table thead th { background: #343a40; color: #fff; font-size: 0.85rem; }
+  .voucher-table td, .voucher-table th { vertical-align: middle !important; padding: 6px 8px; }
+  .entry-type-toggle .btn { min-width: 48px; font-weight: 600; }
+  .total-row td { font-weight: bold; background: #f8f9fa; border-top: 2px solid #343a40; }
+  .balance-indicator { font-size: 1.1rem; font-weight: bold; }
+  .balanced { color: #28a745; }
+  .unbalanced { color: #dc3545; }
+  .btn-remove-line { padding: 2px 8px; }
+  .select2-container { min-width: 220px; }
+  .voucher-type-tabs .nav-link { font-weight: 600; }
+  .voucher-type-tabs .nav-link.active { background: #007bff; color: #fff; border-color: #007bff; }
+  .vchr-kb-hint { font-size: 0.82rem; margin-bottom: 12px !important; }
+  .vchr-kb-field:focus, .vchr-kb-field.is-active-field {
+    border-color: #17a2b8 !important;
+    box-shadow: 0 0 0 3px rgba(23,162,184,0.25) !important;
+    outline: none !important;
+  }
+  .vchr-kb-field.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  .select2-container .select2-selection.is-active-field {
+    border-color: #ffc107 !important;
+    background: #fffdf5 !important;
+    box-shadow: 0 0 0 3px rgba(255,193,7,0.35) !important;
+  }
+  .entry-type-toggle:focus-within { box-shadow: 0 0 0 3px rgba(255,193,7,0.35); border-radius: 4px; }
+  .entry-type-toggle .btn:focus { outline: 2px solid #ffc107; outline-offset: 1px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6"><h1 class="m-0">{% if is_edit %}Edit Voucher{% else %}Voucher Entry{% endif %}</h1></div>
+      <div class="col-sm-6 text-right">
+        {% if is_edit %}
+        <a href="{% url 'view_voucher' voucher.id %}" class="btn btn-info mr-1">
+          <i class="fas fa-eye mr-1"></i> View
+        </a>
+        {% endif %}
+        <a href="{% url 'voucher_list' %}" class="btn btn-secondary">
+          <i class="fas fa-list mr-1"></i> Voucher List
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-danger alert-dismissible fade show">
+      {{ msg }} <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if is_edit and is_auto_voucher %}
+    <div class="alert alert-warning py-2 mb-3">
+      <i class="fas fa-robot mr-1"></i>
+      This voucher was auto-generated from Vikri Patti / Trader Bill.
+      Changes here will update account statements immediately.
+      Re-saving the source bill may regenerate and overwrite manual edits.
+    </div>
+    {% endif %}
+
+    <!-- Voucher Type Selector -->
+    <div class="card card-outline card-primary shadow">
+      <div class="card-header p-2">
+        <ul class="nav nav-tabs voucher-type-tabs" id="voucherTypeTabs">
+          {% for vt_code, vt_label in voucher_types %}
+          <li class="nav-item">
+            {% if is_edit %}
+            <span class="nav-link {% if voucher_type == vt_code %}active{% endif %} text-muted">
+            {% else %}
+            <a class="nav-link {% if voucher_type == vt_code %}active{% endif %}"
+               href="{% url 'add_voucher' %}?type={{ vt_code }}">
+            {% endif %}
+              {% if vt_code == 'Payment' %}<i class="fas fa-arrow-up text-danger mr-1"></i>
+              {% elif vt_code == 'Receipt' %}<i class="fas fa-arrow-down text-success mr-1"></i>
+              {% elif vt_code == 'Journal' %}<i class="fas fa-book mr-1"></i>
+              {% else %}<i class="fas fa-exchange-alt mr-1"></i>{% endif %}
+              {{ vt_label }}
+            {% if is_edit %}</span>{% else %}</a>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <form method="post" id="voucherForm">
+        {% csrf_token %}
+        <input type="hidden" name="voucher_type" id="voucher_type_input" value="{{ voucher_type }}" />
+
+        <div class="card-body">
+          <div class="alert alert-info py-2 vchr-kb-hint mb-3">
+            <i class="fas fa-keyboard mr-1"></i>
+            <strong>Keyboard entry:</strong>
+            Enter = next field &nbsp;·&nbsp;
+            Ledger: type to search, Enter to select &nbsp;·&nbsp;
+            Dr/Cr: D or C key &nbsp;·&nbsp;
+            Ctrl+S or F2 = Save &nbsp;·&nbsp;
+            F4 = Add line
+          </div>
+
+          <!-- Header Row -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="font-weight-bold">Date <span class="text-danger">*</span></label>
+              <input type="date" name="date" id="voucherDate" class="form-control vchr-kb-field" value="{{ today }}" required tabindex="1" />
+            </div>
+            <div class="col-md-4">
+              <label class="font-weight-bold">Voucher No</label>
+              <input type="text" name="voucher_no" id="voucherNo" class="form-control vchr-kb-field" value="{{ suggested_no }}" placeholder="{{ suggested_no }}" tabindex="2" />
+            </div>
+            <div class="col-md-4">
+              <label class="font-weight-bold">Vikri Bill No <small class="text-muted">(optional)</small></label>
+              <input type="text" name="bikri_bill_no" id="bikriBillNo" class="form-control vchr-kb-field"
+                     value="{% if is_edit %}{{ bikri_bill_no }}{% endif %}"
+                     placeholder="e.g. TRB-2026-001" tabindex="3" />
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="font-weight-bold">Narration</label>
+              <input type="text" name="narration" id="voucherNarration" class="form-control vchr-kb-field"
+                     value="{% if is_edit %}{{ voucher.narration|default:'' }}{% endif %}"
+                     placeholder="Optional voucher note" tabindex="4" />
+            </div>
+          </div>
+
+          <!-- Voucher Lines Table -->
+          <div class="table-responsive">
+            <table class="table table-bordered voucher-table" id="linesTable">
+              <thead>
+                <tr>
+                  <th>Ledger Account</th>
+                  <th style="width:90px">Dr / Cr</th>
+                  <th style="width:140px">Amount (₹)</th>
+                  <th>Narration</th>
+                  <th style="width:50px"></th>
+                </tr>
+              </thead>
+              <tbody id="linesBody">
+                <!-- Pre-populated lines for Payment/Receipt -->
+              </tbody>
+              <tfoot>
+                <tr class="total-row">
+                  <td colspan="2" class="text-right">Total:</td>
+                  <td>
+                    <div>Dr: <span id="totalDr" class="text-danger">0.00</span></div>
+                    <div>Cr: <span id="totalCr" class="text-success">0.00</span></div>
+                  </td>
+                  <td colspan="2">
+                    <span id="balanceIndicator" class="balance-indicator unbalanced">
+                      <i class="fas fa-times-circle"></i> Not Balanced
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="addLineBtn" tabindex="-1">
+            <i class="fas fa-plus mr-1"></i> Add Line
+          </button>
+        </div>
+
+        <div class="card-footer text-right">
+          <a href="{% url 'voucher_list' %}" class="btn btn-secondary mr-2" tabindex="-1">Cancel</a>
+          <button type="submit" class="btn btn-primary btn-lg px-5" id="saveBtn" tabindex="99">
+            <i class="fas fa-save mr-1"></i> {% if is_edit %}UPDATE VOUCHER{% else %}SAVE VOUCHER{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+<!-- Line Template (hidden) -->
+<template id="lineTemplate">
+  <tr class="voucher-line">
+    <td>
+      <select name="ledger_id[]" class="form-control ledger-select vchr-kb-field" style="width:100%" required>
+        <option value="">-- Select Ledger --</option>
+        {% if farmers %}
+        <optgroup label="🌾 Farmers (ರೈತರು)">
+          {% for f in farmers %}
+          <option value="farmer:{{ f.id }}">{{ f.name }}{% if f.phone %} – {{ f.phone }}{% endif %}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
+        {% if traders %}
+        <optgroup label="🏪 Traders (ವ್ಯಾಪಾರಿಗಳು)">
+          {% for t in traders %}
+          <option value="trader:{{ t.id }}">{{ t.name }}{% if t.short_code %} ({{ t.short_code }}){% endif %}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
+        {% regroup ledger_accounts by group_nature as grouped_ledgers %}
+        {% for group_entry in grouped_ledgers %}
+        <optgroup label="{{ group_entry.grouper }}">
+          {% for la in group_entry.list %}
+          <option value="{{ la.id }}">{{ la.name }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <div class="btn-group entry-type-toggle" role="group" tabindex="0">
+        <button type="button" class="btn btn-sm btn-danger dr-btn active-dr" data-type="Dr" tabindex="-1">Dr</button>
+        <button type="button" class="btn btn-sm btn-outline-success cr-btn" data-type="Cr" tabindex="-1">Cr</button>
+      </div>
+      <input type="hidden" name="entry_type[]" class="entry-type-val" value="Dr" />
+    </td>
+    <td>
+      <input type="number" step="0.01" min="0" name="amount[]" class="form-control line-amount vchr-kb-field text-right" placeholder="0.00" />
+    </td>
+    <td>
+      <input type="text" name="line_narration[]" class="form-control vchr-kb-field line-narration" placeholder="Optional note" />
+    </td>
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-outline-danger btn-remove-line" title="Remove" tabindex="-1">
+        <i class="fas fa-times"></i>
+      </button>
+    </td>
+  </tr>
+</template>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+$(function () {
+  var voucherType = '{{ voucher_type }}';
+  var isEdit = {% if is_edit %}true{% else %}false{% endif %};
+  var existingLines = {% if is_edit %}{{ existing_lines_json|safe }}{% else %}[]{% endif %};
+  var skipEntryTypeKb = (voucherType === 'Payment' || voucherType === 'Receipt');
+
+  // ── Keyboard helpers ────────────────────────────────────────────────────
+  function highlightKbField($el) {
+    $('.vchr-kb-field, .select2-selection, .entry-type-toggle').removeClass('is-active-field');
+    if (!$el || !$el.length) return;
+    if ($el.hasClass('select2-hidden-accessible')) {
+      $el.next('.select2-container').find('.select2-selection').addClass('is-active-field');
+    } else if ($el.hasClass('entry-type-toggle')) {
+      $el.addClass('is-active-field');
+    } else {
+      $el.addClass('is-active-field');
+    }
+  }
+
+  function focusKbField($el) {
+    if (!$el || !$el.length) return;
+    highlightKbField($el);
+    if ($el.hasClass('select2-hidden-accessible')) {
+      $el.select2('open');
+    } else if ($el.hasClass('entry-type-toggle')) {
+      $el.focus();
+    } else if ($el.is('#saveBtn')) {
+      $el.focus();
+    } else {
+      $el.focus();
+      if ($el.is('input[type="text"], input[type="number"]')) {
+        try { $el[0].select(); } catch (e) {}
+      }
+    }
+  }
+
+  function collectKbFields() {
+    var fields = [];
+    fields.push($('#voucherDate'));
+    fields.push($('#voucherNo'));
+    fields.push($('#bikriBillNo'));
+    fields.push($('#voucherNarration'));
+    var rows = $('#linesBody tr');
+    rows.each(function () {
+      var $row = $(this);
+      fields.push($row.find('.ledger-select'));
+      if (!skipEntryTypeKb) {
+        fields.push($row.find('.entry-type-toggle'));
+      }
+      fields.push($row.find('.line-amount'));
+    });
+    fields.push($('#saveBtn'));
+    return fields.filter(function ($el) { return $el && $el.length; });
+  }
+
+  function sameKbField(a, b) {
+    if (!a || !b || !a.length || !b.length) return false;
+    if (a.is(b)) return true;
+    if (a.hasClass('select2-hidden-accessible') && b.hasClass('select2-hidden-accessible')) {
+      return a.attr('name') === b.attr('name') && a.closest('tr')[0] === b.closest('tr')[0];
+    }
+    return a[0] === b[0];
+  }
+
+  function focusNextFrom(currentEl) {
+    var fields = collectKbFields();
+    var $cur = $(currentEl);
+    var idx = -1;
+    fields.forEach(function ($f, i) {
+      if (sameKbField($f, $cur) || ($cur.closest('.entry-type-toggle').length && $f.hasClass('entry-type-toggle') && $f.closest('tr')[0] === $cur.closest('tr')[0])) {
+        idx = i;
+      }
+    });
+    if (idx >= 0 && idx < fields.length - 1) {
+      focusKbField(fields[idx + 1]);
+    } else if (idx === fields.length - 1) {
+      triggerSave();
+    }
+  }
+
+  function setEntryType($row, type) {
+    $row.find('.entry-type-val').val(type);
+    $row.find('.dr-btn').toggleClass('btn-danger active-dr', type === 'Dr')
+                        .toggleClass('btn-outline-danger', type !== 'Dr');
+    $row.find('.cr-btn').toggleClass('btn-success', type === 'Cr')
+                        .toggleClass('btn-outline-success', type !== 'Cr');
+    recalcTotals();
+  }
+
+  function bindLedgerKeyboard($select) {
+    $select.on('select2:select', function () {
+      setTimeout(function () { focusNextFrom($select); }, 100);
+    });
+    $select.on('select2:close', function () {
+      highlightKbField($select);
+    });
+    var $sel = $select.next('.select2-container').find('.select2-selection');
+    $sel.off('keydown.vchrKb').on('keydown.vchrKb', function (e) {
+      if (e.key !== 'Enter') return;
+      if ($select.select2('isOpen')) return;
+      e.preventDefault();
+      if (!$select.val()) {
+        $select.select2('open');
+      } else {
+        focusNextFrom($select);
+      }
+    });
+  }
+
+  function bindEntryTypeKeyboard($toggle) {
+    $toggle.off('keydown.vchrKb').on('keydown.vchrKb', function (e) {
+      var $row = $toggle.closest('tr');
+      if (e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        setEntryType($row, 'Dr');
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setEntryType($row, 'Cr');
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        focusNextFrom($toggle);
+      }
+    });
+    $toggle.off('focus.vchrKb').on('focus.vchrKb', function () {
+      highlightKbField($toggle);
+    });
+  }
+
+  function bindLineKeyboard($row) {
+    bindLedgerKeyboard($row.find('.ledger-select'));
+    bindEntryTypeKeyboard($row.find('.entry-type-toggle'));
+
+    $row.find('.line-amount').off('keydown.vchrKb').on('keydown.vchrKb', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        focusNextFrom(this);
+      }
+    });
+    $row.find('.line-narration').off('keydown.vchrKb').on('keydown.vchrKb', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        focusNextFrom(this);
+      }
+    });
+    $row.find('.line-amount, .line-narration').off('focus.vchrKb').on('focus.vchrKb', function () {
+      highlightKbField($(this));
+    });
+  }
+
+  function triggerSave() {
+    $('#voucherForm').submit();
+  }
+
+  // Header field keyboard
+  $('#voucherDate, #voucherNo, #bikriBillNo, #voucherNarration').on('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      focusNextFrom(this);
+    }
+  }).on('focus', function () {
+    highlightKbField($(this));
+  });
+
+  $('#saveBtn').on('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      triggerSave();
+    }
+  }).on('focus', function () {
+    highlightKbField($(this));
+  });
+
+  $(document).on('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      triggerSave();
+      return;
+    }
+    if (e.key === 'F2') {
+      e.preventDefault();
+      triggerSave();
+      return;
+    }
+    if (e.key === 'F4') {
+      e.preventDefault();
+      var $newRow = addLine('Dr');
+      focusKbField($newRow.find('.ledger-select'));
+    }
+  });
+
+  // ── Add a new line ──────────────────────────────────────────────────────
+  function addLine(defaultType) {
+    var tmpl = document.getElementById('lineTemplate');
+    var clone = tmpl.content.cloneNode(true);
+    var $row = $(clone.querySelector('tr'));
+    $('#linesBody').append($row);
+    var $added = $('#linesBody tr:last');
+
+    $added.find('.ledger-select').select2({
+      theme: 'bootstrap4',
+      width: '100%',
+      placeholder: '-- Select Ledger --'
+    });
+
+    if (defaultType === 'Cr') {
+      setEntryType($added, 'Cr');
+    }
+
+    bindLineEvents($added);
+    bindLineKeyboard($added);
+    return $added;
+  }
+
+  // ── Bind events on a row ────────────────────────────────────────────────
+  function bindLineEvents($row) {
+    $row.find('.dr-btn, .cr-btn').on('click', function () {
+      setEntryType($row, $(this).data('type'));
+    });
+
+    $row.find('.line-amount').on('input', function () {
+      var rowIndex = $('#linesBody tr').index($row);
+      if (rowIndex === 0) {
+        $('#linesBody tr').eq(1).find('.line-amount').val($(this).val());
+      }
+      recalcTotals();
+    });
+
+    $row.find('.btn-remove-line').on('click', function () {
+      if ($('#linesBody tr').length <= 2) {
+        alert('At least 2 lines required.');
+        return;
+      }
+      $row.remove();
+      recalcTotals();
+    });
+  }
+
+  // ── Recalculate totals ──────────────────────────────────────────────────
+  function recalcTotals() {
+    var totalDr = 0, totalCr = 0;
+    $('#linesBody tr').each(function () {
+      var type = $(this).find('.entry-type-val').val();
+      var amt = parseFloat($(this).find('.line-amount').val()) || 0;
+      if (type === 'Dr') totalDr += amt;
+      else totalCr += amt;
+    });
+    $('#totalDr').text(totalDr.toFixed(2));
+    $('#totalCr').text(totalCr.toFixed(2));
+    var balanced = Math.abs(totalDr - totalCr) < 0.01 && totalDr > 0;
+    if (balanced) {
+      $('#balanceIndicator').html('<i class="fas fa-check-circle"></i> Balanced')
+                            .removeClass('unbalanced').addClass('balanced');
+      $('#saveBtn').prop('disabled', false);
+    } else {
+      var diff = (totalDr - totalCr).toFixed(2);
+      $('#balanceIndicator').html('<i class="fas fa-times-circle"></i> Difference: ₹' + Math.abs(diff))
+                            .removeClass('balanced').addClass('unbalanced');
+      $('#saveBtn').prop('disabled', false);
+    }
+  }
+
+  $('#addLineBtn').on('click', function () {
+    var $newRow = addLine('Dr');
+    focusKbField($newRow.find('.ledger-select'));
+  });
+
+  function initLines() {
+    if (isEdit && existingLines.length) {
+      existingLines.forEach(function (line) {
+        var $row = addLine(line.entry_type);
+        $row.find('.ledger-select').val(line.ledger_id).trigger('change');
+        $row.find('.line-amount').val(line.amount);
+        $row.find('.line-narration').val(line.narration);
+      });
+      recalcTotals();
+      return;
+    }
+    if (voucherType === 'Payment') {
+      addLine('Dr');
+      addLine('Cr');
+    } else if (voucherType === 'Receipt') {
+      addLine('Cr');
+      addLine('Dr');
+    } else if (voucherType === 'Contra') {
+      addLine('Dr');
+      addLine('Cr');
+    } else {
+      addLine('Dr');
+      addLine('Cr');
+    }
+  }
+  initLines();
+
+  $('#voucherForm').on('submit', function (e) {
+    var totalDr = parseFloat($('#totalDr').text()) || 0;
+    var totalCr = parseFloat($('#totalCr').text()) || 0;
+    if (Math.abs(totalDr - totalCr) > 0.01) {
+      if (!confirm('Voucher is NOT balanced (Dr: ' + totalDr.toFixed(2) + ', Cr: ' + totalCr.toFixed(2) + '). Save anyway?')) {
+        e.preventDefault();
+      }
+    }
+  });
+
+  // Start keyboard flow at Date
+  setTimeout(function () { focusKbField($('#voucherDate')); }, 300);
+});
+</script>
+{% endblock %}

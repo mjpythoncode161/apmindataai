@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Partywise GST Report - {{ system_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        .main-header, .main-sidebar, .main-footer, .no-print, .btn-print {
+            display: none !important;
+        }
+        .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
+        .report-card { box-shadow: none !important; padding: 0 !important; }
+        table { font-size: 8.5pt !important; }
+    }
+    
+    .report-card {
+        background: white;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+        color: #333;
+    }
+    .report-table th, .report-table td {
+        border: 1px solid #000;
+        padding: 8px 5px;
+        text-align: right;
+    }
+    .report-table th {
+        background-color: #fff;
+        font-weight: bold;
+        text-align: center;
+        color: #000;
+    }
+    .text-left { text-align: left !important; }
+    .summary-row { font-weight: bold; background-color: #fff; }
+    
+    .report-header { text-align: center; margin-bottom: 25px; }
+    .company-name { font-size: 18pt; font-weight: bold; }
+    
+    .btn-back {
+        padding: 8px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        float: right;
+        text-decoration: none !important;
+    }
+    .btn-back:hover { color: #fff; background: #5a6268; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+    <div class="container-fluid">
+        <div class="report-card">
+            <div class="no-print mb-3">
+                <a href="{% url 'gst_reports' %}" class="btn-back">
+                    <i class="fas fa-chevron-left mr-2"></i> Back to Reports
+                </a>
+            </div>
+            <div class="clearfix"></div>
+
+            <div class="report-header">
+                <div class="company-name">ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ</div>
+                <div class="company-sub">ಎ ಪಿ ಎಂ ಸಿ ಯಾರ್ಡ್ - ಬ್ಯಾಡಗಿ | 29CFIPB5465B1ZL</div>
+                <div class="report-title">Partywise GST Report</div>
+                <div class="date-range">{{ from_date|date:"d-m-Y" }} TO {{ to_date|date:"d-m-Y" }}</div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th class="text-left">Trader Name</th>
+                            <th>GSTIN</th>
+                            <th>Weight</th>
+                            <th>Taxable Amt</th>
+                            <th>SGST</th>
+                            <th>CGST</th>
+                            <th>R/o</th>
+                            <th>Grand Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in report_data %}
+                        <tr>
+                            <td class="text-left font-weight-bold">{{ row.name }}</td>
+                            <td>{{ row.gstin }}</td>
+                            <td>{{ row.weight|floatformat:2 }}</td>
+                            <td>{{ row.taxable_amount|floatformat:2 }}</td>
+                            <td>{{ row.sgst|floatformat:2 }}</td>
+                            <td>{{ row.cgst|floatformat:2 }}</td>
+                            <td>{{ row.round_off|floatformat:2 }}</td>
+                            <td>{{ row.grand_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="summary-row">
+                            <td colspan="2" class="text-left">TOTAL</td>
+                            <td>{{ totals.weight|floatformat:2 }}</td>
+                            <td>{{ totals.taxable_amount|floatformat:2 }}</td>
+                            <td colspan="3"></td>
+                            <td>{{ totals.grand_total|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="mt-4 small text-muted">Generated on: {% now "d-m-Y H:i" %}</div>
+        </div>
+    </div>
+</section>
+{% endblock %}

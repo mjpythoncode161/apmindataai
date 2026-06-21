@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tender Form (ಟೆಂಡರ್ ಫಾರ್ಮ್){% endblock %}
+
+{% block extra_head %}
+<style>
+    .tender-container { padding: 5px; background-color: #ecf0f5; min-height: calc(100vh - 60px); font-family: 'Source Sans Pro', sans-serif; }
+    .header-bar { background-color: #004d40; color: white; padding: 4px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; font-size: 14px; }
+    .form-wrapper { background: #f4f4f4; border: 1px solid #d2d6de; padding: 8px; }
+    .top-info { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .teal-container { background-color: #009688; min-height: 400px; border: 1px solid #333; margin-bottom: 8px; overflow-y: auto; }
+    .screen-table { width: 100%; border-collapse: collapse; background: white; }
+    .screen-table th { background: #eee; border: 1px solid #ccc; padding: 3px; font-size: 12px; position: sticky; top: 0; }
+    .screen-table td { border: 1px solid #ddd; padding: 0; font-size: 12px; }
+    .screen-table input { width: 100%; border: none; padding: 4px; outline: none; background: transparent; }
+    
+    .action-panel { display: grid; grid-template-columns: 180px 1fr 280px; gap: 15px; }
+    .btn-action { border-radius: 0; font-size: 12px; font-weight: bold; padding: 5px; border: none; }
+    .btn-save { background: #008d4c; color: white; }
+    .btn-print { background: #00c0ef; color: white; }
+    .btn-preview { background: #00c0ef; color: white; }
+    
+    .field-group { margin-bottom: 5px; }
+    .field-group label { font-size: 11px; margin-bottom: 1px; display: block; font-weight: bold; }
+    .input-custom { height: 22px; padding: 1px 5px; font-size: 13px; border: 1px solid #ccc; width: 100%; }
+
+    /* PRINT LAYOUT - 3 COLUMN LANDSCAPE */
+    @media screen {
+        #print-content { display: none; }
+    }
+
+    @media print {
+        @page { size: landscape; margin: 0.3cm; }
+
+        /* Make everything invisible but keep layout */
+        body {
+            background: white !important;
+            visibility: hidden;
+        }
+
+        /* Show only the print slips */
+        #print-content {
+            display: block !important;
+            visibility: visible;
+            background: white !important;
+            color: black !important;
+            zoom: 0.80;
+        }
+        #print-content * {
+            visibility: visible;
+            background: white !important;
+            color: black !important;
+        }
+        .slip-table th {
+            background: #eee !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+    .print-slip { border: 1.5px solid #000; padding: 4px; font-size: 10px; background: white; color: #000; }
+    .slip-header { border-bottom: 1px solid #000; text-align: center; padding-bottom: 3px; margin-bottom: 3px; }
+    .slip-table { width: 100%; border-collapse: collapse; }
+    .slip-table th, .slip-table td { border: 1px solid #000; padding: 0 2px; text-align: center; height: 12px; font-size: 8.5px; line-height: 1; }
+    .slip-table th { background: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; }
+
+    /* Preview Modal Fix */
+    #previewModal .modal-dialog { max-width: 98%; margin: 10px auto; }
+    #previewModal .modal-content { border-radius: 0; background: white; }
+    #previewModal .modal-body { padding: 10px; background: white; overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tender-container">
+    <div class="header-bar">
+        <span>Tender Form</span>
+
+    </div>
+
+    <div class="form-wrapper">
+        <div class="top-info">
+            <div style="min-width: 250px;">
+                <div class="d-flex align-items-center mb-1">
+                    <label class="mr-2 mb-0 small" style="width: 80px;">Date:</label>
+                    <input type="date" id="entry_date" value="{{ date_value }}" class="input-custom" style="width: 140px;">
+                </div>
+                <div class="d-flex align-items-center">
+                    <label class="mr-2 mb-0 small" style="width: 80px;">No Of Lots:</label>
+                    <input type="text" id="no_of_lots" value="{{ no_of_lots }}" class="input-custom" readonly style="width: 60px;">
+                </div>
+            </div>
+            
+            <div class="d-flex align-items-center">
+                <label class="mr-2 mb-0 small font-weight-bold">Extend:</label>
+                <input type="number" id="extend_input" class="input-custom" style="width: 150px; border: 2px solid #000; height: 26px;">
+            </div>
+
+            <div class="text-right">
+                <div class="small font-weight-bold">No of Bags: <span id="bags_total">{{ total_bags }}</span></div>
+            </div>
+        </div>
+
+        <div class="teal-container">
+            <table class="screen-table" id="lotsTable">
+                <thead>
+                    <tr>
+                        <th width="40">SNo</th>
+                        <th width="100">Lot No</th>
+                        <th>Variety</th>
+                        <th width="80">Bags</th>
+                        <th width="100">Rate</th>
+                    </tr>
+                </thead>
+                <tbody id="lotsBody">
+                    {% for a in avaks %}
+                    <tr class="lot-row" data-avak-id="{{ a.id }}">
+                        <td align="center">{{ forloop.counter }}</td>
+                        <td><input type="text" class="cell-lot" value="{{ a.lot_number }}"></td>
+                        <td><input type="text" class="cell-variety" value="{{ a.variety|default:'' }}"></td>
+                        <td><input type="number" class="cell-bags" value="{{ a.no_of_bags }}"></td>
+                        <td><input type="text" class="cell-rate" value="{% if a.rate %}{{ a.rate }}{% endif %}"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="action-panel">
+            <div>
+                <button class="btn-action btn-save w-100">Save</button>
+                <div class="field-group mt-2">
+                    <label>Print Date:</label>
+                    <input type="date" value="{{ date_value }}" class="input-custom">
+                </div>
+                <div class="field-group">
+                    <label>No of Prints:</label>
+                    <input type="number" value="1" id="print_count" class="input-custom">
+                </div>
+                <div class="row no-gutters">
+                    <div class="col-6 pr-1"><button class="btn-action btn-print w-100" id="doPrint">Print</button></div>
+                    <div class="col-6 pl-1"><button class="btn-action btn-preview w-100" data-toggle="modal" data-target="#previewModal">Preview</button></div>
+                </div>
+                <div class="mt-1 small text-muted font-italic"></div>
+            </div>
+
+            <div class="text-center"></div>
+
+            <div>
+                <button class="btn-action" style="background: #00897b; color: white; float: right; padding: 2px 10px;" id="refreshBtn">From Avak List</button>
+                <div class="clearfix"></div>
+                <div class="field-group mt-1">
+                    <label>Firm Name:</label>
+                    <select id="trader_select" class="input-custom select2">
+                        <option value="">Select Firm</option>
+                        {% for t in traders %}
+                        <option value="{{ t.id }}" {% if selected_trader.id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>APMC Code:</label>
+                    <input type="text" id="apmc_code" value="{{ selected_trader.pan|default:'BYD0679' }}" class="input-custom">
+                </div>
+                <div class="field-group">
+                    <label>Mobile No:</label>
+                    <input type="text" value="{{ selected_trader.phone|default:'' }}" class="input-custom">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PRINT CONTENT (Landscape Slips) -->
+<div id="print-content">
+    <!-- Generated by JS -->
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div id="preview-inject"></div>
+            </div>
+            <div class="modal-footer p-1">
+                <button class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+                <button class="btn btn-primary btn-sm" onclick="window.print()">Print Slips</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    $(function() {
+        if($('.select2').length) $('.select2').select2({ theme: 'bootstrap4' });
+
+        $('#entry_date').on('change', function() {
+            window.location.href = `?date=${this.value}&trader_id=${$('#trader_select').val()}`;
+        });
+        $('#trader_select').on('change', function() {
+            window.location.href = `?date=${$('#entry_date').val()}&trader_id=${this.value}`;
+        });
+        $('#refreshBtn').on('click', function() { location.reload(); });
+
+        // ── SAVE / RESTORE rates via localStorage ──
+        const storageKey = 'tender_rates_' + $('#entry_date').val();
+
+        function saveRates() {
+            const data = {};
+            $('.lot-row').each(function() {
+                const lot = $(this).find('.cell-lot').val();
+                if (lot) {
+                    data[lot] = {
+                        variety: $(this).find('.cell-variety').val() || '',
+                        bags:    $(this).find('.cell-bags').val()    || '',
+                        rate:    $(this).find('.cell-rate').val()    || ''
+                    };
+                }
+            });
+            localStorage.setItem(storageKey, JSON.stringify(data));
+        }
+
+        function restoreRates() {
+            const saved = localStorage.getItem(storageKey);
+            if (!saved) return;
+            try {
+                const data = JSON.parse(saved);
+                $('.lot-row').each(function() {
+                    const lot = $(this).find('.cell-lot').val();
+                    if (lot && data[lot]) {
+                        if (data[lot].variety) $(this).find('.cell-variety').val(data[lot].variety);
+                        if (data[lot].bags)    $(this).find('.cell-bags').val(data[lot].bags);
+                        if (data[lot].rate)    $(this).find('.cell-rate').val(data[lot].rate);
+                    }
+                });
+            } catch(e) {}
+        }
+
+        // Restore on load
+        restoreRates();
+
+        // Save button — persist to avak + localStorage
+        $('.btn-save').on('click', function() {
+            saveRates();
+            const payload = { date: $('#entry_date').val(), rates: {} };
+            $('.lot-row').each(function() {
+                const lot = $(this).find('.cell-lot').val();
+                const rate = $(this).find('.cell-rate').val();
+                if (lot && rate !== '') payload.rates[lot] = rate;
+            });
+            $.ajax({
+                url: '{% url "save_tender_rates" %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            const $btn = $(this);
+            const orig = $btn.text();
+            $btn.text('✓ Saved!').prop('disabled', true);
+            setTimeout(function() { $btn.text(orig).prop('disabled', false); }, 1500);
+        });
+
+        // Also auto-save when any rate/bags/variety changes
+        $(document).on('input', '.cell-rate, .cell-bags, .cell-variety', function() {
+            saveRates();
+        });
+
+        // EXTEND LOGIC - FIXED Lot Number Generation
+        $('#extend_input').on('change', function() {
+            const extra = parseInt($(this).val()) || 0;
+            if (extra <= 0) return;
+
+            const $body = $('#lotsBody');
+            let lastSno = parseInt($body.find('tr').last().find('td:first').text()) || 0;
+            
+            // Find the TRUE last lot number from non-empty inputs
+            let lastLot = 0;
+            $('.cell-lot').each(function() {
+                const val = parseInt($(this).val());
+                if (!isNaN(val)) lastLot = Math.max(lastLot, val);
+            });
+
+            for (let i = 1; i <= extra; i++) {
+                lastSno++;
+                lastLot++;
+                const newRow = `
+                    <tr class="lot-row appended-row">
+                        <td align="center">${lastSno}</td>
+                        <td><input type="text" class="cell-lot" value="${lastLot}"></td>
+                        <td><input type="text" class="cell-variety"></td>
+                        <td><input type="number" class="cell-bags"></td>
+                        <td><input type="text" class="cell-rate"></td>
+                    </tr>
+                `;
+                $body.append(newRow);
+            }
+            $('#no_of_lots').val(lastSno);
+        });
+
+        // PRINT LOGIC with Multiple "Prints"
+        function buildPrintContent() {
+            const firm = $('#trader_select option:selected').text();
+            const apmc = $('#apmc_code').val();
+            const date = $('#entry_date').val();
+            const extend = $('#extend_input').val();
+            const prints = parseInt($('#print_count').val()) || 1;
+            
+            const rows = [];
+            $('.lot-row').each(function() {
+                const lot = $(this).find('.cell-lot').val();
+                const bags = $(this).find('.cell-bags').val();
+                // Include row if it has either a lot number or bags
+                if (lot || bags) {
+                    rows.push({
+                        sno: $(this).find('td:first').text(),
+                        lot: lot || '',
+                        variety: $(this).find('.cell-variety').val() || '',
+                        bags: bags || '',
+                        rate: $(this).find('.cell-rate').val() || ''
+                    });
+                }
+            });
+            // Limit to max 20 lots
+            const displayRows = rows.slice(0, 20);
+
+            let fullContent = '';
+            for (let p = 0; p < prints; p++) {
+                // page-break-after: always for multiple prints
+                let pageHtml = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin: 0; padding: 0; ${p < prints - 1 ? 'page-break-after: always;' : ''}">`;
+                for (let s = 0; s < 3; s++) {
+                    pageHtml += `
+                        <div class="print-slip" style="height: auto; display: flex; flex-direction: column;">
+                            <div class="slip-header">
+                                <div style="font-size: 11px; font-weight: bold;">ಎ.ಪಿ.ಎಂ.ಸಿ. ಬಾಗಲಕೋಟೆ</div>
+                                <div style="font-size: 16px; font-weight: bold; margin: 2px 0;">${firm === 'Select Firm' ? 'ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ' : firm}</div>
+                                <div class="d-flex justify-content-between mt-1"><span>ಬೆಳೆಗಾರರು: ............................</span><span>Cell: ...............</span></div>
+                                <div class="d-flex justify-content-between pt-1" style="border-top:1.5px solid #000; font-weight:bold; font-size: 11px;">
+                                    <span>Code: ${apmc}</span><span>Extend: ${extend}</span><span>DATE: ${date}</span>
+                                </div>
+                            </div>
+                            <table class="slip-table" style="flex-grow: 1;">
+                                <thead>
+                                    <tr>
+                                        <th width="50">ಲಾಟು</th>
+                                        <th width="80">ಅಂಡ್ಗಿ</th>
+                                        <th width="40">ಚೀಲ</th>
+                                        <th width="80">ಕ್ವಿಂಟಲ್ಗೆ ದರ</th>
+                                        <th width="80">ಶರಾ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${displayRows.map(r => `<tr><td>${r.lot}</td><td>${r.variety}</td><td>${r.bags}</td><td>${r.rate}</td><td></td></tr>`).join('')}
+                                    ${displayRows.length < 20 ? Array(20 - displayRows.length).fill().map((_, i) => `<tr><td>${displayRows.length + i + 1}</td><td></td><td></td><td></td><td></td></tr>`).join('') : ''}
+                                </tbody>
+                            </table>
+                            <div class="d-flex justify-content-end mt-2" style="font-weight:bold; font-size: 11px;">
+                                <span>Signature</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                pageHtml += '</div>';
+                fullContent += pageHtml;
+            }
+            $('#print-content').html(fullContent);
+            $('#preview-inject').html(fullContent);
+        }
+
+        $('#previewModal').on('show.bs.modal', buildPrintContent);
+        $('#doPrint').on('click', function() { buildPrintContent(); window.print(); });
+
+        // Build print content on page load so Ctrl+P / browser print also works
+        buildPrintContent();
+    });
+
+    // Rebuild before every print (handles Ctrl+P and browser native print)
+    window.onbeforeprint = function() { buildPrintContent(); };
+</script>
+{% endblock %}

@@ -1,0 +1,315 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ voucher.voucher_type }} #{{ voucher.voucher_no }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .content-wrapper { background: white !important; margin-left: 0 !important; }
+    .main-footer, .main-sidebar, .main-header { display: none !important; }
+    .voucher-print-box { box-shadow: none !important; border: 1px solid #000 !important; margin: 0 !important; }
+  }
+  .voucher-print-box {
+    max-width: 900px;
+    margin: 0 auto 24px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+  .voucher-print-head {
+    text-align: center;
+    padding: 18px 20px 12px;
+    border-bottom: 2px solid #343a40;
+  }
+  .voucher-print-head h2 { font-weight: 800; margin-bottom: 4px; }
+  .voucher-type-badge {
+    display: inline-block;
+    padding: 4px 18px;
+    border-radius: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+  }
+  .receipt-page {
+    min-height: auto;
+    background: #d0d0d0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 12px 24px;
+  }
+  .receipt-wrap {
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 18px rgba(0,0,0,.18);
+    font-family: 'Times New Roman', serif;
+    padding: 0;
+    overflow: hidden;
+  }
+  .receipt-wrap::before {
+    content: '';
+    display: block;
+    height: 5px;
+    background: repeating-linear-gradient(90deg, #1a1a2e 0 8px, #c9a84c 8px 14px);
+  }
+  .rcp-head {
+    text-align: center;
+    padding: 14px 18px 10px;
+    border-bottom: 1.5px solid #ddd;
+  }
+  .rcp-head .rcp-sri  { font-size: 11px; letter-spacing: 2px; color: #888; }
+  .rcp-head .rcp-co   { font-size: 22px; font-weight: bold; color: #1a1a2e; margin: 4px 0 2px; }
+  .rcp-head .rcp-addr { font-size: 11.5px; color: #555; }
+  .rcp-head .rcp-type {
+    display: inline-block;
+    font-size: 12px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase;
+    color: #fff; background: #1a1a2e;
+    padding: 3px 18px; border-radius: 20px; margin-top: 8px;
+  }
+  .rcp-meta {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 20px;
+    background: #f7f7f7;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+  }
+  .rcp-billno { font-size: 15px; font-weight: bold; color: #1a1a2e; }
+  .rcp-body { padding: 16px 20px 10px; }
+  .rcp-row { display: flex; align-items: flex-end; margin-bottom: 14px; gap: 8px; }
+  .rcp-lbl { font-weight: bold; font-size: 13px; min-width: 155px; flex-shrink: 0; color: #222; }
+  .rcp-lbl small { font-weight: normal; font-size: 10px; color: #888; display: block; }
+  .rcp-val { flex: 1; border-bottom: 1.5px solid #999; min-height: 22px; font-size: 14px; padding: 0 4px 1px; color: #111; }
+  .rcp-divider { border: none; border-top: 1px dashed #ccc; margin: 6px 20px 14px; }
+  .rcp-foot { display: flex; justify-content: space-between; padding: 12px 28px 20px; border-top: 1px solid #e0e0e0; margin-top: 6px; }
+  .rcp-sig { text-align: center; min-width: 120px; }
+  .rcp-sig .sig-line { border-top: 1.5px solid #555; margin-bottom: 4px; height: 30px; }
+  .rcp-sig .sig-lbl  { font-size: 11.5px; font-weight: bold; color: #333; }
+  @media print {
+    body * { visibility: hidden !important; }
+    .receipt-wrap, .receipt-wrap * { visibility: visible !important; }
+    .receipt-wrap {
+      position: fixed !important; left: 0 !important; top: 0 !important;
+      width: 148mm !important; max-width: 148mm !important;
+      box-shadow: none !important; border: none !important; margin: 0 !important;
+    }
+    .voucher-print-box, .voucher-print-box * { visibility: visible !important; }
+    .voucher-print-box {
+      position: fixed !important; left: 0 !important; top: 0 !important;
+      width: 100% !important; max-width: 100% !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header no-print">
+  <div class="container-fluid">
+    <div class="row mb-2 align-items-center">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          {{ voucher.voucher_type }} Voucher
+          <small class="text-muted">#{{ voucher.voucher_no }}</small>
+        </h1>
+      </div>
+      <div class="col-sm-6 text-right">
+        <button onclick="window.print()" class="btn btn-dark btn-sm mr-1">
+          <i class="fas fa-print mr-1"></i> Print
+        </button>
+        <a href="{% url 'edit_voucher' voucher.id %}" class="btn btn-warning btn-sm mr-1">
+          <i class="fas fa-edit mr-1"></i> Edit
+        </a>
+        <a href="{% url 'voucher_list' %}" class="btn btn-secondary btn-sm">
+          <i class="fas fa-arrow-left mr-1"></i> Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid no-print mb-3">
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show">
+      {{ msg }} <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if voucher.ref_bikri %}
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link {% if view_mode == 'voucher' %}active font-weight-bold{% endif %}"
+           href="{% url 'view_voucher' voucher.id %}?view=voucher">
+          <i class="fas fa-file-invoice mr-1"></i> Voucher Details
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if view_mode == 'receipt' %}active font-weight-bold{% endif %}"
+           href="{% url 'view_voucher' voucher.id %}?view=receipt">
+          <i class="fas fa-receipt mr-1"></i> Vikri Receipt
+        </a>
+      </li>
+    </ul>
+    {% endif %}
+  </div>
+
+  {% if view_mode == 'receipt' and voucher.ref_bikri %}
+  <div class="receipt-page">
+    {% with b=voucher.ref_bikri %}
+    <div class="receipt-wrap">
+      <div class="rcp-head">
+        <div class="rcp-sri">|| ಶ್ರೀ ಗುರು ಪ್ರಸನ್ನ ||</div>
+        <div class="rcp-co">ಎಂ ಎಸ್ ಬಿ &amp; ಕಂಪನಿ</div>
+        <div class="rcp-addr">M S B &amp; Company &nbsp;|&nbsp; APMC Yard, Byadagi – 581106</div>
+        <div class="rcp-type">ವಿಕ್ರಿ ರಸೀದಿ</div>
+      </div>
+      <div class="rcp-meta">
+        <span class="rcp-billno">ಬಿಲ್ ನಂ : {{ patti_no }}</span>
+        <span>ದಿನಾಂಕ : {{ voucher.date|date:"d-m-Y" }}</span>
+      </div>
+      <div class="rcp-body">
+        <div class="rcp-row">
+          <span class="rcp-lbl">ರೈತರ ಹೆಸರು <small>Farmer Name</small></span>
+          <span class="rcp-val">{{ b.farmer_name_override|default:b.avak.farmer.name }}</span>
+        </div>
+        <div class="rcp-row">
+          <span class="rcp-lbl">ಊರು <small>Place / Village</small></span>
+          <span class="rcp-val">{{ b.village_override|default:b.avak.place }}</span>
+        </div>
+        <div class="rcp-row">
+          <span class="rcp-lbl">ಲಾಟ್ ನಂ <small>Lot No</small></span>
+          <span class="rcp-val">{{ b.avak.lot_number }}</span>
+        </div>
+        <div class="rcp-row">
+          <span class="rcp-lbl">ಚೀಲಗಳು <small>No. of Bags</small></span>
+          <span class="rcp-val">{{ b.no_of_bags }}</span>
+        </div>
+        <div class="rcp-row">
+          <span class="rcp-lbl">ಮೊತ್ತ <small>Amount (₹)</small></span>
+          <span class="rcp-val">₹{{ voucher.total_credit|floatformat:2 }}</span>
+        </div>
+        <div class="rcp-row">
+          <span class="rcp-lbl">ಪಾವತಿ ವಿಧಾನ <small>Payment Method</small></span>
+          <span class="rcp-val">ನಗದು / Cash</span>
+        </div>
+      </div>
+      <hr class="rcp-divider">
+      <div class="rcp-foot">
+        <div class="rcp-sig">
+          <div class="sig-line"></div>
+          <div class="sig-lbl">Cashier</div>
+        </div>
+        <div class="rcp-sig">
+          <div class="sig-line"></div>
+          <div class="sig-lbl">Receiver Signature</div>
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+  </div>
+
+  {% else %}
+  <div class="voucher-print-box">
+    <div class="voucher-print-head">
+      <div style="font-size: 14px;">|| ಶ್ರೀ ಗುರು ಪ್ರಸನ್ನ ||</div>
+      <h2>ಎಂ ಎಸ್ ಬಿ &amp; ಕಂಪನಿ</h2>
+      <div style="font-size: 14px; font-weight: bold;">APMC Yard, Byadagi – 581106</div>
+      <div class="mt-2">
+        <span class="voucher-type-badge badge-{% if voucher.voucher_type == 'Payment' %}danger{% elif voucher.voucher_type == 'Receipt' %}success{% elif voucher.voucher_type == 'Journal' %}info{% else %}warning{% endif %}">
+          {{ voucher.voucher_type }} Voucher
+        </span>
+        {% if voucher.is_auto %}
+        <span class="badge badge-secondary ml-1"><i class="fas fa-robot mr-1"></i>Auto</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="p-3 border-bottom bg-light">
+      <div class="row">
+        <div class="col-md-4"><strong>Voucher No:</strong> {{ voucher.voucher_no }}</div>
+        <div class="col-md-4"><strong>Date:</strong> {{ voucher.date|date:"d-m-Y" }}</div>
+        <div class="col-md-4">
+          {% if voucher.bikri_bill_no %}
+          <strong>Bill No:</strong> {{ voucher.bikri_bill_no }}
+          {% endif %}
+        </div>
+      </div>
+      {% if voucher.narration %}
+      <div class="mt-2"><strong>Narration:</strong> {{ voucher.narration }}</div>
+      {% endif %}
+      {% if voucher.ref_bikri %}
+      <div class="mt-2 text-muted small">
+        Linked Vikri Patti: {{ patti_no|default:"—" }}
+      </div>
+      {% endif %}
+      {% if voucher.ref_trader_bill %}
+      <div class="mt-2 text-muted small">
+        Linked Trader Bill: #{{ voucher.ref_trader_bill.id }}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm mb-0">
+        <thead class="thead-dark">
+          <tr>
+            <th>#</th>
+            <th>Ledger Account</th>
+            <th>Group</th>
+            <th class="text-center">Dr / Cr</th>
+            <th class="text-right">Amount (₹)</th>
+            <th>Narration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ line.ledger.name }}</td>
+            <td><small class="text-muted">{{ line.ledger.group.name }}</small></td>
+            <td class="text-center">
+              <span class="badge badge-{% if line.entry_type == 'Dr' %}danger{% else %}success{% endif %}">
+                {{ line.entry_type }}
+              </span>
+            </td>
+            <td class="text-right font-weight-bold">₹{{ line.amount|floatformat:2 }}</td>
+            <td><small>{{ line.narration|default:"-" }}</small></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-3">No ledger lines.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="bg-light font-weight-bold">
+          <tr>
+            <td colspan="4" class="text-right">Total</td>
+            <td class="text-right">
+              <div class="text-danger">Dr: ₹{{ voucher.total_debit|floatformat:2 }}</div>
+              <div class="text-success">Cr: ₹{{ voucher.total_credit|floatformat:2 }}</div>
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="p-4 d-flex justify-content-between">
+      <div class="text-center">
+        <div style="border-top:1px solid #555; width:140px; height:36px;"></div>
+        <small>Prepared By</small>
+      </div>
+      <div class="text-center">
+        <div style="border-top:1px solid #555; width:140px; height:36px;"></div>
+        <small>Authorised Signatory</small>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

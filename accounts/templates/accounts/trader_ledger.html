@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Account Statement (Trader){% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'assets/plugins/select2/css/select2.min.css' %}" />
+<link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
+<style>
+  .ledger-header-row {
+    background: #343a40;
+    color: white;
+    padding: 10px;
+    border-radius: 5px 5px 0 0;
+  }
+  .filter-bar {
+    background: #e9ecef;
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .table-ledger {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table-ledger th {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #444;
+  }
+  .table-ledger td {
+    border: 1px solid #dee2e6;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+  }
+  .opening-bal-row {
+    background: #f1f8ff;
+    font-weight: bold;
+    color: #004085;
+  }
+  .text-right { text-align: right !important; }
+  .text-center { text-align: center !important; }
+  
+  @media print {
+    .no-print { display: none !important; }
+    .main-sidebar, .main-header { display: none !important; }
+    .content-wrapper { margin-left: 0 !important; background: white !important; }
+    .card { border: none !important; box-shadow: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content pt-3">
+  <div class="container-fluid">
+    <div class="card shadow-sm border-0">
+      <!-- Header -->
+      <div class="ledger-header-row d-flex justify-content-between align-items-center px-3">
+        <h5 class="m-0 font-weight-bold">ಅಕೌಂಟ್ ಸ್ಟೇಟ್‌ಮೆಂಟ್ (Account Statement)</h5>
+        <div class="small">BRJ-2025-26</div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar no-print">
+        <form method="get" class="row align-items-center">
+          <div class="col-md-auto d-flex align-items-center">
+            <label class="mr-2 mb-0 small font-weight-bold">From:</label>
+            <input type="date" name="from_date" class="form-control form-control-sm" value="{{ from_date }}" style="width: 130px;">
+            <label class="mx-2 mb-0 small font-weight-bold">To:</label>
+            <input type="date" name="to_date" class="form-control form-control-sm" value="{{ to_date }}" style="width: 130px;">
+          </div>
+          
+          <div class="col-md ml-auto d-flex align-items-center justify-content-end">
+            <label class="mr-2 mb-0 small font-weight-bold">Select Trader:</label>
+            <select name="trader_id" class="form-control form-control-sm select2" style="width: 250px;" required onchange="this.form.submit()">
+              <option value="">-- Choose Trader --</option>
+              {% for t in traders %}
+              <option value="{{ t.id }}" {% if trader.id == t.id %}selected{% endif %}>{{ t.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-dark ml-2"><i class="fas fa-print"></i> Print</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Content -->
+      <div class="card-body p-0">
+        {% if trader %}
+        <table class="table-ledger">
+          <thead>
+            <tr>
+              <th style="width: 60px;">SL No</th>
+              <th style="width: 120px;">Date</th>
+              <th>Narration (ವಿವರಗಳು)</th>
+              <th style="width: 100px;">Type</th>
+              <th style="width: 140px;">Credit (Cr)</th>
+              <th style="width: 140px;">Debit (Dr)</th>
+              <th style="width: 180px;">Running Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Opening Balance -->
+            <tr class="opening-bal-row">
+              <td class="text-center">-</td>
+              <td class="text-center">{{ from_date|default:"01-04-2025" }}</td>
+              <td>Opening Balance (ಹಳೆಯ ಬಾಕಿ)</td>
+              <td class="text-center">-</td>
+              <td class="text-right">{% if trader.balance_type == 'Cr' %}{{ trader.opening_balance }}{% else %}-{% endif %}</td>
+              <td class="text-right">{% if trader.balance_type == 'Dr' %}{{ trader.opening_balance }}{% else %}-{% endif %}</td>
+              <td class="text-right">
+                {{ trader.opening_balance }} {% if trader.balance_type == 'Dr' %}Dr{% else %}Cr{% endif %}
+              </td>
+            </tr>
+
+            {% for entry in ledger_entries %}
+            <tr>
+              <td class="text-center">{{ forloop.counter }}</td>
+              <td class="text-center">{{ entry.date|date:"d-m-Y" }}</td>
+              <td>{{ entry.remarks }}</td>
+              <td class="text-center">
+                {% if entry.method != '-' %}
+                  <span class="badge badge-light border">{{ entry.method }}</span>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="text-right text-success">
+                {% if entry.credit > 0 %}<strong>{{ entry.credit }}</strong>{% else %}-{% endif %}
+              </td>
+              <td class="text-right text-danger">
+                {% if entry.debit > 0 %}<strong>{{ entry.debit }}</strong>{% else %}-{% endif %}
+              </td>
+              <td class="text-right font-weight-bold">
+                {{ entry.balance|stringformat:".2f"|cut:"-" }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">No transactions found for this period.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="bg-light">
+            <tr class="font-weight-bold">
+              <td colspan="4" class="text-right">TOTALS:</td>
+              <td class="text-right text-success" style="border-top: 2px solid #333;">{{ summary.total_credit }}</td>
+              <td class="text-right text-danger" style="border-top: 2px solid #333;">{{ summary.total_debit }}</td>
+              <td class="text-right" style="background: #eee; border-top: 2px solid #333;">
+                {{ summary.balance|stringformat:".2f"|cut:"-" }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+        {% else %}
+        <div class="p-5 text-center text-muted">
+           <i class="fas fa-search fa-3x mb-3"></i>
+           <p>Search and select a trader to view their Account Statement.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'assets/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+  $(function () {
+    $('.select2').select2({ theme: 'bootstrap4' });
+  });
+</script>
+{% endblock %}

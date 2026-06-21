@@ -1,0 +1,729 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಖರೀದಿ ಪಟ್ಟಿ (Kharidi Patti){% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-title { font-weight: 700; font-size: 1.1rem; }
+    .table-sm th, .table-sm td { font-size: 0.85rem; padding: 6px !important; }
+    .label-bold { font-weight: 600; color: #495057; font-size: 0.82rem; }
+    .input-sm-custom { height: 32px !important; font-size: 0.85rem !important; }
+    .summary-row { display: flex; align-items: center; margin-bottom: 5px; }
+    .summary-row label { flex: 0 0 130px; margin-bottom: 0; }
+    .summary-row .form-control { flex: 1; text-align: right; font-weight: 600; }
+    .total-badge { background: #1e293b; color: #38bdf8; padding: 10px; border-radius: 4px; text-align: center; }
+    .total-badge h2 { margin: 0; font-weight: 800; letter-spacing: 1px; }
+    .table-hover-pointer tr:hover { cursor: pointer; background-color: rgba(0,123,255,0.05) !important; }
+    .selected-row { background-color: #d1e7dd !important; border-color: #badbcc !important; }
+    .history-card { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+    /* Generated Bills Summary */
+    .bills-summary-card {
+        border: 1px solid #dee2e6;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .bills-summary-card .card-header {
+        background: #f8f9fa !important;
+        color: #212529;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .bills-summary-card .card-title {
+        color: #212529 !important;
+        font-size: 1rem;
+    }
+    #historyTable {
+        font-size: 0.9rem;
+        margin-bottom: 0;
+        border-collapse: collapse;
+    }
+    #historyTable thead th {
+        background: #fff !important;
+        color: #212529 !important;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 10px 8px !important;
+        border: 1px solid #dee2e6 !important;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    #historyTable tbody td {
+        padding: 9px 8px !important;
+        border: 1px solid #dee2e6 !important;
+        vertical-align: middle;
+        color: #212529;
+        background: #fff !important;
+    }
+    #historyTable tbody tr:nth-child(even) td {
+        background: #fff !important;
+    }
+    #historyTable tbody tr:hover td {
+        background: #f8f9fa !important;
+        cursor: pointer;
+    }
+    #historyTable tbody tr.history-selected td {
+        background: #e9ecef !important;
+        color: #212529 !important;
+    }
+    #historyTable tbody tr.history-selected .text-primary,
+    #historyTable tbody tr.history-selected .btnViewBill {
+        color: #212529 !important;
+        border-color: #dee2e6 !important;
+    }
+    #historyTable .col-inv {
+        font-weight: 700;
+        color: #212529;
+        font-size: 0.95rem;
+    }
+    #historyTable .col-amount {
+        font-weight: 800;
+        color: #15803d;
+        text-align: right;
+        white-space: nowrap;
+    }
+    #historyTable .col-name {
+        text-align: left;
+        font-weight: 600;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    #historyTable .col-num {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    #noHistoryMsg {
+        padding: 2rem;
+        text-align: center;
+        color: #64748b;
+        font-size: 0.9rem;
+        background: #f8fafc;
+        border-top: 1px dashed #cbd5e1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2 align-items-center">
+            <div class="col-sm-4">
+                <h1 class="m-0 text-dark" style="font-weight: 800;">ಖರೀದಿ ಪಟ್ಟಿ <small class="text-muted">Trader Bill</small></h1>
+            </div>
+            <div class="col-sm-8 d-flex justify-content-end align-items-center">
+                <div class="mr-3">
+                    <label class="label-bold mb-0">ದಿನಾಂಕ:</label>
+                    <input type="date" id="billDate" class="form-control form-control-sm d-inline-block w-auto" value="{{ today }}">
+                </div>
+                <div class="mr-3" style="width: 250px;">
+                    <select id="buyerSelect" class="form-control form-control-sm select2">
+                        <option value="">ಖರೀದಿದಾರ ಆಯ್ಕೆ (Select Buyer)</option>
+                    </select>
+                </div>
+                <div class="mr-2" style="width: 180px;">
+                    <select id="transferToSelect" class="form-control form-control-sm select2">
+                        <option value="">Transfer To...</option>
+                    </select>
+                </div>
+                <button class="btn btn-sm btn-primary font-weight-bold" id="btnTransfer" title="Transfer lots to another trader"><i class="fas fa-exchange-alt mr-1"></i> TRANSFER</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Section 1: Entry Table & Details -->
+            <div class="col-lg-7">
+                <div class="card card-primary card-outline shadow-sm">
+                    <div class="card-header py-2 d-flex align-items-center">
+                        <h3 class="card-title text-primary m-0"><i class="fas fa-list-ol mr-2"></i> ಲಾಟುಗಳ ವಿವರ (Lots Table)</h3>
+                        <div class="ml-auto">
+                             <button type="button" class="btn btn-tool" id="btnRefreshLots"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-bordered table-sm m-0 text-center table-hover-pointer" id="lotTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>ಲೋಟ್ ಸಂ.</th>
+                                    <th>ಚೀಲ</th>
+                                    <th>ತೂಕ</th>
+                                    <th>ದರ</th>
+                                    <th>ಮೊತ್ತ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="5" class="py-5 text-muted text-center">Select a trader to fetch lots</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer py-1 bg-light small text-center text-muted">
+                        Click on rows to select/deselect lots for this bill.
+                    </div>
+                </div>
+
+                <!-- Deleted Lots Table -->
+                <div class="card card-danger card-outline shadow-sm mt-3">
+                    <div class="card-header py-2">
+                        <h3 class="card-title text-danger m-0"><i class="fas fa-trash-alt mr-2"></i> ಡಿಲೀಟ್ ಮಾಡಿದ ಲಾಟ್ಗಳು (Deleted Lots)</h3>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-bordered table-sm m-0 text-center" id="deletedLotTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>ಲೋಟ್ ಸಂ.</th>
+                                    <th>ಚೀಲ</th>
+                                    <th>ತೂಕ</th>
+                                    <th>ದರ</th>
+                                    <th>ಮೊತ್ತ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="5" class="py-4 text-muted text-center">No deleted lots for this trader today</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customer Details -->
+                <div class="card card-info card-outline shadow-sm mt-3">
+                    <div class="card-header py-2">
+                        <h3 class="card-title"><i class="fas fa-id-card mr-2"></i> ಖರೀದಿದಾರರ ವಿವರ (Customer Details)</h3>
+                        <div class="card-tools">
+                            <button class="btn btn-xs btn-primary font-weight-bold px-2" id="btnUpdateTrader">UPDATE INFO</button>
+                        </div>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-1">
+                                    <label class="label-bold mb-0">ಹೆಸರು (Name):</label>
+                                    <input type="text" id="custName" class="form-control form-control-sm border-0 bg-light px-2" readonly>
+                                </div>
+                                <div class="form-group mb-1">
+                                    <label class="label-bold mb-0">Place:</label>
+                                    <input type="text" id="custPlace" class="form-control form-control-sm">
+                                </div>
+                                <div class="form-group mb-1">
+                                    <label class="label-bold mb-0">GSTIN:</label>
+                                    <input type="text" id="custGST" class="form-control form-control-sm">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-1">
+                                    <label class="label-bold mb-0">Mobile No:</label>
+                                    <input type="text" id="custMobile" class="form-control form-control-sm">
+                                </div>
+                                <div class="form-group mb-1">
+                                    <label class="label-bold mb-0">PAN:</label>
+                                    <input type="text" id="custPAN" class="form-control form-control-sm">
+                                </div>
+                                <div class="form-group mb-1">
+                                    <label class="label-bold mb-0">PIN Code:</label>
+                                    <input type="text" id="custPIN" class="form-control form-control-sm">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Summary Panel -->
+            <div class="col-lg-5">
+                <div class="card card-success card-outline shadow-sm">
+                    <div class="card-header py-2">
+                        <h3 class="card-title text-success"><i class="fas fa-file-invoice-dollar mr-2"></i> ಬಿಲ್ಲಿಂಗ್ ವಿವರ (Billing Summary)</h3>
+                        <span class="badge badge-secondary float-right mt-1" id="invoiceBadge">Bill No: AUTO</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6 text-center border-right">
+                                <label class="label-bold d-block mb-0">Total Bags</label>
+                                <input type="text" id="totalBags" class="form-control text-center font-weight-bold border-0 bg-transparent" readonly value="0" style="font-size: 1.5rem;">
+                            </div>
+                            <div class="col-6 text-center">
+                                <label class="label-bold d-block mb-0">Total Weight</label>
+                                <input type="text" id="totalWeight" class="form-control text-center font-weight-bold border-0 bg-transparent" readonly value="0.000" style="font-size: 1.5rem;">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="summary-row mb-2">
+                                    <label class="label-bold small d-block">Amount:</label>
+                                    <input type="number" id="basicAmount" class="form-control form-control-sm text-right charge-input" value="0.00" step="0.01">
+                                </div>
+                                <div class="summary-row mb-2">
+                                    <label class="label-bold small d-block">Average:</label>
+                                    <input type="number" id="averageRate" class="form-control form-control-sm text-right charge-input" value="0.00" step="0.01">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="summary-row mb-2">
+                                    <label class="label-bold small d-block">Commission:</label>
+                                    <input type="number" id="valComm" class="form-control form-control-sm text-right charge-input" value="0.00" step="0.01" readonly>
+                                </div>
+                                <div class="summary-row mb-2">
+                                    <label class="label-bold small d-block">Round Off:</label>
+                                    <input type="number" id="valRound" class="form-control form-control-sm text-right charge-input" value="0.00" step="0.01">
+                                </div>
+                                <div class="summary-row mb-2 border-top pt-1 mt-1">
+                                    <label class="label-bold small d-block">Taxable Value:</label>
+                                    <input type="number" id="taxableValue" class="form-control form-control-sm text-right font-weight-bold" readonly value="0.00">
+                                </div>
+                                <div class="summary-row mb-2">
+                                    <label class="label-bold small d-block">GST (5%):</label>
+                                    <input type="number" id="valSGST" class="form-control form-control-sm text-right" readonly value="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Hidden: used for bill total / voucher (not shown in Direct Incomes) -->
+                        <input type="hidden" id="chargePacking" value="0.00">
+                        <input type="hidden" id="chargeHamali" value="0.00">
+                        <input type="hidden" id="chargeWeighman" value="0.00">
+                        <input type="hidden" id="valCess" value="0.00">
+
+                        <div class="total-badge mt-2 mb-3">
+                            <small class="d-block mb-1">FINAL BILL AMOUNT</small>
+                            <h2 id="grandTotalDisplay">₹ 0.00</h2>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6"><button class="btn btn-outline-danger btn-block btn-sm" id="btnCancel">CANCEL</button></div>
+                            <div class="col-6"><button class="btn btn-success btn-block" id="btnSave">SAVE BILL</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Generated Bills -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card card-outline shadow bills-summary-card">
+                    <div class="card-header py-2 d-flex align-items-center">
+                        <h3 class="card-title m-0"><i class="fas fa-file-invoice mr-2"></i> ರಚಿಸಿದ ಬಿಲ್‌ಗಳು (Generated Bills Summary)</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                        <table class="table m-0 text-center" id="historyTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:50px;">S.No</th>
+                                    <th style="width:70px;">Bill No</th>
+                                    <th style="width:90px;">Code</th>
+                                    <th>Trader Name</th>
+                                    <th style="width:60px;">Bags</th>
+                                    <th style="width:90px;">Weight</th>
+                                    <th style="width:120px;">Amount</th>
+                                    <th style="width:160px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        </div>
+                        <div id="noHistoryMsg">No bills created on this date yet.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function() {
+    // Global variables for rates
+    let RATE_HAMALI = parseFloat("{{ market_rates.trader_hamali_per_bag|default:4.85 }}");
+    let RATE_PACKING = parseFloat("{{ market_rates.trader_packing_per_bag|default:5.0 }}");
+    let RATE_WEIGHMAN = parseFloat("{{ market_rates.weighman_fee_per_bag|default:1.75 }}");
+    let RATE_DALALI = parseFloat("{{ market_rates.dalali_percent|default:2.0 }}");
+    let RATE_CESS = parseFloat("{{ market_rates.cess_percent|default:0.6 }}");
+    let CURRENT_GST_RATE = parseFloat("{{ market_rates.gst_percent|default:5.0 }}");
+    let availableLots = [];
+    let selectedLotIds = new Set();
+
+    function setupSelect2(selector, placeholder, includeDate = true) {
+        $(selector).select2({
+            theme: 'bootstrap4',
+            ajax: {
+                url: "{% url 'get_traders' %}",
+                dataType: 'json', delay: 250,
+                data: function(params) {
+                    let reqData = { q: params.term };
+                    if (includeDate) {
+                        reqData.date = $('#billDate').val();
+                    }
+                    return reqData;
+                },
+                processResults: function(data) { return { results: data.results }; },
+                cache: true
+            },
+            placeholder: placeholder,
+            minimumInputLength: 0
+        });
+    }
+
+    setupSelect2('#buyerSelect', 'ಖರೀದಿದಾರ ಆಯ್ಕೆ (Select Buyer)', true);
+    setupSelect2('#transferToSelect', 'Transfer To...', false);
+
+    function fetchHistory() {
+        const d = $('#billDate').val();
+        if (!d) return;
+        $.get("{% url 'get_created_bills' %}", { date: d }, function(data) {
+            let html = '';
+            if (!data.results || data.results.length === 0) {
+                $('#noHistoryMsg').show();
+                $('#historyTable').hide();
+            } else {
+                $('#noHistoryMsg').hide();
+                $('#historyTable').show();
+                data.results.forEach((b, i) => {
+                    html += `<tr data-id="${b.id}">
+                        <td class="col-num">${i+1}</td>
+                        <td class="col-inv">${b.invoice_no}</td>
+                        <td class="col-num">${b.buyer_code || '—'}</td>
+                        <td class="col-name" title="${b.buyer_name}">${b.buyer_name}</td>
+                        <td class="col-num">${b.bags}</td>
+                        <td class="col-num">${b.weight.toFixed(3)}</td>
+                        <td class="col-amount">₹ ${b.grand_total.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+                        <td>
+                          <button class="btn btn-xs btn-primary px-2 btnViewBill" data-id="${b.id}">VIEW</button>
+                          <button class="btn btn-xs btn-warning px-2 btnEditBill" data-id="${b.id}" data-date="${b.date}" data-buyer="${b.buyer_id}">EDIT</button>
+                          <button class="btn btn-xs btn-danger px-2 btnDeleteBill" data-id="${b.id}" data-inv="${b.invoice_no}">DEL</button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            $('#historyTable tbody').html(html);
+        });
+    }
+
+    function fetchLots() {
+        const d = $('#billDate').val();
+        const b = $('#buyerSelect').val();
+        if (!d || !b) {
+            $('#lotTable tbody').html('<tr><td colspan="5" class="py-5 text-muted text-center">Select Trader to load lots.</td></tr>');
+            $('#deletedLotTable tbody').html('<tr><td colspan="5" class="py-4 text-muted text-center">No deleted lots for this trader today</td></tr>');
+            return;
+        }
+        $('#lotTable tbody').html('<tr><td colspan="5" class="py-5 text-center"><i class="fas fa-spinner fa-spin fa-2x"></i></td></tr>');
+        $.get("{% url 'get_buyer_lots' %}", { date: d, buyer_id: b }, function(data) {
+            availableLots = data.results || [];
+            selectedLotIds = new Set();
+            availableLots.forEach(lot => selectedLotIds.add(lot.id));
+
+            if (data.is_billed) {
+                $('#invoiceBadge').text('Bill No: ' + data.invoice_no).removeClass('badge-secondary').addClass('badge-success');
+                $('#btnSave').prop('disabled', true)
+                    .text('BUYER PATTI GENERATED')
+                    .removeClass('btn-success btn-info')
+                    .addClass('btn-secondary')
+                    .attr('title', 'Invoice ' + data.invoice_no + ' already exists. Use VIEW or delete from history to regenerate.');
+            } else {
+                $('#invoiceBadge').text('Bill No: AUTO').removeClass('badge-success').addClass('badge-secondary');
+                $('#btnSave').prop('disabled', false).text('SAVE BILL')
+                    .removeClass('btn-info btn-secondary')
+                    .addClass('btn-success')
+                    .removeAttr('title');
+            }
+
+            renderLots(data.is_billed);
+            renderDeletedLots(data.deleted_results || []);
+            updateCalculations();
+        }).fail(() => {
+            $('#lotTable tbody').html('<tr><td colspan="5" class="py-5 text-danger text-center">Error fetching lots.</td></tr>');
+            $('#deletedLotTable tbody').html('<tr><td colspan="5" class="py-4 text-danger text-center">Error fetching deleted lots.</td></tr>');
+        });
+    }
+
+    function renderLots(isBilled = false) {
+        let html = '';
+        if (availableLots.length === 0) {
+            html = '<tr><td colspan="5" class="py-5 text-muted text-center">No unbilled lots found.</td></tr>';
+        } else {
+            availableLots.forEach(lot => {
+                const isSelected = selectedLotIds.has(lot.id);
+                // Transfer entries show a badge instead of lot number, and cannot be deselected
+                const lotLabel = lot.is_transfer
+                    ? `<span class="badge badge-warning text-dark">Transfer</span>`
+                    : (lot.lot_number || '-');
+                const rowClass = lot.is_transfer
+                    ? 'table-warning font-weight-bold'
+                    : (lot.is_billed ? 'table-secondary text-muted' : (isSelected ? 'selected-row font-weight-bold' : ''));
+                const billedTag = lot.is_billed
+                    ? ` <span class="badge badge-success badge-pill">Inv ${lot.bill_invoice_no || '—'}</span>`
+                    : '';
+                html += `<tr class="${rowClass}" data-id="${lot.id}" data-transfer="${lot.is_transfer ? '1' : '0'}" data-billed="${lot.is_billed ? '1' : '0'}">
+                    <td>${lotLabel}${billedTag}</td><td>${lot.bags}</td><td>${parseFloat(lot.weight).toFixed(3)}</td><td>${parseFloat(lot.rate).toFixed(2)}</td><td>${parseFloat(lot.amount).toFixed(2)}</td>
+                </tr>`;
+            });
+        }
+        $('#lotTable tbody').html(html);
+        if (!isBilled) {
+            // Only normal (non-transfer, non-billed) rows can be toggled
+            $('#lotTable tbody tr[data-transfer="0"][data-billed="0"]').off('click').on('click', function() {
+                const id = $(this).data('id');
+                if (selectedLotIds.has(id)) selectedLotIds.delete(id);
+                else selectedLotIds.add(id);
+                $(this).toggleClass('selected-row font-weight-bold');
+                updateCalculations();
+            });
+        }
+    }
+
+    function renderDeletedLots(deletedLots) {
+        let html = '';
+        if (deletedLots.length === 0) {
+            html = '<tr><td colspan="5" class="py-4 text-muted text-center">No deleted lots for this trader today</td></tr>';
+        } else {
+            deletedLots.forEach(lot => {
+                html += `<tr class="text-muted bg-light" style="text-decoration: line-through;">
+                    <td>${lot.lot_number}</td>
+                    <td>${lot.bags}</td>
+                    <td>${lot.weight.toFixed(3)}</td>
+                    <td>${lot.rate.toFixed(2)}</td>
+                    <td>${lot.amount.toFixed(2)}</td>
+                </tr>`;
+            });
+        }
+        $('#deletedLotTable tbody').html(html);
+    }
+
+    function updateCalculations() {
+        let bags = 0, weight = 0, amount = 0;
+
+        availableLots.forEach(l => {
+            // Transfer rows are ALWAYS included (auto-selected, fixed ownership)
+            const include = l.is_transfer ? true : selectedLotIds.has(l.id);
+            if (include) {
+                bags   += (parseInt(l.bags)     || 0);
+                weight += (parseFloat(l.weight) || 0);
+                amount += (parseFloat(l.amount) || 0);
+            }
+        });
+
+        const commission = amount * (RATE_DALALI / 100);
+        const packing = bags * RATE_PACKING;
+        const hamali = bags * RATE_HAMALI;
+        const weighman = bags * RATE_WEIGHMAN;
+        const cess = amount * (RATE_CESS / 100);
+
+        $('#totalBags').val(bags);
+        $('#totalWeight').val(weight.toFixed(3));
+        $('#basicAmount').val(amount.toFixed(2));
+        $('#averageRate').val(weight > 0 ? (amount / weight).toFixed(2) : '0.00');
+        $('#chargeHamali').val(hamali.toFixed(2));
+        $('#chargePacking').val(packing.toFixed(2));
+        $('#chargeWeighman').val(weighman.toFixed(2));
+        $('#valComm').val(commission.toFixed(2));
+        $('#valCess').val(cess.toFixed(2));
+        recalculateGrandTotal();
+    }
+
+    function recalculateGrandTotal() {
+        const amt = parseFloat($('#basicAmount').val()) || 0;
+        const comm = parseFloat($('#valComm').val()) || 0;
+        const cess = parseFloat($('#valCess').val()) || 0;
+        const packing = parseFloat($('#chargePacking').val()) || 0;
+        const hamali = parseFloat($('#chargeHamali').val()) || 0;
+        const weighman = parseFloat($('#chargeWeighman').val()) || 0;
+        const taxable = amt + comm + cess + packing + hamali + weighman;
+        $('#taxableValue').val(taxable.toFixed(2));
+        const gst = (taxable * (CURRENT_GST_RATE / 100));
+        $('#valSGST').val(gst.toFixed(2));
+        const round = parseFloat($('#valRound').val()) || 0;
+        const grand = taxable + gst + round;
+        $('#grandTotalDisplay').text('₹ ' + grand.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    }
+
+    function fetchMarketRates() {
+        const d = $('#billDate').val();
+        if (!d) return;
+        $.get("{% url 'get_market_rates' %}", { date: d }, function(data) {
+            RATE_HAMALI = parseFloat(data.trader_hamali_per_bag) || 4.85;
+            RATE_PACKING = parseFloat(data.trader_packing_per_bag) || 5.00;
+            RATE_WEIGHMAN = parseFloat(data.weighman_fee_per_bag) || 1.75;
+            RATE_DALALI = parseFloat(data.dalali_percent) || 2.0;
+            RATE_CESS = parseFloat(data.cess_percent) || 0.6;
+            CURRENT_GST_RATE = parseFloat(data.gst_percent) || 5.0;
+            updateCalculations();
+        });
+    }
+
+    function resetForm() {
+        selectedLotIds = new Set();
+        $('#totalBags').val(0); $('#totalWeight').val('0.000'); $('#basicAmount').val('0.00');
+        $('#averageRate').val('0.00'); $('#valRound').val('0.00');
+        $('#grandTotalDisplay').text('₹ 0.00');
+        $('#deletedLotTable tbody').html('<tr><td colspan="5" class="py-4 text-muted text-center">No deleted lots for this trader today</td></tr>');
+        updateCalculations();
+    }
+
+    $('#buyerSelect').on('change', function() {
+        const id = $(this).val(); if (!id) return;
+        $.get("{% url 'get_trader_details' %}", { buyer_id: id }, function(data) {
+            if (data.success) {
+                $('#custName').val(data.name); $('#custPlace').val(data.place || '');
+                $('#custGST').val(data.gstin || ''); $('#custPAN').val(data.pan || '');
+                $('#custMobile').val(data.mobile || ''); $('#custPIN').val(data.pin || '');
+            }
+        });
+        fetchLots();
+    });
+
+    $('#billDate').on('change', function() {
+        $('#buyerSelect').val(null).trigger('change');
+        fetchMarketRates(); fetchHistory(); fetchLots();
+    });
+
+    $('.charge-input, #valRound').on('input change', recalculateGrandTotal);
+    $('#btnRefreshLots').click(fetchLots);
+    
+    $('#btnTransfer').click(function() {
+        const d = $('#billDate').val();
+        const oldId = $('#buyerSelect').val();
+        const newId = $('#transferToSelect').val();
+
+        if (!d) { toastr.error('Select Date.'); return; }
+        if (!oldId) { toastr.error('Select current buyer (Select Buyer).'); return; }
+        if (!newId) { toastr.error('Select buyer to transfer to (Transfer To...).'); return; }
+        if (oldId === newId) { toastr.error('Current buyer and transfer buyer cannot be the same.'); return; }
+
+        if (!confirm('Are you sure you want to transfer all lots to the new buyer?')) return;
+
+        $.ajax({
+            url: "{% url 'transfer_all_lots' %}",
+            method: "POST",
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            data: {
+                date: d,
+                old_trader_id: oldId,
+                new_trader_id: newId
+            },
+            success: function(res) {
+                if (res.success) {
+                    toastr.success(res.message || 'All lots transferred successfully!');
+                    $('#transferToSelect').val(null).trigger('change');
+                    fetchHistory();
+                    fetchLots();
+                    resetForm();
+                } else {
+                    toastr.error(res.message || 'Transfer failed.');
+                }
+            },
+            error: function() {
+                toastr.error('Error occurred during transfer.');
+            }
+        });
+    });
+    
+    $('#btnSave').click(function() {
+        if ($(this).prop('disabled')) {
+            toastr.warning('Buyer Patti already generated for this buyer today. Use VIEW or delete from history.');
+            return;
+        }
+        if (selectedLotIds.size === 0) { toastr.error('Select lots.'); return; }
+        const data = {
+            date: $('#billDate').val(), buyer_id: $('#buyerSelect').val(),
+            bikri_ids: Array.from(selectedLotIds), total_bags: parseInt($('#totalBags').val()),
+            total_weight: parseFloat($('#totalWeight').val()), total_amount: parseFloat($('#basicAmount').val()),
+            commission: parseFloat($('#valComm').val()), packing: parseFloat($('#chargePacking').val()),
+            hamali: parseFloat($('#chargeHamali').val()), weighman_fee: parseFloat($('#chargeWeighman').val()),
+            cess: parseFloat($('#valCess').val()), gst: parseFloat($('#valSGST').val()),
+            round_off: parseFloat($('#valRound').val()), 
+            grand_total: parseFloat($('#grandTotalDisplay').text().replace(/[^0-9.]/g, ''))
+        };
+        $.ajax({
+            url: "{% url 'save_trader_bill' %}", method: "POST", headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            contentType: "application/json", data: JSON.stringify(data),
+            success: function(res) {
+                if (res.success) { toastr.success('Saved!'); fetchHistory(); fetchLots(); resetForm(); }
+                else toastr.error(res.message);
+            }
+        });
+    });
+
+    // History Table 'VIEW' logic - Open printable invoice in a new tab
+    $('#historyTable').on('click', '.btnViewBill', function(e) {
+        e.stopPropagation();
+        const billId = $(this).data('id');
+        if (!billId) return;
+        window.open(`/kharidi-patti/view/${billId}/`, '_blank');
+    });
+
+    // EDIT: pre-select date + buyer to reload the bill into the form
+    $('#historyTable').on('click', '.btnEditBill', function(e) {
+        e.stopPropagation();
+        const bdate = $(this).data('date');
+        const buyerId = $(this).data('buyer');
+        if (!bdate || !buyerId) return;
+        // Set the date field and trigger buyer reload
+        $('#billDate').val(bdate);
+        fetchHistory();
+        fetchMarketRates();
+        // Load buyer into Select2 and trigger lot fetch
+        $.get("{% url 'get_trader_details' %}", { buyer_id: buyerId }, function(data) {
+            if (data.success) {
+                const opt = new Option(data.name, buyerId, true, true);
+                $('#buyerSelect').empty().append(opt).trigger('change');
+                toastr.info('Bill loaded for editing.');
+            }
+        });
+        $('html, body').animate({ scrollTop: 0 }, 400);
+    });
+
+    // DELETE: POST to delete_trader_bill
+    $('#historyTable').on('click', '.btnDeleteBill', function(e) {
+        e.stopPropagation();
+        const billId = $(this).data('id');
+        const invNo  = $(this).data('inv');
+        if (!confirm(`Delete Bill No ${invNo}? This cannot be undone.`)) return;
+        $.ajax({
+            url: `/kharidi-patti/delete/${billId}/`,
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            success: function() {
+                toastr.success('Bill deleted.');
+                fetchHistory();
+            },
+            error: function() { toastr.error('Delete failed.'); }
+        });
+    });
+
+    $('#historyTable').on('click', 'tr', function(e) {
+        if ($(e.target).closest('.btnViewBill, .btnEditBill, .btnDeleteBill').length) return;
+        $('#historyTable tbody tr').removeClass('history-selected');
+        $(this).addClass('history-selected');
+    });
+
+    $('#btnCancel').click(() => location.reload());
+
+    // Initial load logic with URL parameters Support
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramDate = urlParams.get('date');
+    const paramTrader = urlParams.get('trader');
+
+    if (paramDate) {
+        $('#billDate').val(paramDate);
+    }
+
+    fetchMarketRates();
+    fetchHistory();
+
+    if (paramTrader) {
+        // Fetch details to get the name for Select2 display
+        $.get("{% url 'get_trader_details' %}", { buyer_id: paramTrader }, function(data) {
+            if (data.success) {
+                const opt = new Option(data.name, paramTrader, true, true);
+                $('#buyerSelect').append(opt).trigger('change');
+                toastr.success('Bill loaded from storage.');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
