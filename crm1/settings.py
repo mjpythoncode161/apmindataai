@@ -31,18 +31,19 @@ ALLOWED_HOSTS = [
     "yourdomain.com",
     "www.yourdomain.com",
     "147.93.107.11",
-    "apmc-kr9y.onrender.com",
+    "apmindataai.onrender.com",
 ]
 
 
 ALLOWED_HOSTS = [
+    "*",
     "localhost",
     "127.0.0.1",
-    "apmc-kr9y.onrender.com",
+    "apmindataai.onrender.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://apmc-kr9y.onrender.com",
+    "https://apmindataai.onrender.com",
 ]
 # Application definition
 
