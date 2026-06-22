@@ -26,25 +26,23 @@ SECRET_KEY = "cz=&%f*9(d*zo$_55p=(p)(eki#p$pb^0159-)8k^6$9c3l&_b"
 DEBUG = True  # Set to False in production
 
 ALLOWED_HOSTS = [
-    "*"
     "localhost",
     "127.0.0.1",
     "yourdomain.com",
     "www.yourdomain.com",
     "147.93.107.11",
-    "apmindataai.onrender.com",
+    "apmc-kr9y.onrender.com",
 ]
 
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    ".onrender.com",
-    "apmindataai.onrender.com",
+    "apmc-kr9y.onrender.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://apmindataai.onrender.com",
+    "https://apmc-kr9y.onrender.com",
 ]
 # Application definition
 

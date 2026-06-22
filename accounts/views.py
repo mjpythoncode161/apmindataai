@@ -144,6 +144,106 @@ def _ledger_place_for_trial(ledger):
     return "*-*"
 
 
+def _party_voucher_dr_cr(line, entity_type):
+    """
+    Dr/Cr columns for farmer/trader account statements from voucher lines.
+    Payment to farmer = Dr; Receipt from trader = Dr (party books of account).
+    """
+    amt = line.amount
+    vtype = line.voucher.voucher_type
+    if entity_type == "farmer":
+        if vtype == "Payment":
+            return amt, Decimal("0")
+        if vtype == "Receipt":
+            return Decimal("0"), amt
+    elif entity_type == "trader":
+        if vtype == "Receipt":
+            return amt, Decimal("0")
+        if vtype == "Payment":
+            return Decimal("0"), amt
+    if line.entry_type == "Dr":
+        return amt, Decimal("0")
+    return Decimal("0"), amt
+
+
+def _calc_ledger_trial_gross_dr_cr(ledger, as_on_date, skip_ft_pay=False):
+    """
+    Trial balance: gross debit and credit movements.
+    skip_ft_pay: bank ledgers — omit payment FT + Payment vouchers (in Sundry Creditors).
+    """
+    total_dr = Decimal("0")
+    total_cr = Decimal("0")
+
+    if ledger.balance_type == "Dr":
+        total_dr += ledger.opening_balance
+    else:
+        total_cr += ledger.opening_balance
+
+    vl_qs = VoucherLine.objects.filter(
+        ledger=ledger, voucher__date__lte=as_on_date
+    ).select_related("voucher")
+    for line in vl_qs:
+        if skip_ft_pay and line.voucher.voucher_type == "Payment":
+            continue
+        if ledger.farmer_id:
+            dr_amt, cr_amt = _party_voucher_dr_cr(line, "farmer")
+        elif ledger.trader_id:
+            dr_amt, cr_amt = _party_voucher_dr_cr(line, "trader")
+        else:
+            dr_amt = line.amount if line.entry_type == "Dr" else Decimal("0")
+            cr_amt = line.amount if line.entry_type == "Cr" else Decimal("0")
+        total_dr += dr_amt
+        total_cr += cr_amt
+
+    if not skip_ft_pay:
+        for ft in FinancialTransaction.objects.filter(
+            pay_from_ledger=ledger, date__lte=as_on_date
+        ).only("transaction_type", "amount"):
+            if ft.transaction_type == "Debit":
+                total_cr += ft.amount
+            else:
+                total_dr += ft.amount
+
+    if not skip_ft_pay:
+        for ft in FinancialTransaction.objects.filter(
+            debit_ledger=ledger, date__lte=as_on_date
+        ).only("amount"):
+            total_dr += ft.amount
+
+    if ledger.farmer_id:
+        for ft in FinancialTransaction.objects.filter(
+            farmer_id=ledger.farmer_id, date__lte=as_on_date
+        ).only("transaction_type", "amount"):
+            if ft.transaction_type == "Debit":
+                total_dr += ft.amount
+            else:
+                total_cr += ft.amount
+    elif ledger.trader_id:
+        for ft in FinancialTransaction.objects.filter(
+            trader_id=ledger.trader_id, date__lte=as_on_date
+        ).only("transaction_type", "amount"):
+            if ft.transaction_type == "Credit":
+                total_cr += ft.amount
+            else:
+                total_dr += ft.amount
+
+    return _quantize_money(total_dr), _quantize_money(total_cr)
+
+
+def _calc_ledger_trial_display_dr_cr(ledger, as_on_date, skip_ft_pay=False):
+    """
+    Trial balance row: net closing balance in one column only (Dr or Cr).
+  skip_ft_pay: bank ledgers — hide payment FT totals already in Sundry Creditors.
+    """
+    gross_dr, gross_cr = _calc_ledger_trial_gross_dr_cr(
+        ledger, as_on_date, skip_ft_pay=skip_ft_pay
+    )
+    net = gross_cr - gross_dr
+    if net >= 0:
+        return Decimal("0"), _quantize_money(net)
+    return _quantize_money(abs(net)), Decimal("0")
+
+
 def _calc_ledger_closing_as_on(ledger, as_on_date):
     """Net ledger balance as on date → (debit_display, credit_display) for trial balance."""
     running = (
@@ -154,9 +254,15 @@ def _calc_ledger_closing_as_on(ledger, as_on_date):
 
     vl_qs = VoucherLine.objects.filter(
         ledger=ledger, voucher__date__lte=as_on_date
-    ).only("entry_type", "amount")
+    ).select_related("voucher").only("entry_type", "amount", "voucher__voucher_type")
     for line in vl_qs:
-        if line.entry_type == "Dr":
+        if ledger.farmer_id:
+            dr_amt, cr_amt = _party_voucher_dr_cr(line, "farmer")
+            running += dr_amt - cr_amt
+        elif ledger.trader_id:
+            dr_amt, cr_amt = _party_voucher_dr_cr(line, "trader")
+            running += dr_amt - cr_amt
+        elif line.entry_type == "Dr":
             running += line.amount
         else:
             running -= line.amount
@@ -177,14 +283,15 @@ def _calc_ledger_closing_as_on(ledger, as_on_date):
         running += ft.amount
 
     if ledger.farmer_id:
+        # Farmer is a creditor: bikri → Cr; payment to farmer → Dr (reduces Cr).
         ft_farmer = FinancialTransaction.objects.filter(
             farmer_id=ledger.farmer_id, date__lte=as_on_date
         ).only("transaction_type", "amount")
         for ft in ft_farmer:
             if ft.transaction_type == "Debit":
-                running -= ft.amount
-            else:
                 running += ft.amount
+            else:
+                running -= ft.amount
     elif ledger.trader_id:
         ft_trader = FinancialTransaction.objects.filter(
             trader_id=ledger.trader_id, date__lte=as_on_date
@@ -6749,6 +6856,8 @@ def trial_balance(request):
     head_buckets = {head: [] for head in TRIAL_BALANCE_HEAD_ORDER}
     grand_dr = Decimal("0")
     grand_cr = Decimal("0")
+    net_grand_dr = Decimal("0")
+    net_grand_cr = Decimal("0")
 
     for ledger in ledgers_qs:
         if cash_la and ledger.pk == cash_la.pk:
@@ -6756,7 +6865,11 @@ def trial_balance(request):
         tb_head = _trial_balance_head_for_ledger(ledger)
         if not tb_head:
             continue
-        dr_amt, cr_amt = _calc_ledger_closing_as_on(ledger, as_on)
+        skip_bank_ft = tb_head in ("Bank Accounts", "Bank OD A/C")
+        dr_amt, cr_amt = _calc_ledger_trial_display_dr_cr(
+            ledger, as_on, skip_ft_pay=skip_bank_ft
+        )
+        net_dr, net_cr = _calc_ledger_closing_as_on(ledger, as_on)
         if dr_amt == 0 and cr_amt == 0 and tb_head not in TRIAL_BALANCE_SHOW_ALL_LEDGER_HEADS:
             continue
         head_buckets.setdefault(tb_head, []).append({
@@ -6767,6 +6880,8 @@ def trial_balance(request):
             "debit_fmt": _format_indian_amount(dr_amt),
             "credit_fmt": _format_indian_amount(cr_amt),
         })
+        net_grand_dr += net_dr
+        net_grand_cr += net_cr
 
     report_groups = []
     serial = 0
@@ -6792,7 +6907,7 @@ def trial_balance(request):
 
     cash_row = None
     if cash_la:
-        c_dr, c_cr = _calc_ledger_closing_as_on(cash_la, as_on)
+        c_dr, c_cr = _calc_ledger_trial_display_dr_cr(cash_la, as_on, skip_ft_pay=True)
         if c_dr or c_cr:
             cash_row = {
                 "name": "Cash In Hand",
@@ -6811,7 +6926,7 @@ def trial_balance(request):
         "grand_dr_fmt": _format_indian_amount(grand_dr),
         "grand_cr_fmt": _format_indian_amount(grand_cr),
         "cash_row": cash_row,
-        "is_balanced": grand_dr == grand_cr,
+        "is_balanced": net_grand_dr == net_grand_cr,
         "system_name": "MSBC-2025-26",
     })
 
@@ -7269,6 +7384,7 @@ def ledger_book(request):
                 for line in vl_qs:
                     bill_no = _get_voucher_bill_no(line.voucher)
                     bill_info = _get_bill_info(line.voucher)
+                    dr_amt, cr_amt = _party_voucher_dr_cr(line, "farmer")
                     entries.append({
                         "date":        line.voucher.date,
                         "type":        line.voucher.voucher_type,
@@ -7277,8 +7393,8 @@ def ledger_book(request):
                         "bill_no":     bill_no,
                         "bill_info":   bill_info,
                         "raw_bill_no": bill_no,
-                        "dr_amount":   line.amount if line.entry_type == "Dr" else Decimal("0"),
-                        "cr_amount":   line.amount if line.entry_type == "Cr" else Decimal("0"),
+                        "dr_amount":   dr_amt,
+                        "cr_amount":   cr_amt,
                         "voucher_id":  line.voucher.id,
                         "extra_refs":  [],
                     })
@@ -7328,6 +7444,7 @@ def ledger_book(request):
                 for line in vl_qs:
                     bill_no = _get_voucher_bill_no(line.voucher)
                     bill_info = _get_bill_info(line.voucher)
+                    dr_amt, cr_amt = _party_voucher_dr_cr(line, "trader")
                     entries.append({
                         "date":        line.voucher.date,
                         "type":        line.voucher.voucher_type,
@@ -7336,8 +7453,8 @@ def ledger_book(request):
                         "bill_no":     bill_no,
                         "bill_info":   bill_info,
                         "raw_bill_no": bill_no,
-                        "dr_amount":   line.amount if line.entry_type == "Dr" else Decimal("0"),
-                        "cr_amount":   line.amount if line.entry_type == "Cr" else Decimal("0"),
+                        "dr_amount":   dr_amt,
+                        "cr_amount":   cr_amt,
                         "voucher_id":  line.voucher.id,
                         "extra_refs":  [],
                     })
@@ -7565,14 +7682,21 @@ def account_statement(request):
             vl_qs = vl_qs.filter(voucher__date__lte=to_date)
 
         for line in vl_qs:
+            if selected_ledger.farmer_id:
+                dr_amt, cr_amt = _party_voucher_dr_cr(line, "farmer")
+            elif selected_ledger.trader_id:
+                dr_amt, cr_amt = _party_voucher_dr_cr(line, "trader")
+            else:
+                dr_amt = line.amount if line.entry_type == "Dr" else Decimal("0")
+                cr_amt = line.amount if line.entry_type == "Cr" else Decimal("0")
             entries.append({
                 "date":       line.voucher.date,
                 "type":       line.voucher.voucher_type,
                 "ref_no":     line.voucher.voucher_no,
                 "bill_no":    _get_voucher_bill_no(line.voucher),
                 "narration":  line.narration or line.voucher.narration or "-",
-                "dr_amount":  line.amount if line.entry_type == "Dr" else Decimal("0"),
-                "cr_amount":  line.amount if line.entry_type == "Cr" else Decimal("0"),
+                "dr_amount":  dr_amt,
+                "cr_amount":  cr_amt,
                 "source":     "voucher",
                 "voucher_id": line.voucher.id,
             })
@@ -7647,6 +7771,67 @@ def account_statement(request):
                 "source":    "ft_debit",
                 "ft_id":     ft.id,
             })
+            existing_ft_ids.add(ft.id)
+
+        # ── 4. Party payments/receipts on farmer or trader ledger ───────────
+        if selected_ledger.farmer_id:
+            ft_party_qs = FinancialTransaction.objects.filter(
+                farmer_id=selected_ledger.farmer_id
+            ).select_related("farmer", "pay_from_ledger")
+            if from_date:
+                ft_party_qs = ft_party_qs.filter(date__gte=from_date)
+            if to_date:
+                ft_party_qs = ft_party_qs.filter(date__lte=to_date)
+            for ft in ft_party_qs:
+                if ft.id in existing_ft_ids:
+                    continue
+                person_name = ft.farmer.name if ft.farmer else (ft.name or "")
+                narration = ft.narration or f"{ft.voucher_type or ft.transaction_type} – {person_name}".strip(" –")
+                if ft.transaction_type == "Debit":
+                    dr_amt, cr_amt = ft.amount, Decimal("0")
+                else:
+                    dr_amt, cr_amt = Decimal("0"), ft.amount
+                entries.append({
+                    "date": ft.date,
+                    "type": ft.voucher_type or ft.transaction_type,
+                    "ref_no": f"FT-{ft.id}",
+                    "bill_no": _ft_bill_no(ft),
+                    "narration": narration or "-",
+                    "dr_amount": dr_amt,
+                    "cr_amount": cr_amt,
+                    "source": "ft_party",
+                    "ft_id": ft.id,
+                })
+                existing_ft_ids.add(ft.id)
+        elif selected_ledger.trader_id:
+            ft_party_qs = FinancialTransaction.objects.filter(
+                trader_id=selected_ledger.trader_id
+            ).select_related("trader", "pay_from_ledger")
+            if from_date:
+                ft_party_qs = ft_party_qs.filter(date__gte=from_date)
+            if to_date:
+                ft_party_qs = ft_party_qs.filter(date__lte=to_date)
+            for ft in ft_party_qs:
+                if ft.id in existing_ft_ids:
+                    continue
+                person_name = ft.trader.name if ft.trader else (ft.name or "")
+                narration = ft.narration or f"{ft.voucher_type or ft.transaction_type} – {person_name}".strip(" –")
+                if ft.transaction_type == "Debit":
+                    dr_amt, cr_amt = ft.amount, Decimal("0")
+                else:
+                    dr_amt, cr_amt = Decimal("0"), ft.amount
+                entries.append({
+                    "date": ft.date,
+                    "type": ft.voucher_type or ft.transaction_type,
+                    "ref_no": f"FT-{ft.id}",
+                    "bill_no": _ft_bill_no(ft),
+                    "narration": narration or "-",
+                    "dr_amount": dr_amt,
+                    "cr_amount": cr_amt,
+                    "source": "ft_party",
+                    "ft_id": ft.id,
+                })
+                existing_ft_ids.add(ft.id)
 
         # ── Sort chronologically ─────────────────────────────────────────────
         entries.sort(key=lambda x: x["date"])
