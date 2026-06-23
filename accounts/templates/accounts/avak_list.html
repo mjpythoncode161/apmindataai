@@ -310,18 +310,6 @@
             <input type="text" name="variety" class="form-control avak-input" placeholder="Optional" tabindex="-1" />
         </div>
 
-        <div class="form-group optional-field">
-          <label>Buyer (ಖರೀದಿದಾರ)</label>
-          <select name="buyer_id" id="buyer_select" class="form-control select2" style="width: 100%" tabindex="-1">
-            <option value="">Select Buyer</option>
-            {% for t in traders %}
-            <option value="{{ t.id }}" {% if form_values.buyer_id == t.id|stringformat:"s" %}selected{% endif %}>
-              {{ t.short_code|default:t.name }} - {{ t.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-
         <div class="form-group">
           <label><span class="req">*</span>Bags <span class="key-hint">↵ Save</span></label>
           <input type="number" id="no_of_bags" name="no_of_bags" class="form-control avak-input avak-req-field" min="1" step="1" value="{% if form_values.no_of_bags %}{{ form_values.no_of_bags }}{% endif %}" required tabindex="4" />
@@ -409,8 +397,7 @@
                                 data-hamali="{{ a.hamali_total }}"
                                 data-freight="{{ a.freight }}"
                                 data-empty="{{ a.empty_bags }}"
-                                data-advance="{{ a.advance }}"
-                                data-buyer-id="{{ a.buyer_id|default:'' }}">
+                                data-advance="{{ a.advance }}">
                             <i class="fas fa-edit fa-xs mr-2 text-primary"></i>Edit
                         </button>
                         <div class="dropdown-divider"></div>
@@ -630,12 +617,6 @@
       minimumInputLength: 0,
     });
 
-    $("#buyer_select").select2({
-      theme: 'bootstrap4',
-      placeholder: 'Select Buyer',
-      allowClear: true
-    });
-
     // Select2 keyboard: Enter opens dropdown or moves to next field
     bindSelect2Keyboard($('#place_select'), '#farmer_select');
     bindSelect2Keyboard($('#farmer_select'), '#no_of_bags');
@@ -732,11 +713,6 @@
         $("input[name='freight']").val(data.freight);
         $("input[name='empty_bags']").val(data.empty);
         $("input[name='advance']").val(data.advance);
-        if (data.buyerId) {
-            $("#buyer_select").val(String(data.buyerId)).trigger('change');
-        } else {
-            $("#buyer_select").val(null).trigger('change');
-        }
 
         // Update Select2 for Farmer, then release the edit-populate flag
         setTimeout(() => {

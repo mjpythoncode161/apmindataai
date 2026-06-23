@@ -147,7 +147,8 @@ def _ledger_place_for_trial(ledger):
 def _party_voucher_dr_cr(line, entity_type):
     """
     Dr/Cr columns for farmer/trader account statements from voucher lines.
-    Payment to farmer = Dr; Receipt from trader = Dr (party books of account).
+    Farmer (creditor): payment to farmer = Dr; receipt from farmer = Cr.
+    Trader (debtor): receipt from trader = Cr; payment to trader = Dr.
     """
     amt = line.amount
     vtype = line.voucher.voucher_type
@@ -158,9 +159,9 @@ def _party_voucher_dr_cr(line, entity_type):
             return Decimal("0"), amt
     elif entity_type == "trader":
         if vtype == "Receipt":
-            return amt, Decimal("0")
-        if vtype == "Payment":
             return Decimal("0"), amt
+        if vtype == "Payment":
+            return amt, Decimal("0")
     if line.entry_type == "Dr":
         return amt, Decimal("0")
     return Decimal("0"), amt
@@ -1286,7 +1287,6 @@ def avak_list(request):
             "form_values": form_values,
             "totals": totals,
             "date_value": today.strftime("%Y-%m-%d"),
-            "traders": Trader.objects.all().order_by("name"),
         },
     )
 
@@ -1585,7 +1585,8 @@ def edit_avak(request, avak_id):
         avak.freight = freight
         avak.empty_bags = empty_bags
         avak.advance = advance
-        avak.buyer_id = buyer_id if buyer_id else None
+        if "buyer_id" in request.POST:
+            avak.buyer_id = buyer_id if buyer_id else None
 
         try:
             # Check if a soft-deleted lot with this new number already exists
