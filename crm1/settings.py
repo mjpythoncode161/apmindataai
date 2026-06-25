@@ -23,28 +23,29 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = "cz=&%f*9(d*zo$_55p=(p)(eki#p$pb^0159-)8k^6$9c3l&_b"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Set to False in production
+DEBUG = False  # Set to False in production
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "yourdomain.com",
     "www.yourdomain.com",
-    "147.93.107.11",
-    "apmindataai.onrender.com",
+    "landlink-tai1.onrender.com",
 ]
 
 
 ALLOWED_HOSTS = [
-    "*",
     "localhost",
     "127.0.0.1",
-    "apmindataai.onrender.com",
+    "realindataai.onrender.com",
 ]
 
+
 CSRF_TRUSTED_ORIGINS = [
-    "https://apmindataai.onrender.com",
+    "https://realindataai.onrender.com",
 ]
+
+
 # Application definition
 
 INSTALLED_APPS = [

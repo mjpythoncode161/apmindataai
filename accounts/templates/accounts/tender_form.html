@@ -25,49 +25,181 @@
     .field-group label { font-size: 11px; margin-bottom: 1px; display: block; font-weight: bold; }
     .input-custom { height: 22px; padding: 1px 5px; font-size: 13px; border: 1px solid #ccc; width: 100%; }
 
-    /* PRINT LAYOUT - 3 COLUMN LANDSCAPE */
-    @media screen {
-        #print-content { display: none; }
+    /* ── Tender print slip (screen hidden, preview + print) ── */
+    #print-content { display: none; }
+
+    .tf-print-sheet {
+        width: 287mm;
+        height: 200mm;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 2mm;
+        box-sizing: border-box;
+        margin: 0 auto;
+        page-break-after: always;
+        break-after: page;
+    }
+    .tf-print-sheet:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    .tf-slip {
+        flex: 0 0 calc((100% - 4mm) / 3);
+        width: calc((100% - 4mm) / 3);
+        max-width: calc((100% - 4mm) / 3);
+        height: 200mm;
+        border: 1pt solid #000;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        padding: 2mm 1.8mm 1.5mm;
+        font-family: 'Noto Sans Kannada', 'Nirmala UI', 'Source Sans Pro', sans-serif;
+        color: #000;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .tf-slip-head { text-align: center; flex-shrink: 0; line-height: 1.25; }
+    .tf-slip-apmc { font-size: 8pt; font-weight: 700; }
+    .tf-slip-firm { font-size: 11pt; font-weight: 800; margin: 0.8mm 0; }
+    .tf-slip-grower {
+        display: flex;
+        justify-content: space-between;
+        font-size: 6.8pt;
+        font-weight: 600;
+        padding: 0.5mm 0;
+        border-bottom: 0.75pt solid #000;
+    }
+    .tf-slip-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #e6e6e6;
+        border-bottom: 0.75pt solid #000;
+        padding: 1mm 0.6mm;
+        font-size: 6.8pt;
+        font-weight: 700;
+        flex-shrink: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .tf-slip-meta span { white-space: nowrap; }
+
+    .tf-slip-table-wrap {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin-top: 0;
+    }
+    .tf-slip-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+    .tf-slip-table th,
+    .tf-slip-table td {
+        border: 0.6pt solid #000;
+        text-align: center;
+        vertical-align: middle;
+        padding: 0 0.5mm;
+        font-size: 6.5pt;
+        line-height: 1.1;
+        height: 7mm;
+        overflow: hidden;
+    }
+    .tf-slip-table thead th {
+        height: 5.5mm;
+        font-weight: 700;
+        background: #eeeeee !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .tf-slip-table .col-lot { width: 11%; }
+    .tf-slip-table .col-est { width: 22%; }
+    .tf-slip-table .col-bag { width: 14%; }
+    .tf-slip-table .col-rate { width: 28%; }
+    .tf-slip-table .col-rem { width: 25%; }
+
+    .tf-slip-sign {
+        flex-shrink: 0;
+        text-align: right;
+        font-weight: 700;
+        font-size: 7pt;
+        padding-top: 1mm;
+        margin-top: auto;
+    }
+
+    #previewModal .modal-dialog { max-width: 98%; margin: 10px auto; }
+    #previewModal .modal-content { border-radius: 0; background: white; }
+    #previewModal .modal-body { padding: 10px; background: white; }
+
+    /* Preview modal — scaled sheet */
+    #previewModal .tf-preview-wrap {
+        display: flex;
+        justify-content: center;
+        overflow-x: auto;
+        padding: 8px 0;
+    }
+    #previewModal .tf-print-sheet {
+        transform-origin: top center;
+        transform: scale(0.42);
+        margin-bottom: -116mm;
     }
 
     @media print {
-        @page { size: landscape; margin: 0.3cm; }
-
-        /* Make everything invisible but keep layout */
-        body {
-            background: white !important;
-            visibility: hidden;
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
         }
 
-        /* Show only the print slips */
+        html, body {
+            width: 287mm !important;
+            height: 200mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            overflow: hidden !important;
+        }
+
+        .wrapper, .content-wrapper, .content-wrapper .content {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+            background: #fff !important;
+        }
+        .content-wrapper {
+            margin-left: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        .main-header, .main-sidebar, .main-footer,
+        .tender-container, .modal, .no-print {
+            display: none !important;
+        }
+
         #print-content {
             display: block !important;
-            visibility: visible;
-            background: white !important;
-            color: black !important;
-            zoom: 0.80;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 287mm;
+            height: auto;
+            margin: 0;
+            padding: 0;
+            background: #fff;
         }
-        #print-content * {
-            visibility: visible;
-            background: white !important;
-            color: black !important;
+
+        .tf-print-sheet {
+            width: 287mm;
+            height: 200mm;
         }
-        .slip-table th {
-            background: #eee !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+
+        .tf-slip {
+            height: 200mm;
         }
     }
-    .print-slip { border: 1.5px solid #000; padding: 4px; font-size: 10px; background: white; color: #000; }
-    .slip-header { border-bottom: 1px solid #000; text-align: center; padding-bottom: 3px; margin-bottom: 3px; }
-    .slip-table { width: 100%; border-collapse: collapse; }
-    .slip-table th, .slip-table td { border: 1px solid #000; padding: 0 2px; text-align: center; height: 12px; font-size: 8.5px; line-height: 1; }
-    .slip-table th { background: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; }
-
-    /* Preview Modal Fix */
-    #previewModal .modal-dialog { max-width: 98%; margin: 10px auto; }
-    #previewModal .modal-content { border-radius: 0; background: white; }
-    #previewModal .modal-body { padding: 10px; background: white; overflow-x: auto; }
 </style>
 {% endblock %}
 
@@ -131,7 +263,7 @@
                 <button class="btn-action btn-save w-100">Save</button>
                 <div class="field-group mt-2">
                     <label>Print Date:</label>
-                    <input type="date" value="{{ date_value }}" class="input-custom">
+                    <input type="date" id="print_date" value="{{ date_value }}" class="input-custom">
                 </div>
                 <div class="field-group">
                     <label>No of Prints:</label>
@@ -181,11 +313,13 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-body">
-                <div id="preview-inject"></div>
+                <div class="tf-preview-wrap">
+                    <div id="preview-inject"></div>
+                </div>
             </div>
             <div class="modal-footer p-1">
                 <button class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
-                <button class="btn btn-primary btn-sm" onclick="window.print()">Print Slips</button>
+                <button class="btn btn-primary btn-sm" onclick="window.buildTenderPrintContent(); setTimeout(function(){ window.print(); }, 150);">Print Slips</button>
             </div>
         </div>
     </div>
@@ -302,22 +436,22 @@
             $('#no_of_lots').val(lastSno);
         });
 
-        // PRINT LOGIC with Multiple "Prints"
-        function buildPrintContent() {
-            const firm = $('#trader_select option:selected').text();
-            const apmc = $('#apmc_code').val();
-            const date = $('#entry_date').val();
-            const extend = $('#extend_input').val();
-            const prints = parseInt($('#print_count').val()) || 1;
-            
+        // PRINT — 3 slips per A4 landscape sheet
+        function buildSlipHtml() {
+            const firmSelect = $('#trader_select option:selected').text();
+            const firm = (firmSelect && firmSelect !== 'Select Firm')
+                ? firmSelect
+                : ((window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || 'ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ');
+            const apmc = $('#apmc_code').val() || 'BYD0679';
+            const dateVal = $('#print_date').val() || $('#entry_date').val();
+            const extend = $('#extend_input').val() || '';
+
             const rows = [];
             $('.lot-row').each(function() {
                 const lot = $(this).find('.cell-lot').val();
                 const bags = $(this).find('.cell-bags').val();
-                // Include row if it has either a lot number or bags
                 if (lot || bags) {
                     rows.push({
-                        sno: $(this).find('td:first').text(),
                         lot: lot || '',
                         variety: $(this).find('.cell-variety').val() || '',
                         bags: bags || '',
@@ -325,60 +459,85 @@
                     });
                 }
             });
-            // Limit to max 20 lots
-            const displayRows = rows.slice(0, 20);
 
+            const displayRows = rows.slice(0, 20);
+            while (displayRows.length < 20) {
+                displayRows.push({ lot: '', variety: '', bags: '', rate: '' });
+            }
+
+            const bodyRows = displayRows.map(r =>
+                `<tr>
+                    <td>${r.lot}</td>
+                    <td>${r.variety}</td>
+                    <td>${r.bags}</td>
+                    <td>${r.rate}</td>
+                    <td></td>
+                </tr>`
+            ).join('');
+
+            return `
+                <div class="tf-slip">
+                    <div class="tf-slip-head">
+                        <div class="tf-slip-apmc">ಎ.ಪಿ.ಎಂ.ಸಿ. ಬಾಗಲಕೋಟೆ</div>
+                        <div class="tf-slip-firm">${firm}</div>
+                        <div class="tf-slip-grower">
+                            <span>ಬೆಳೆಗಾರರು: ............................</span>
+                            <span>Cell: ...............</span>
+                        </div>
+                    </div>
+                    <div class="tf-slip-meta">
+                        <span>Code: ${apmc}</span>
+                        <span>Extend: ${extend}</span>
+                        <span>DATE: ${dateVal}</span>
+                    </div>
+                    <div class="tf-slip-table-wrap">
+                        <table class="tf-slip-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-lot">ಲಾಟು</th>
+                                    <th class="col-est">ಅಂದಾಜು</th>
+                                    <th class="col-bag">ಚೀಲ</th>
+                                    <th class="col-rate">ಕ್ವಿಂಟಲ್ ದರ</th>
+                                    <th class="col-rem">ಶರಾ</th>
+                                </tr>
+                            </thead>
+                            <tbody>${bodyRows}</tbody>
+                        </table>
+                    </div>
+                    <div class="tf-slip-sign">Signature</div>
+                </div>
+            `;
+        }
+
+        function buildPrintContent() {
+            const prints = parseInt($('#print_count').val(), 10) || 1;
             let fullContent = '';
             for (let p = 0; p < prints; p++) {
-                // page-break-after: always for multiple prints
-                let pageHtml = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin: 0; padding: 0; ${p < prints - 1 ? 'page-break-after: always;' : ''}">`;
+                fullContent += '<div class="tf-print-sheet">';
                 for (let s = 0; s < 3; s++) {
-                    pageHtml += `
-                        <div class="print-slip" style="height: auto; display: flex; flex-direction: column;">
-                            <div class="slip-header">
-                                <div style="font-size: 11px; font-weight: bold;">ಎ.ಪಿ.ಎಂ.ಸಿ. ಬಾಗಲಕೋಟೆ</div>
-                                <div style="font-size: 16px; font-weight: bold; margin: 2px 0;">${firm === 'Select Firm' ? ((window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || '') : firm}</div>
-                                <div class="d-flex justify-content-between mt-1"><span>ಬೆಳೆಗಾರರು: ............................</span><span>Cell: ...............</span></div>
-                                <div class="d-flex justify-content-between pt-1" style="border-top:1.5px solid #000; font-weight:bold; font-size: 11px;">
-                                    <span>Code: ${apmc}</span><span>Extend: ${extend}</span><span>DATE: ${date}</span>
-                                </div>
-                            </div>
-                            <table class="slip-table" style="flex-grow: 1;">
-                                <thead>
-                                    <tr>
-                                        <th width="50">ಲಾಟು</th>
-                                        <th width="80">ಅಂಡ್ಗಿ</th>
-                                        <th width="40">ಚೀಲ</th>
-                                        <th width="80">ಕ್ವಿಂಟಲ್ಗೆ ದರ</th>
-                                        <th width="80">ಶರಾ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${displayRows.map(r => `<tr><td>${r.lot}</td><td>${r.variety}</td><td>${r.bags}</td><td>${r.rate}</td><td></td></tr>`).join('')}
-                                    ${displayRows.length < 20 ? Array(20 - displayRows.length).fill().map((_, i) => `<tr><td>${displayRows.length + i + 1}</td><td></td><td></td><td></td><td></td></tr>`).join('') : ''}
-                                </tbody>
-                            </table>
-                            <div class="d-flex justify-content-end mt-2" style="font-weight:bold; font-size: 11px;">
-                                <span>Signature</span>
-                            </div>
-                        </div>
-                    `;
+                    fullContent += buildSlipHtml();
                 }
-                pageHtml += '</div>';
-                fullContent += pageHtml;
+                fullContent += '</div>';
             }
             $('#print-content').html(fullContent);
             $('#preview-inject').html(fullContent);
         }
 
-        $('#previewModal').on('show.bs.modal', buildPrintContent);
-        $('#doPrint').on('click', function() { buildPrintContent(); window.print(); });
+        window.buildTenderPrintContent = buildPrintContent;
 
-        // Build print content on page load so Ctrl+P / browser print also works
+        $('#previewModal').on('show.bs.modal', buildPrintContent);
+        $('#doPrint').on('click', function() {
+            buildPrintContent();
+            setTimeout(function() { window.print(); }, 150);
+        });
+
         buildPrintContent();
     });
 
-    // Rebuild before every print (handles Ctrl+P and browser native print)
-    window.onbeforeprint = function() { buildPrintContent(); };
+    window.onbeforeprint = function() {
+        if (typeof window.buildTenderPrintContent === 'function') {
+            window.buildTenderPrintContent();
+        }
+    };
 </script>
 {% endblock %}

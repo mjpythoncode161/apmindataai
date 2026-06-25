@@ -1742,6 +1742,123 @@ def view_all_avak(request):
     )
 
 
+def _prepare_avak_bag_rows(avak):
+    num_bags = int(avak.no_of_bags or 0)
+    num_rows = (num_bags + 9) // 10 if num_bags else 0
+    rows = []
+    for r in range(num_rows):
+        start = r * 10
+        end = min((r + 1) * 10, num_bags)
+        cells = [i + 1 for i in range(start, end)]
+        while len(cells) < 10:
+            cells.append(0)
+        rows.append(cells)
+    return rows
+
+
+def _filter_avaks_for_thookada(selected, from_lot, to_lot):
+    from django.db.models.functions import Length as DbLength
+
+    avaks = (
+        Avak.objects.filter(date=selected, is_cancelled=False)
+        .select_related("farmer", "buyer")
+        .order_by(DbLength("lot_number"), "lot_number")
+    )
+    from_int = int(from_lot) if str(from_lot).isdigit() else 1
+    to_int = int(to_lot) if str(to_lot).isdigit() else None
+    filtered = []
+    for avak in avaks:
+        if avak.lot_number.isdigit():
+            lot_num = int(avak.lot_number)
+            if lot_num < from_int:
+                continue
+            if to_int and lot_num > to_int:
+                continue
+        filtered.append(avak)
+    return filtered
+
+
+@login_required
+def thookada_chopada(request):
+    date_param = request.GET.get("date")
+    if date_param:
+        try:
+            selected = date.fromisoformat(date_param)
+        except ValueError:
+            selected = date.today()
+    else:
+        selected = date.today()
+    return render(
+        request,
+        "accounts/thookada_chopada.html",
+        {"today": selected.strftime("%Y-%m-%d")},
+    )
+
+
+@login_required
+def thookada_report(request):
+    mode = request.GET.get("mode", "lot")
+    if mode not in ("lot", "farmer", "bill_single", "bill_double"):
+        mode = "lot"
+
+    date_param = request.GET.get("date")
+    if date_param:
+        try:
+            selected = date.fromisoformat(date_param)
+        except ValueError:
+            selected = date.today()
+    else:
+        selected = date.today()
+
+    from_lot = request.GET.get("from_lot", "1")
+    to_lot = request.GET.get("to_lot", "")
+    mark_needed = request.GET.get("mark_needed") == "1"
+
+    avaks = _filter_avaks_for_thookada(selected, from_lot, to_lot)
+    for avak in avaks:
+        avak.rows_list = _prepare_avak_bag_rows(avak)
+
+    total_bags = sum(int(a.no_of_bags or 0) for a in avaks)
+    farmer_groups = []
+    if mode == "farmer":
+        groups = {}
+        for avak in avaks:
+            groups.setdefault(avak.farmer_id, {"farmer": avak.farmer, "avaks": []})[
+                "avaks"
+            ].append(avak)
+        farmer_groups = sorted(groups.values(), key=lambda g: g["farmer"].name or "")
+
+    avak_pairs = []
+    if mode == "bill_double":
+        avak_pairs = [avaks[i : i + 2] for i in range(0, len(avaks), 2)]
+
+    mode_titles = {
+        "lot": "ಲಾಟ್ ಪ್ರಕಾರ (Lot Prakara)",
+        "farmer": "ರೈತರ ಪ್ರಕಾರ (Rythara Prakara)",
+        "bill_single": "ತೂಕದ ಬಿಲ್ ಸಿಂಗಲ್ (Thookada Bill Single)",
+        "bill_double": "ತೂಕದ ಬಿಲ್ ಡಬಲ್ (Thookada Bill Double)",
+    }
+
+    return render(
+        request,
+        "accounts/thookada_report.html",
+        {
+            "mode": mode,
+            "mode_title": mode_titles[mode],
+            "date_instance": selected,
+            "from_lot": from_lot,
+            "to_lot": to_lot,
+            "mark_needed": mark_needed,
+            "avaks": avaks,
+            "farmer_groups": farmer_groups,
+            "avak_pairs": avak_pairs,
+            "total_bags": total_bags,
+            "total_lots": len(avaks),
+            "auto_print": request.GET.get("print") == "1",
+        },
+    )
+
+
 from django.http import JsonResponse
 
 
@@ -4839,6 +4956,8 @@ def view_trader_bill(request, bill_id):
         'bank': bank,
         'bank_has_details': bank_has_details,
     }
+    from accounts.tds_utils import calculate_bill_tds
+    context['tds_info'] = calculate_bill_tds(bill)
     return render(request, "accounts/view_trader_bill.html", context)
 
 
@@ -4868,6 +4987,64 @@ def lot_detail_modification(request):
         "default_avg_bag_weight": float(DEFAULT_AVG_BAG_WEIGHT_KG),
     }
     return render(request, "accounts/lot_detail_modification.html", context)
+
+
+@login_required
+def buyer_dalali_vivara(request):
+    """Options page — buyer commission / TDS report (Kharidi Patti)."""
+    from accounts.tds_utils import TDS_COMMISSION_THRESHOLD
+
+    today = date.today()
+    if today.month >= 4:
+        default_from = date(today.year, 4, 1)
+    else:
+        default_from = date(today.year - 1, 4, 1)
+
+    context = {
+        "from_date": request.GET.get("from_date") or default_from.isoformat(),
+        "to_date": request.GET.get("to_date") or today.isoformat(),
+        "tds_threshold": TDS_COMMISSION_THRESHOLD,
+    }
+    return render(request, "accounts/buyer_dalali_vivara.html", context)
+
+
+@login_required
+def buyer_dalali_vivara_report(request):
+    """Buyer commission / TDS report output."""
+    from accounts.tds_utils import TDS_COMMISSION_THRESHOLD, build_tds_report_rows
+
+    from_date_str = request.GET.get("from_date")
+    to_date_str = request.GET.get("to_date")
+    filter_mode = request.GET.get("filter", "all")
+    if filter_mode not in ("tds_only", "all"):
+        filter_mode = "all"
+
+    if not (from_date_str and to_date_str):
+        return redirect("buyer_dalali_vivara")
+
+    from_date_obj = date.fromisoformat(from_date_str)
+    to_date_obj = date.fromisoformat(to_date_str)
+    bills = TraderBill.objects.filter(
+        date__range=[from_date_obj, to_date_obj]
+    ).select_related("buyer")
+    report_data = build_tds_report_rows(bills, filter_mode=filter_mode)
+    totals = {
+        "commission": sum(r["commission"] for r in report_data),
+        "tds": sum(r["tds"] for r in report_data),
+        "count_tds": sum(1 for r in report_data if r["tds_applicable"]),
+        "count_no_tds": sum(1 for r in report_data if not r["tds_applicable"]),
+    }
+
+    context = {
+        "from_date_obj": from_date_obj,
+        "to_date_obj": to_date_obj,
+        "filter_mode": filter_mode,
+        "report_data": report_data,
+        "totals": totals,
+        "tds_threshold": TDS_COMMISSION_THRESHOLD,
+        "auto_print": request.GET.get("print") == "1",
+    }
+    return render(request, "accounts/buyer_dalali_vivara_report.html", context)
 
 
 @login_required

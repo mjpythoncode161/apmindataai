@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಖರೀದಿದಾರ ದಲಾಲಿ ವಿವರ — Report{% endblock %}
+
+{% block extra_head %}
+{% include 'accounts/includes/gst_report_styles.html' %}
+{% include 'accounts/includes/gst_report_print_landscape.html' %}
+<style>
+  .tds-yes { color: #c0392b; font-weight: 700; }
+  .tds-no { color: #27ae60; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+  <div class="container-fluid">
+    <div class="gst-report-toolbar no-print">
+      <a href="{% url 'buyer_dalali_vivara' %}?from_date={{ from_date_obj|date:'Y-m-d' }}&to_date={{ to_date_obj|date:'Y-m-d' }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-chevron-left mr-1"></i> Back
+      </a>
+      <div class="gst-toolbar-actions">
+        <button type="button" class="btn btn-primary btn-sm" onclick="printGstReport()">
+          <i class="fas fa-file-pdf mr-1"></i> Print / Save PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="gst-report-card" id="gstReportPrint">
+      <div class="gst-report-header">
+        {% include 'accounts/includes/company_report_header.html' %}
+        <div class="gst-report-title">ಖರೀದಿದಾರ ದಲಾಲಿ ವಿವರ (TDS Report)</div>
+        <div class="gst-report-date">
+          {{ from_date_obj|date:"d-m-Y" }} TO {{ to_date_obj|date:"d-m-Y" }}
+          — {% if filter_mode == 'tds_only' %}TDS Only{% else %}All (With + Without TDS){% endif %}
+        </div>
+      </div>
+
+      <div class="gst-table-wrap">
+        <table class="gst-report-table">
+          <thead>
+            <tr>
+              <th style="width:40px;">Sl</th>
+              <th style="width:85px;">Date</th>
+              <th style="width:70px;">Bill No</th>
+              <th class="text-left">Buyer Name</th>
+              <th style="width:100px;">PAN</th>
+              <th style="width:90px;">Commission</th>
+              <th style="width:100px;">FY Cumulative</th>
+              <th style="width:55px;">TDS %</th>
+              <th style="width:80px;">TDS Amt</th>
+              <th style="width:90px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in report_data %}
+            <tr>
+              <td class="text-center">{{ forloop.counter }}</td>
+              <td class="text-center">{{ row.date|date:"d-m-Y" }}</td>
+              <td class="text-center">
+                <a href="{% url 'view_trader_bill' row.bill_id %}" target="_blank" class="no-print">{{ row.bill_no }}</a>
+                <span class="d-none d-print-inline">{{ row.bill_no }}</span>
+              </td>
+              <td class="text-left">{{ row.buyer_name }}</td>
+              <td class="text-center">{{ row.buyer_pan }}</td>
+              <td>{{ row.commission|floatformat:2 }}</td>
+              <td>{{ row.cumulative_commission|floatformat:2 }}</td>
+              <td>{% if row.tds_applicable %}{{ row.tds_rate_percent|floatformat:2 }}{% else %}-{% endif %}</td>
+              <td>{% if row.tds_applicable %}<span class="tds-yes">{{ row.tds|floatformat:2 }}</span>{% else %}0.00{% endif %}</td>
+              <td class="text-center">
+                {% if row.tds_applicable %}
+                  <span class="tds-yes">With TDS</span>
+                {% else %}
+                  <span class="tds-no">Without TDS</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-4">No records found for selected period / filter.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if report_data %}
+          <tfoot>
+            <tr class="gst-summary-row">
+              <td colspan="5" class="text-left">TOTAL ({{ report_data|length }} bills)</td>
+              <td>{{ totals.commission|floatformat:2 }}</td>
+              <td colspan="2"></td>
+              <td>{{ totals.tds|floatformat:2 }}</td>
+              <td class="text-center">
+                TDS: {{ totals.count_tds }} / No TDS: {{ totals.count_no_tds }}
+              </td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+
+      <div class="gst-report-footer">Generated on: {% now "d-m-Y H:i" %}</div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% include 'accounts/includes/gst_report_scripts.html' %}
+{% endblock %}

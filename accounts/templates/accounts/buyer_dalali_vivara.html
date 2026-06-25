@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ಖರೀದಿದಾರ ದಲಾಲಿ ವಿವರ{% endblock %}
+
+{% block extra_head %}
+<style>
+  .bdv-page {
+    min-height: calc(100vh - 120px);
+    background: #eef1f4;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 12px;
+  }
+  .bdv-card {
+    width: 100%;
+    max-width: 340px;
+    background: #fff;
+    border: 1px solid #b8c5d6;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    padding: 14px 16px 16px;
+    font-family: 'Noto Sans Kannada', 'Nirmala UI', sans-serif;
+  }
+  .bdv-title {
+    text-align: center;
+    color: #1a4fa3;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .bdv-subtitle {
+    text-align: center;
+    color: #555;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .bdv-field {
+    width: 100%;
+    height: 34px;
+    border: 1px solid #7a8699;
+    border-radius: 2px;
+    padding: 4px 8px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #111;
+  }
+  .bdv-date-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .bdv-date-row .bdv-field {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .bdv-date-lbl {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #444;
+    margin-bottom: 2px;
+  }
+  .bdv-note {
+    font-size: 0.72rem;
+    color: #666;
+    line-height: 1.35;
+    margin: 8px 0 12px;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border: 1px dashed #ccc;
+    border-radius: 2px;
+  }
+  .bdv-btn {
+    display: block;
+    width: 100%;
+    border: none;
+    background: #28a745;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.88rem;
+    padding: 9px 10px;
+    margin-bottom: 7px;
+    border-radius: 2px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.25;
+  }
+  .bdv-btn:hover {
+    background: #218838;
+    color: #fff;
+  }
+  .bdv-btn:last-child { margin-bottom: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bdv-page">
+  <div class="bdv-card">
+    <div class="bdv-title">ಖರೀದಿದಾರ ದಲಾಲಿ ವಿವರ</div>
+    <div class="bdv-subtitle">Buyer Commission / TDS — Kharidi Patti</div>
+
+    <div class="bdv-date-row">
+      <div style="flex:1;">
+        <div class="bdv-date-lbl">From Date</div>
+        <input type="date" id="bdvFromDate" class="bdv-field" value="{{ from_date }}" />
+      </div>
+      <div style="flex:1;">
+        <div class="bdv-date-lbl">To Date</div>
+        <input type="date" id="bdvToDate" class="bdv-field" value="{{ to_date }}" />
+      </div>
+    </div>
+
+    <div class="bdv-note">
+      TDS (Sec 194H): FY ಒಟ್ಟು ದಲಾಲಿ ₹{{ tds_threshold|floatformat:0 }} ಮೀರಿದ ನಂತರ — PAN ಇದ್ದರೆ 2%, ಇಲ್ಲದಿದ್ದರೆ 5%
+    </div>
+
+    <button type="button" class="bdv-btn" onclick="openReport('tds_only')">
+      TDS Only (ದಲಾಲಿ TDS ಇರುವ ಪಟ್ಟಿಗಳು ಮಾತ್ರ)
+    </button>
+    <button type="button" class="bdv-btn" onclick="openReport('all')">
+      TDS + Without TDS (ಎರಡೂ ತೋರಿಸಿ)
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openReport(filter) {
+  const fromDate = $('#bdvFromDate').val();
+  const toDate = $('#bdvToDate').val();
+  if (!fromDate || !toDate) {
+    alert('Please select From Date and To Date');
+    return;
+  }
+  if (fromDate > toDate) {
+    alert('From Date cannot be after To Date');
+    return;
+  }
+  const url = '{% url "buyer_dalali_vivara_report" %}?from_date=' + encodeURIComponent(fromDate)
+    + '&to_date=' + encodeURIComponent(toDate)
+    + '&filter=' + encodeURIComponent(filter);
+  window.location.href = url;
+}
+</script>
+{% endblock %}

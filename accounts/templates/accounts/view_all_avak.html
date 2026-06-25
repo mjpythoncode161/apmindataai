@@ -108,38 +108,7 @@
     margin-top: 0;
   }
 
-  .bag-dash-wrap {
-    padding: 6px 4px 8px;
-    border: 1px solid #000;
-    border-top: none;
-    background: #fff;
-  }
-  .bag-dash-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-  .bag-dash-table td {
-    width: 10%;
-    padding: 2px 3px 0;
-    vertical-align: bottom;
-    height: 22px;
-  }
-  .bag-dash-cell {
-    display: block;
-    border-bottom: 1px dashed #333;
-    min-height: 18px;
-    position: relative;
-    padding-top: 10px;
-  }
-  .bag-dash-cell .bag-num {
-    position: absolute;
-    top: 0;
-    left: 2px;
-    font-size: 7.5pt;
-    color: #666;
-    line-height: 1;
-  }
+  {% include 'accounts/includes/bag_dash_styles.html' %}
 
   .avak-report-footer {
     margin-top: 10px;
@@ -277,7 +246,7 @@
         <td class="col-buyer">{% if a.buyer %}{{ a.buyer.short_code|default:a.buyer.name }}{% else %}&nbsp;{% endif %}</td>
       </tr>
       <tr class="avak-entry-block">
-        <td colspan="5" class="p-0" style="border:1px solid #000; border-top:none;">
+        <td colspan="5" class="p-0 bag-dash-row">
           <div class="bag-dash-wrap">
             <table class="bag-dash-table">
               {% for row in a.rows_list %}
@@ -287,7 +256,7 @@
                   {% if cell %}
                   <span class="bag-dash-cell"><span class="bag-num">{{ cell }}</span></span>
                   {% else %}
-                  <span class="bag-dash-cell" style="border-color:#ddd;"></span>
+                  <span class="bag-dash-cell"></span>
                   {% endif %}
                 </td>
                 {% endfor %}

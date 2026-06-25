@@ -29,6 +29,8 @@ urlpatterns = [
     path("avak/edit/<int:avak_id>/", views.edit_avak, name="edit_avak"),
     path("avak/view/<int:avak_id>/", views.view_avak, name="view_avak"),
     path("avak/view-all/", views.view_all_avak, name="view_all_avak"),
+    path("thookada-chopada/", views.thookada_chopada, name="thookada_chopada"),
+    path("thookada-chopada/report/", views.thookada_report, name="thookada_report"),
     path("avak/tender-form/", views.tender_form, name="tender_form"),
     path("avak/delete/<int:avak_id>/", views.delete_avak, name="delete_avak"),
     # APIs
@@ -90,6 +92,8 @@ urlpatterns = [
     path("api/update-trader-details/", views.update_trader_details, name="update_trader_details"),
     path("api/transfer-trader-lots/", views.transfer_trader_lots, name="transfer_trader_lots"),
     path("lot-detail-modification/", views.lot_detail_modification, name="lot_detail_modification"),
+    path("buyer-dalali-vivara/", views.buyer_dalali_vivara, name="buyer_dalali_vivara"),
+    path("buyer-dalali-vivara/report/", views.buyer_dalali_vivara_report, name="buyer_dalali_vivara_report"),
     path("api/get-lot-bags-details/", views.get_lot_bags_details, name="get_lot_bags_details"),
     path("api/update-avak-tender/", views.update_avak_tender, name="update_avak_tender"),
     path("api/upload-tender-pdf/", views.upload_tender_pdf, name="upload_tender_pdf"),

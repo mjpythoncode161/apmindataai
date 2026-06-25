@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ mode_title }} — {{ date_instance|date:"d-m-Y" }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .kn-text { font-family: 'Nirmala UI', 'Aparajita', 'Tunga', sans-serif; }
+  .tc-report-page {
+    max-width: 210mm;
+    margin: 0 auto 24px;
+    background: #fff;
+    padding: 14mm 12mm;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    color: #000;
+    font-size: 11pt;
+  }
+  .tc-report-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
+  .tc-report-header .company-name { font-size: 14pt; font-weight: 800; }
+  .tc-report-header .company-sub { font-size: 10pt; }
+  .tc-report-title { text-align: center; font-size: 13pt; font-weight: 800; margin: 6px 0; }
+  .tc-meta-row {
+    display: flex; justify-content: space-between; font-size: 10pt; font-weight: 700;
+    border-bottom: 1.5px solid #000; padding-bottom: 6px; margin-bottom: 8px;
+  }
+  .tc-data-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10.5pt; }
+  .tc-data-table th, .tc-data-table td { border: 1px solid #000; padding: 5px 6px; vertical-align: top; }
+  .tc-data-table thead th { background: #ececec; font-weight: 800; text-align: center; }
+  .tc-farmer-head td {
+    background: #eef7ee; font-weight: 800; font-size: 11pt; border: 1px solid #000;
+    padding: 6px 8px;
+  }
+  .tc-mark-col { width: 36px; text-align: center; font-weight: 800; }
+
+  {% include 'accounts/includes/bag_dash_styles.html' %}
+
+  .tc-bill-single { margin-bottom: 14px; page-break-inside: avoid; border: 1.5px solid #000; padding: 10px; }
+  .tc-bill-single .bill-title { text-align: center; font-weight: 800; text-decoration: underline; margin-bottom: 8px; font-size: 11pt; }
+  .tc-bill-single .bill-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #999; padding: 3px 0; font-size: 10pt; }
+  .tc-bill-single .bill-label { font-weight: 700; }
+
+  .tc-bill-double-row { display: flex; gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
+  .tc-bill-double-row .tc-bill-single { flex: 1; margin-bottom: 0; min-width: 0; }
+
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+  @media print {
+    html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print, .main-header, .main-sidebar, .main-footer { display: none !important; }
+    .content-wrapper, .content-wrapper > .content { margin: 0 !important; padding: 0 !important; }
+    .tc-report-page { max-width: none; border: none; box-shadow: none; padding: 0; margin: 0; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header no-print">
+  <div class="container-fluid">
+    <div class="row mb-2 align-items-center">
+      <div class="col-sm-6">
+        <h1 class="m-0" style="font-size:1.15rem;">{{ mode_title }}</h1>
+      </div>
+      <div class="col-sm-6 text-sm-right">
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+          <i class="fas fa-file-pdf"></i> Print / Save PDF
+        </button>
+        <a href="{% url 'thookada_chopada' %}" class="btn btn-secondary btn-sm">
+          <i class="fas fa-arrow-left"></i> Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tc-report-page kn-text" id="tcReportPrint">
+
+  <div class="tc-report-header">
+    {% if company.logo %}<img src="{{ company.logo.url }}" alt="" style="max-height:44px;margin-bottom:4px;" />{% endif %}
+    <div class="company-name">{{ company.display_name }}</div>
+    {% if company.display_address %}<div class="company-sub">{{ company.display_address }}</div>{% endif %}
+  </div>
+
+  <div class="tc-report-title">{{ mode_title }}</div>
+
+  <div class="tc-meta-row">
+    <span>ದಿನಾಂಕ: {{ date_instance|date:"d-m-Y" }}</span>
+    <span>ಲಾಟ್: {{ from_lot }}{% if to_lot %} – {{ to_lot }}{% endif %} &nbsp;|&nbsp; ಒಟ್ಟು: {{ total_lots }} ಲಾಟ್, {{ total_bags }} ಚೀಲ</span>
+  </div>
+
+  {% if avaks %}
+
+    {% if mode == 'bill_single' or mode == 'bill_double' %}
+      {% if mode == 'bill_single' %}
+        {% for a in avaks %}
+        <div class="tc-bill-single tc-entry-block">
+          <div class="bill-title">ತೂಕದ ಪಟ್ಟಿ — {{ date_instance|date:"d-m-Y" }}</div>
+          <div class="bill-row"><span class="bill-label">ಲಾಟ್:</span><span><strong>{{ a.lot_number }}</strong></span></div>
+          <div class="bill-row"><span class="bill-label">ರೈತ:</span><span>{% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}</span></div>
+          <div class="bill-row"><span class="bill-label">ಊರು:</span><span>{{ a.place|default:"-" }}</span></div>
+          <div class="bill-row"><span class="bill-label">ಚೀಲ:</span><span><strong>{{ a.no_of_bags }}</strong></span></div>
+          <div class="bill-row"><span class="bill-label">ಖರೀದಿದಾರ:</span><span>{% if a.buyer %}{{ a.buyer.short_code|default:a.buyer.name }}{% else %}-{% endif %}</span></div>
+          {% if mark_needed %}<div class="bill-row"><span class="bill-label">Mark:</span><span>☐</span></div>{% endif %}
+          <div class="bag-dash-wrap" style="margin-top:8px;">
+            <table class="bag-dash-table">
+              {% for row in a.rows_list %}
+              <tr>{% for cell in row %}<td>{% if cell %}<span class="bag-dash-cell"><span class="bag-num">{{ cell }}</span></span>{% else %}<span class="bag-dash-cell"></span>{% endif %}</td>{% endfor %}</tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        {% for pair in avak_pairs %}
+        <div class="tc-bill-double-row">
+          {% for a in pair %}
+          <div class="tc-bill-single">
+            <div class="bill-title">ತೂಕದ ಪಟ್ಟಿ</div>
+            <div class="bill-row"><span class="bill-label">ಲಾಟ್:</span><span><strong>{{ a.lot_number }}</strong></span></div>
+            <div class="bill-row"><span class="bill-label">ರೈತ:</span><span>{% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}</span></div>
+            <div class="bill-row"><span class="bill-label">ಚೀಲ:</span><span><strong>{{ a.no_of_bags }}</strong></span></div>
+            {% if mark_needed %}<div class="bill-row"><span class="bill-label">Mark:</span><span>☐</span></div>{% endif %}
+            <div class="bag-dash-wrap" style="margin-top:6px;">
+              <table class="bag-dash-table">
+                {% for row in a.rows_list %}
+                <tr>{% for cell in row %}<td>{% if cell %}<span class="bag-dash-cell"><span class="bag-num">{{ cell }}</span></span>{% else %}<span class="bag-dash-cell"></span>{% endif %}</td>{% endfor %}</tr>
+                {% endfor %}
+              </table>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      {% endif %}
+
+    {% elif mode == 'farmer' %}
+      <table class="tc-data-table">
+        <thead>
+          <tr>
+            <th style="width:9%;">ಲಾಟ್</th>
+            <th>ಹೆಸರು &amp; ಊರು</th>
+            <th style="width:11%;">ಚೀಲ</th>
+            <th style="width:12%;">ದರ</th>
+            <th style="width:22%;">ಖರೀದಿದಾರ</th>
+            {% if mark_needed %}<th class="tc-mark-col">Mark</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for group in farmer_groups %}
+          <tr class="tc-entry-block">
+            <td colspan="{% if mark_needed %}6{% else %}5{% endif %}" class="tc-farmer-head">
+              {{ group.farmer.name }}{% if group.farmer.name_kannada %} ({{ group.farmer.name_kannada }}){% endif %}
+            </td>
+          </tr>
+          {% for a in group.avaks %}
+          <tr class="tc-entry-block">
+            <td style="text-align:center;font-weight:700;">{{ a.lot_number }}</td>
+            <td>{% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}{% if a.place %}, {{ a.place }}{% endif %}</td>
+            <td style="text-align:center;font-weight:700;">{{ a.no_of_bags }}</td>
+            <td style="text-align:center;">{% if a.rate %}{{ a.rate|floatformat:0 }}{% else %}&nbsp;{% endif %}</td>
+            <td style="text-align:center;">{% if a.buyer %}{{ a.buyer.short_code|default:a.buyer.name }}{% else %}&nbsp;{% endif %}</td>
+            {% if mark_needed %}<td class="tc-mark-col">☐</td>{% endif %}
+          </tr>
+          <tr class="tc-entry-block">
+            <td colspan="{% if mark_needed %}6{% else %}5{% endif %}" class="p-0 bag-dash-row">
+              <div class="bag-dash-wrap">
+                <table class="bag-dash-table">
+                  {% for row in a.rows_list %}
+                  <tr>{% for cell in row %}<td>{% if cell %}<span class="bag-dash-cell"><span class="bag-num">{{ cell }}</span></span>{% else %}<span class="bag-dash-cell"></span>{% endif %}</td>{% endfor %}</tr>
+                  {% endfor %}
+                </table>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% else %}
+      <table class="tc-data-table">
+        <thead>
+          <tr>
+            <th style="width:9%;">ಲಾಟ್</th>
+            <th>ಹೆಸರು &amp; ಊರು</th>
+            <th style="width:11%;">ಚೀಲ</th>
+            <th style="width:12%;">ದರ</th>
+            <th style="width:22%;">ಖರೀದಿದಾರ</th>
+            {% if mark_needed %}<th class="tc-mark-col">Mark</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in avaks %}
+          <tr class="tc-entry-block">
+            <td style="text-align:center;font-weight:700;">{{ a.lot_number }}</td>
+            <td>{% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}{% if a.place %}, {{ a.place }}{% endif %}</td>
+            <td style="text-align:center;font-weight:700;">{{ a.no_of_bags }}</td>
+            <td style="text-align:center;">{% if a.rate %}{{ a.rate|floatformat:0 }}{% else %}&nbsp;{% endif %}</td>
+            <td style="text-align:center;">{% if a.buyer %}{{ a.buyer.short_code|default:a.buyer.name }}{% else %}&nbsp;{% endif %}</td>
+            {% if mark_needed %}<td class="tc-mark-col">☐</td>{% endif %}
+          </tr>
+          <tr class="tc-entry-block">
+            <td colspan="{% if mark_needed %}6{% else %}5{% endif %}" class="p-0 bag-dash-row">
+              <div class="bag-dash-wrap">
+                <table class="bag-dash-table">
+                  {% for row in a.rows_list %}
+                  <tr>{% for cell in row %}<td>{% if cell %}<span class="bag-dash-cell"><span class="bag-num">{{ cell }}</span></span>{% else %}<span class="bag-dash-cell"></span>{% endif %}</td>{% endfor %}</tr>
+                  {% endfor %}
+                </table>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center text-muted py-4">ಈ ದಿನಾಂಕ / ಲಾಟ್ ಶ್ರೇಣಿಗೆ ದಾಖಲೆಗಳಿಲ್ಲ</div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+{% if auto_print %}
+$(function () { setTimeout(function () { window.print(); }, 450); });
+{% endif %}
+</script>
+{% endblock %}
