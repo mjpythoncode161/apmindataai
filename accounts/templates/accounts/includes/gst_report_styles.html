@@ -1,0 +1,214 @@
+<style>
+  .gst-report-card {
+    background: #fff;
+    padding: 22px 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-top: 10px;
+    color: #000;
+    max-width: 297mm;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .gst-report-toolbar {
+    max-width: 297mm;
+    margin: 12px auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .gst-report-toolbar .gst-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .gst-report-header {
+    text-align: center;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #000;
+  }
+  .gst-report-header .company-name {
+    font-size: 17pt;
+    font-weight: 800;
+    color: #000;
+    margin-bottom: 2px;
+  }
+  .gst-report-header .company-sub {
+    font-size: 10pt;
+    color: #222;
+  }
+  .gst-report-title {
+    font-size: 12.5pt;
+    font-weight: 700;
+    margin-top: 10px;
+    color: #000;
+  }
+  .gst-report-date {
+    font-size: 10.5pt;
+    font-weight: 600;
+    margin-top: 4px;
+    color: #222;
+  }
+
+  .gst-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 4px;
+  }
+
+  .gst-report-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10pt;
+    color: #000;
+    border: 1.5px solid #000;
+  }
+  .gst-report-table thead { display: table-header-group; }
+  .gst-report-table tfoot { display: table-footer-group; }
+  .gst-report-table th,
+  .gst-report-table td {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    vertical-align: middle;
+    line-height: 1.35;
+  }
+  .gst-report-table thead th {
+    background: #ececec !important;
+    color: #000 !important;
+    font-weight: 700;
+    text-align: center;
+    border-bottom: 2px solid #000;
+  }
+  .gst-report-table tbody td {
+    font-weight: 400;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    background: #fff;
+  }
+  .gst-report-table tbody tr:nth-child(even) td {
+    background: #fafafa;
+  }
+  .gst-report-table tfoot td,
+  .gst-report-table tr.gst-summary-row td {
+    background: #e2e6ea !important;
+    color: #000 !important;
+    font-weight: 700;
+    border-top: 2px solid #000;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gst-report-table .text-left { text-align: left !important; }
+  .gst-report-table .text-center { text-align: center !important; }
+  .gst-report-table .text-right { text-align: right !important; }
+
+  .gst-report-table--compact {
+    font-size: 8.5pt;
+  }
+  .gst-report-table--compact th,
+  .gst-report-table--compact td {
+    padding: 4px 5px;
+  }
+
+  .gst-section-title {
+    background: #ececec;
+    color: #000;
+    border: 1.5px solid #000;
+    padding: 6px 10px;
+    font-weight: 700;
+    margin: 18px 0 6px;
+    font-size: 10pt;
+  }
+
+  .gst-report-footer {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: #555;
+  }
+
+  @media print {
+    html, body {
+      width: 100%;
+      height: auto;
+      background: #fff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .no-print,
+    .main-header,
+    .main-sidebar,
+    .main-footer,
+    .content-header,
+    .gst-report-toolbar {
+      display: none !important;
+    }
+    .wrapper,
+    .content-wrapper,
+    .content-wrapper > .content,
+    section.content {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+    }
+    .container-fluid {
+      width: 100% !important;
+      max-width: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    #gstReportPrint,
+    .gst-report-card {
+      max-width: none !important;
+      width: 100% !important;
+      box-shadow: none !important;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+    }
+    .gst-table-wrap {
+      overflow: visible !important;
+    }
+    .gst-report-table {
+      width: 100% !important;
+      border: 1.5px solid #000 !important;
+      page-break-inside: auto;
+    }
+    .gst-report-table tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .gst-report-table th,
+    .gst-report-table td {
+      border: 1px solid #000 !important;
+    }
+    .gst-report-table thead th {
+      background: #ececec !important;
+    }
+    .gst-report-table tfoot td,
+    .gst-report-table tr.gst-summary-row td {
+      background: #e2e6ea !important;
+    }
+    .gst-report-table tbody tr:nth-child(even) td {
+      background: #fafafa !important;
+    }
+    .gst-section-title {
+      background: #ececec !important;
+      page-break-after: avoid;
+    }
+    .gst-report-header {
+      page-break-after: avoid;
+    }
+    .gst-report-footer {
+      page-break-before: avoid;
+    }
+  }
+</style>

@@ -5,73 +5,114 @@
 
 {% block extra_css %}
 <style>
+  .edit-cancel-page {
+    font-family: 'Noto Sans Kannada', 'Nirmala UI', 'Segoe UI', sans-serif;
+    color: #1a1a1a;
+  }
+  .edit-cancel-page .page-title {
+    font-weight: 800;
+    font-size: 1.35rem;
+    color: #1e293b;
+    letter-spacing: 0.01em;
+  }
   .compact-card {
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-    border: 1px solid #e9ecef !important;
+    border: 1px solid #d1d5db !important;
     margin-bottom: 1.5rem;
     height: 100%;
   }
   .compact-card .card-header {
     background: #fff;
-    border-bottom: 1px solid #f1f1f1;
-    padding: 0.6rem 1rem;
+    border-bottom: 2px solid #f1f1f1;
+    padding: 0.7rem 1rem;
   }
   .compact-card .card-title {
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+  .edit-cancel-page .form-group {
+    margin-bottom: 0.8rem;
+  }
+  .edit-cancel-page .form-group label {
+    font-size: 0.88rem;
     font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #1f2937;
+    letter-spacing: 0.01em;
+    display: block;
   }
-  .form-group {
-    margin-bottom: 0.75rem;
-  }
-  .form-group label {
-    font-size: 0.78rem;
-    margin-bottom: 0.15rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  .form-control-sm, 
-  .select2-container--bootstrap4 .select2-selection--single {
-    height: 32px !important;
-    font-size: 0.85rem !important;
+  .edit-cancel-page .form-control-sm,
+  .edit-cancel-page input.form-control-sm,
+  .edit-cancel-page .select2-container--bootstrap4 .select2-selection--single {
+    height: 34px !important;
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    color: #111 !important;
     border-radius: 4px !important;
-    border: 1px solid #ced4da !important;
+    border: 1.5px solid #9ca3af !important;
     background-color: #fff !important;
     display: flex !important;
     align-items: center !important;
     padding: 0 0.75rem !important;
     box-sizing: border-box !important;
   }
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
-    line-height: 1 !important;
+  .edit-cancel-page .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+    line-height: 1.2 !important;
     padding-left: 0 !important;
-    color: #495057 !important;
+    color: #111 !important;
+    font-weight: 700 !important;
     width: 100%;
   }
-  .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
-    height: 30px !important;
+  .edit-cancel-page .select2-container--bootstrap4 .select2-selection--single .select2-selection__placeholder {
+    color: #374151 !important;
+    font-weight: 700 !important;
+  }
+  .edit-cancel-page .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+    height: 32px !important;
     top: 1px !important;
     right: 5px !important;
   }
-  input.form-control-sm {
-    line-height: 1 !important;
+  .edit-cancel-page input.form-control-sm[readonly] {
+    background: #f3f4f6 !important;
+    font-weight: 700 !important;
+    color: #111 !important;
   }
-  .btn-sm-custom {
-    padding: 0.4rem 1rem;
-    font-size: 0.85rem;
-    font-weight: 600;
+  .edit-cancel-page .btn-sm-custom {
+    padding: 0.5rem 1rem;
+    font-size: 0.92rem;
+    font-weight: 800;
     border-radius: 6px;
+    letter-spacing: 0.01em;
+  }
+  .edit-cancel-page .btn-outline-danger {
+    font-weight: 800 !important;
+    border-width: 2px !important;
+    font-size: 0.9rem !important;
+  }
+  .edit-cancel-page .cancel-note {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #374151;
+    line-height: 1.4;
+  }
+  .select2-results__option,
+  .select2-search__field {
+    font-weight: 700 !important;
+    font-size: 0.92rem !important;
+    color: #111 !important;
   }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="edit-cancel-page">
 <div class="content-header">
   <div class="container-fluid">
     <div class="row mb-2">
       <div class="col-sm-6">
-        <h1 class="m-0" style="font-weight: 700; color: #334155;">ತಿದ್ದುಪಡಿ / ರದ್ದುಪಡಿಸುವಿಕೆ</h1>
+        <h1 class="m-0 page-title">ತಿದ್ದುಪಡಿ / ರದ್ದುಪಡಿಸುವಿಕೆ</h1>
       </div>
     </div>
   </div>
@@ -222,7 +263,7 @@
                 <button type="button" id="btnCancelKharidi" class="btn btn-outline-danger btn-block btn-sm-custom mb-2">ಅವಾಕ್ ರದ್ದು (Avak)</button>
               </div>
             </div>
-            <div class="mt-2 text-center text-muted" style="font-size: 0.75rem;">
+            <div class="mt-2 text-center cancel-note">
                 *ರದ್ದುಪಡಿಸಿದ ದಾಖಲೆಗಳು ರಿಪೋರ್ಟ್ಗಳಲ್ಲಿ ಕಾಣಿಸುವುದಿಲ್ಲ.
             </div>
           </div>
@@ -231,6 +272,7 @@
     </div>
   </div>
 </section>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -239,6 +281,11 @@ $(function() {
     $('.select2').select2({
         theme: 'bootstrap4',
         width: '100%'
+    });
+
+    // Bold text in Select2 dropdown options
+    $(document).on('select2:open', function() {
+        $('.select2-results__option').css({'font-weight': '700', 'color': '#111'});
     });
 
     // Helper to fetch traders

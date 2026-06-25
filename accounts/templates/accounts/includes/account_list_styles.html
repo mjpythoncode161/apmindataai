@@ -1,0 +1,120 @@
+<style>
+  .acc-page-wrap {
+    padding: 12px 14px;
+    background: #f4f6f9;
+    min-height: calc(100vh - 120px);
+  }
+  .acc-list-header {
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .acc-list-header h4 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  .acc-list-header .badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .acc-list-header-farmer { background: #1e7e34; }
+  .acc-list-header-trader { background: #0056b3; }
+
+  .acc-list-card {
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  .acc-list-toolbar {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .acc-list-toolbar label {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+  .acc-list-toolbar .form-control {
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  .acc-list-toolbar .btn {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.6rem;
+  }
+
+  .acc-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    table-layout: fixed;
+    margin-bottom: 0;
+  }
+  .acc-list-table thead th {
+    background: #f8f9fa !important;
+    color: #212529 !important;
+    padding: 7px 10px !important;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    border-bottom: 2px solid #dee2e6 !important;
+    white-space: nowrap;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .acc-list-table thead th.th-left { text-align: left; }
+  .acc-list-table tbody td {
+    padding: 6px 10px !important;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    background: #fff !important;
+  }
+  .acc-list-table tbody tr:hover td {
+    background: #f8f9fa !important;
+  }
+  .acc-list-table td.col-num { width: 44px; text-align: center; }
+  .acc-list-table td.col-time { width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+  .acc-list-table td.col-code { width: 72px; text-align: center; }
+  .acc-list-table td.col-phone { width: 110px; }
+  .acc-list-table td.col-place { width: 100px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acc-list-table td.col-name { font-weight: 600; }
+  .acc-list-table td.col-kn {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #555;
+  }
+  .acc-list-table td.col-actions {
+    width: 76px;
+    text-align: center;
+    white-space: nowrap;
+    padding: 4px 6px !important;
+  }
+  .acc-list-table .btn-sm {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+  .acc-list-table .btn-sm + .btn-sm { margin-left: 2px; }
+  .acc-list-empty td {
+    padding: 2rem 1rem !important;
+    text-align: center;
+    color: #6c757d;
+  }
+</style>

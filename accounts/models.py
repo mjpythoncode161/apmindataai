@@ -557,3 +557,46 @@ class BankMaster(models.Model):
             lines.append(f"Branch : {self.branch}")
         return lines
 
+
+class CompanyProfile(models.Model):
+    """Single company profile for invoices, reports, and headers (pk=1)."""
+    company_name = models.CharField(
+        max_length=200, blank=True, default="M S B AND COMPANY"
+    )
+    company_name_kannada = models.CharField(
+        max_length=200, blank=True, default="ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ"
+    )
+    address = models.CharField(
+        max_length=500, blank=True, default="APMC Yard, Byadgi – 581106"
+    )
+    gst_number = models.CharField(max_length=20, blank=True, default="29CFIPB5465B1ZL")
+    phone = models.CharField(max_length=30, blank=True, default="")
+    system_label = models.CharField(max_length=50, blank=True, default="MSBC-2025-26")
+    logo = models.ImageField(upload_to="company/", blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Company Profile"
+        verbose_name_plural = "Company Profile"
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def display_name(self):
+        return (self.company_name_kannada or self.company_name or "").strip()
+
+    @property
+    def display_name_english(self):
+        return (self.company_name or self.company_name_kannada or "").strip()
+
+    @property
+    def display_address(self):
+        return (self.address or "").strip()
+
+    def header_subtitle(self):
+        parts = [p for p in [self.display_address, self.gst_number] if p]
+        return " | ".join(parts)
+

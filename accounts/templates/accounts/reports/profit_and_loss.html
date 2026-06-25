@@ -68,9 +68,9 @@
       </div>
 
       <div class="pl-header">
-        <div class="pl-co">M S B AND COMPANY</div>
-        <div class="pl-sub">APMC YARD, BYADGI</div>
-        <div class="pl-sub">GSTIN : 29CFIPB5465B1ZL &nbsp;|&nbsp; PAN : CFIPB5465B</div>
+        <div class="pl-co">{{ company.display_name_english }}</div>
+        <div class="pl-addr">{{ company.display_address|upper }}</div>
+        {% if company.gst_number %}<div class="pl-gst">GSTIN : {{ company.gst_number }}</div>{% endif %}
         <div class="pl-title">Trading &amp; Profit and Loss Account for {{ period_label }}</div>
       </div>
 

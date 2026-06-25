@@ -1,0 +1,10 @@
+<script>
+function printGstReport() {
+  window.print();
+}
+$(function () {
+  {% if auto_print %}
+  setTimeout(printGstReport, 450);
+  {% endif %}
+});
+</script>

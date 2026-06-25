@@ -5,18 +5,6 @@
 
 {% block extra_head %}
 <style>
-    @media print {
-        .main-header, .main-sidebar, .main-footer, .no-print, .btn-print {
-            display: none !important;
-        }
-        .content-wrapper {
-            margin-left: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-        }
-        .report-card { box-shadow: none !important; padding: 0 !important; border: none !important; }
-    }
-
     .report-card {
         background: #fdfefe;
         padding: 0;
@@ -26,7 +14,6 @@
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
 
-    /* Reference Header: ಬಜಾರ್ ಖರೀದಿ MSBC 2025-26 */
     .top-header-bar {
         background: #111;
         color: #fff;
@@ -38,7 +25,6 @@
         font-size: 1.15rem;
     }
 
-    /* Orange Control Bar */
     .controls-orange-bar {
         background: #df8a14;
         padding: 10px 15px;
@@ -76,11 +62,8 @@
         text-decoration: none !important;
         cursor: pointer;
     }
-    .btn-custom-dark:hover {
-        background: #000;
-    }
+    .btn-custom-dark:hover { background: #000; }
 
-    /* Table Styles */
     .report-table {
         width: 100%;
         border-collapse: collapse;
@@ -97,7 +80,6 @@
     }
     .report-table th.text-left { text-align: left; }
     .report-table th.text-center { text-align: center; }
-    
     .report-table td {
         padding: 8px 15px;
         border-bottom: 1px solid #ccc;
@@ -108,15 +90,8 @@
     }
     .report-table td.text-left { text-align: left; }
     .report-table td.text-center { text-align: center; }
-
-    .report-table tbody tr:nth-child(even) {
-        background-color: #f2f4f4;
-    }
-    .report-table tbody tr:hover {
-        background-color: #e5e8e8;
-    }
-
-    /* Black Footer with ಟೋಟಲ್ */
+    .report-table tbody tr:nth-child(even) { background-color: #f2f4f4; }
+    .report-table tbody tr:hover { background-color: #e5e8e8; }
     .report-table tfoot tr.summary-row {
         background-color: #111 !important;
         color: #fff;
@@ -128,12 +103,63 @@
         padding: 10px 15px;
         color: #fff !important;
     }
-
-    /* Solid Cyan/Teal accent bar at the bottom */
     .teal-accent-bar {
         background-color: #00cecb;
         height: 25px;
         width: 100%;
+    }
+
+    @page { size: A4 portrait; margin: 10mm 12mm; }
+    @media print {
+        html, body {
+            background: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .no-print, .main-header, .main-sidebar, .main-footer {
+            display: none !important;
+        }
+        .content-wrapper, .content-wrapper > .content {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+        }
+        .container-fluid { padding: 0 !important; }
+        .report-card {
+            box-shadow: none !important;
+            padding: 0 !important;
+            border: none !important;
+            margin: 0 !important;
+        }
+        .top-header-bar {
+            background: #111 !important;
+            color: #fff !important;
+            -webkit-print-color-adjust: exact;
+        }
+        .teal-accent-bar { display: none !important; }
+        .report-table {
+            border: 1.5px solid #000 !important;
+        }
+        .report-table th,
+        .report-table td {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+        }
+        .report-table th {
+            background: #ececec !important;
+            color: #000 !important;
+            font-weight: 700 !important;
+        }
+        .report-table tbody tr,
+        .report-table tbody tr:nth-child(even) {
+            background: #fff !important;
+        }
+        .report-table tfoot tr.summary-row,
+        .report-table tfoot tr.summary-row td {
+            background: #e2e6ea !important;
+            color: #000 !important;
+            font-weight: 700 !important;
+        }
     }
 </style>
 {% endblock %}
@@ -141,23 +167,20 @@
 {% block content %}
 <section class="content">
     <div class="container-fluid">
-        <div class="report-card">
-            <!-- Top Dark Header: ಬಜಾರ್ ಖರೀದಿ MSBC 2025-26 -->
+        <div class="report-card" id="bazarKharidiPrint">
             <div class="top-header-bar">
                 <span>ಬಜಾರ್ ಖರೀದಿ</span>
                 <span>{{ system_name }}</span>
             </div>
 
-            <!-- Orange Control Bar -->
             <div class="controls-orange-bar no-print">
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center flex-wrap">
                     <label>Date:</label>
-                    <input type="date" id="bazar_date" class="date-input-custom" value="{{ selected_date }}" onchange="reloadPage()">
-                    <button class="btn-custom-dark ml-4" onclick="window.print()">Print</button>
+                    <input type="date" id="bazar_date" class="date-input-custom" value="{{ selected_date }}">
+                    <button type="button" class="btn-custom-dark ml-3" onclick="printBazarKharidi()">Print / Save PDF</button>
                 </div>
             </div>
 
-            <!-- The Beautiful Data Table -->
             <div class="table-responsive">
                 <table class="report-table">
                     <thead>
@@ -192,8 +215,7 @@
                 </table>
             </div>
 
-            <!-- Bottom Teal Accent Bar -->
-            <div class="teal-accent-bar"></div>
+            <div class="teal-accent-bar no-print"></div>
         </div>
     </div>
 </section>
@@ -201,9 +223,14 @@
 
 {% block extra_scripts %}
 <script>
-    function reloadPage() {
-        const d = $('#bazar_date').val();
-        window.location.href = '?date=' + d;
-    }
+function printBazarKharidi() { window.print(); }
+function reloadPage() {
+    const d = $('#bazar_date').val();
+    if (d) window.location.href = '?date=' + d;
+}
+$(function () {
+    $('#bazar_date').on('change', reloadPage);
+    {% if auto_print %} setTimeout(printBazarKharidi, 400); {% endif %}
+});
 </script>
 {% endblock %}

@@ -4,97 +4,31 @@
 {% block title %}GST R1 Report - {{ system_name }}{% endblock %}
 
 {% block extra_head %}
-<style>
-    @media print {
-        .main-header, .main-sidebar, .main-footer, .no-print, .btn-print {
-            display: none !important;
-        }
-        .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
-        .report-card { box-shadow: none !important; padding: 0 !important; }
-        table { font-size: 8pt !important; }
-    }
-    
-    .report-card {
-        background: white;
-        padding: 25px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border-radius: 8px;
-        margin-top: 20px;
-    }
-
-    .report-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 8.5pt;
-        color: #333;
-        margin-bottom: 30px;
-    }
-    .report-table th, .report-table td {
-        border: 1px solid #000;
-        padding: 5px 3px;
-        text-align: right;
-    }
-    .report-table th {
-        background-color: #fff;
-        font-weight: bold;
-        text-align: center;
-        color: #000;
-    }
-    .text-left { text-align: left !important; }
-    .section-title {
-        background: #fff;
-        color: #000;
-        border: 1px solid #000;
-        padding: 5px 10px;
-        font-weight: bold;
-        margin-bottom: 10px;
-        font-size: 10pt;
-    }
-    
-    .report-header { text-align: center; margin-bottom: 25px; }
-    .company-name { font-size: 18pt; font-weight: bold; }
-    
-    .btn-back {
-        padding: 8px 20px;
-        background: #6c757d;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        float: right;
-        text-decoration: none !important;
-    }
-    .btn-back:hover { color: #fff; background: #5a6268; }
-</style>
+{% include 'accounts/includes/gst_report_styles.html' %}
+{% include 'accounts/includes/gst_report_print_landscape.html' %}
 {% endblock %}
 
 {% block content %}
 <section class="content">
     <div class="container-fluid">
-        <div class="report-card">
-            <div class="no-print mb-3">
-                <a href="{% url 'gst_reports' %}" class="btn-back">
-                    <i class="fas fa-chevron-left mr-2"></i> Back to Reports
-                </a>
-            </div>
-            <div class="clearfix"></div>
+        {% include 'accounts/includes/gst_report_toolbar.html' %}
 
-            <div class="report-header">
-                <div class="company-name">ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ</div>
-                <div class="company-sub">ಎ ಪಿ ಎಂ ಸಿ ಯಾರ್ಡ್ - ಬ್ಯಾಡಗಿ | 29CFIPB5465B1ZL</div>
-                <div class="report-title">GST R1 Sales Report</div>
-                <div class="date-range">{{ from_date|date:"d-m-Y" }} TO {{ to_date|date:"d-m-Y" }}</div>
+        <div class="gst-report-card" id="gstReportPrint">
+            <div class="gst-report-header">
+                {% include 'accounts/includes/company_report_header.html' %}
+                <div class="gst-report-title">GST R1 Sales Report</div>
+                <div class="gst-report-date">{{ from_date|date:"d-m-Y" }} TO {{ to_date|date:"d-m-Y" }}</div>
             </div>
 
-            <!-- B2B Section -->
-            <div class="section-title">B2B INVOICES (Registered Traders)</div>
-            <div class="table-responsive">
-                <table class="report-table">
+            <div class="gst-section-title">B2B INVOICES (Registered Traders)</div>
+            <div class="gst-table-wrap">
+                <table class="gst-report-table gst-report-table--compact">
                     <thead>
                         <tr>
-                            <th style="width: 70px;">Date</th>
-                            <th style="width: 60px;">Inv No</th>
+                            <th style="width: 72px;">Date</th>
+                            <th style="width: 58px;">Inv No</th>
                             <th class="text-left">Trader Name</th>
-                            <th>GSTIN</th>
+                            <th style="width: 130px;">GSTIN</th>
                             <th>Taxable Value</th>
                             <th>CGST</th>
                             <th>SGST</th>
@@ -106,10 +40,10 @@
                         {% if b2b_data %}
                             {% for row in b2b_data %}
                             <tr>
-                                <td>{{ row.date|date:"d-m-Y" }}</td>
-                                <td>{{ row.bill_no }}</td>
-                                <td class="text-left font-weight-bold">{{ row.name }}</td>
-                                <td>{{ row.gstin }}</td>
+                                <td class="text-center">{{ row.date|date:"d-m-Y" }}</td>
+                                <td class="text-center">{{ row.bill_no }}</td>
+                                <td class="text-left">{{ row.name }}</td>
+                                <td class="text-center">{{ row.gstin }}</td>
                                 <td>{{ row.taxable_amount|floatformat:2 }}</td>
                                 <td>{{ row.cgst|floatformat:2 }}</td>
                                 <td>{{ row.sgst|floatformat:2 }}</td>
@@ -118,20 +52,19 @@
                             </tr>
                             {% endfor %}
                         {% else %}
-                            <tr><td colspan="9" class="text-center py-4">No B2B Invoices Found</td></tr>
+                            <tr><td colspan="9" class="text-center py-3">No B2B Invoices Found</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
             </div>
 
-            <!-- B2C Section -->
-            <div class="section-title">B2C INVOICES (Unregistered)</div>
-            <div class="table-responsive">
-                <table class="report-table">
+            <div class="gst-section-title">B2C INVOICES (Unregistered)</div>
+            <div class="gst-table-wrap">
+                <table class="gst-report-table gst-report-table--compact">
                     <thead>
                         <tr>
-                            <th style="width: 70px;">Date</th>
-                            <th style="width: 60px;">Inv No</th>
+                            <th style="width: 72px;">Date</th>
+                            <th style="width: 58px;">Inv No</th>
                             <th class="text-left">Name</th>
                             <th>Taxable Value</th>
                             <th>CGST</th>
@@ -144,8 +77,8 @@
                         {% if b2c_data %}
                             {% for row in b2c_data %}
                             <tr>
-                                <td>{{ row.date|date:"d-m-Y" }}</td>
-                                <td>{{ row.bill_no }}</td>
+                                <td class="text-center">{{ row.date|date:"d-m-Y" }}</td>
+                                <td class="text-center">{{ row.bill_no }}</td>
                                 <td class="text-left">{{ row.name }}</td>
                                 <td>{{ row.taxable_amount|floatformat:2 }}</td>
                                 <td>{{ row.cgst|floatformat:2 }}</td>
@@ -155,14 +88,18 @@
                             </tr>
                             {% endfor %}
                         {% else %}
-                            <tr><td colspan="8" class="text-center py-4">No B2C Invoices Found</td></tr>
+                            <tr><td colspan="8" class="text-center py-3">No B2C Invoices Found</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
             </div>
 
-            <div class="mt-4 small text-muted">Generated on: {% now "d-m-Y H:i" %}</div>
+            <div class="gst-report-footer">Generated on: {% now "d-m-Y H:i" %}</div>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% include 'accounts/includes/gst_report_scripts.html' %}
 {% endblock %}

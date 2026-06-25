@@ -5,10 +5,84 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css' %}" />
-<link rel="stylesheet" href="{% static 'assets/plugins/datatables-responsive/css/responsive.bootstrap4.min.css' %}" />
+<style>
+  .bikri-list-page .content-header h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .bikri-list-card .card-header {
+    padding: 0.6rem 1rem;
+  }
+  .bikri-list-card .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .bikri-list-card .card-body {
+    padding: 0 !important;
+  }
+  #bikriTable {
+    width: 100% !important;
+    margin-bottom: 0 !important;
+    font-size: 0.875rem;
+  }
+  #bikriTable thead th {
+    padding: 8px 10px !important;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    vertical-align: middle;
+    text-align: center;
+    background: #f8f9fa !important;
+  }
+  #bikriTable thead th.col-text-left {
+    text-align: left;
+  }
+  #bikriTable tbody td {
+    padding: 7px 10px !important;
+    vertical-align: middle;
+  }
+  #bikriTable td.col-center { text-align: center; }
+  #bikriTable td.col-right { text-align: right; font-variant-numeric: tabular-nums; }
+  #bikriTable td.col-farmer {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #bikriTable td.col-place {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #bikriTable td.col-actions {
+    width: 108px;
+    white-space: nowrap;
+    text-align: center;
+    padding: 5px 8px !important;
+  }
+  #bikriTable .btn-group .btn {
+    padding: 0.2rem 0.5rem;
+    line-height: 1.2;
+  }
+  #bikriTable .btn-group .btn + .btn {
+    margin-left: 2px;
+  }
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+  .dataTables_wrapper .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
+<div class="bikri-list-page">
 <div class="content-header">
   <div class="container-fluid">
     <div class="row mb-2">
@@ -21,53 +95,53 @@
 
 <section class="content">
   <div class="container-fluid">
-    <div class="card">
+    <div class="card bikri-list-card shadow-sm">
       <div class="card-header">
-        <div class="d-flex align-items-center flex-wrap w-100">
-          <h3 class="card-title m-0">Sale Entries</h3>
+        <div class="d-flex align-items-center flex-wrap w-100 gap-2">
+          <h3 class="card-title m-0 mr-3">Sale Entries</h3>
           <div class="ml-auto d-flex align-items-center flex-wrap">
-            <div class="d-flex align-items-center mr-3">
-              <label for="bikriDate" class="mr-2 mb-0 font-weight-bold">Date:</label>
-              <input type="date" id="bikriDate" class="form-control form-control-sm" value="{{ date_value }}" style="width: 150px;" />
+            <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
+              <label for="bikriDate" class="mr-2 mb-0 font-weight-bold small">Date:</label>
+              <input type="date" id="bikriDate" class="form-control form-control-sm" value="{{ date_value }}" style="width: 142px;" />
             </div>
-            <div class="input-group input-group-sm mr-2" style="width: 220px">
+            <div class="input-group input-group-sm mr-2 mb-1 mb-md-0" style="width: 180px;">
               <input type="text" id="bikriTableSearch" class="form-control" placeholder="Search..." aria-label="Search sale entries" />
               <div class="input-group-append">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <span class="input-group-text py-1"><i class="fas fa-search"></i></span>
               </div>
             </div>
-            <a href="{% url 'add_bikri' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add New Sale</a>
+            <a href="{% url 'add_bikri' %}" class="btn btn-primary btn-sm mb-1 mb-md-0"><i class="fas fa-plus"></i> Add New Sale</a>
           </div>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body">
         <div class="table-responsive">
-          <table id="bikriTable" class="table table-bordered table-striped mb-0" style="width:100%;">
+          <table id="bikriTable" class="table table-bordered table-striped table-hover mb-0">
           <thead>
             <tr>
-              <th>SL NO</th>
-              <th>Date</th>
-              <th>Lot NO</th>
-              <th>Farmer</th>
-              <th>Place</th>
-              <th>Bags</th>
-              <th>Total Weight</th>
-              <th>ನಿವ್ವಳ ಅಮೌಂಟ್</th>
-              <th>Action</th>
+              <th style="width:52px;">SL</th>
+              <th style="width:92px;">Date</th>
+              <th style="width:64px;">Lot</th>
+              <th class="col-text-left" style="width:120px;">Farmer</th>
+              <th class="col-text-left" style="width:90px;">Place</th>
+              <th style="width:56px;">Bags</th>
+              <th style="width:88px;">Weight</th>
+              <th style="width:100px;">ನಿವ್ವಳ ಅಮೌಂಟ್</th>
+              <th style="width:108px;">Action</th>
             </tr>
           </thead>
           <tbody>
             {% for b in bikris %}
             <tr>
-              <td>{{ forloop.counter }}</td>
-              <td>{{ b.date|date:"d-m-Y" }}</td>
-              <td>{{ b.avak.lot_number }}</td>
-              <td>{{ b.avak.farmer.name }}</td>
-              <td>{{ b.place }}</td>
-              <td>{{ b.no_of_bags }}</td>
-              <td>{{ b.total_weight }}</td>
-              <td>{{ b.net_payable|floatformat:2 }}</td>
-              <td>
+              <td class="col-center">{{ forloop.counter }}</td>
+              <td class="col-center">{{ b.date|date:"d-m-Y" }}</td>
+              <td class="col-center">{{ b.avak.lot_number }}</td>
+              <td class="col-farmer" title="{{ b.avak.farmer.name }}">{{ b.avak.farmer.name }}</td>
+              <td class="col-place" title="{{ b.place }}">{{ b.place }}</td>
+              <td class="col-center">{{ b.no_of_bags }}</td>
+              <td class="col-right">{{ b.total_weight|floatformat:2 }}</td>
+              <td class="col-right"><strong>{{ b.net_payable|floatformat:2 }}</strong></td>
+              <td class="col-actions">
                 <div class="btn-group">
                   <a href="{% url 'view_bikri' b.id %}" class="btn btn-sm btn-info text-white" title="View Bill"><i class="fas fa-eye"></i></a>
                   {% if b.lot_details|length > 1 %}
@@ -102,43 +176,45 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>
 </section>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="{% static 'assets/plugins/datatables/jquery.dataTables.min.js' %}"></script>
 <script src="{% static 'assets/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
-<script src="{% static 'assets/plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
-<script src="{% static 'assets/plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
 <script>
   $(function () {
-    // Bind date change listener first so it always works even if DataTable fails
     $("#bikriDate").on("change", function () {
       window.location.href = "?date=" + this.value;
     });
 
-    try {
+    var rowCount = $("#bikriTable tbody tr").length;
+    var hasData = rowCount > 0 && !$("#bikriTable tbody tr td[colspan]").length;
+
+    if (hasData) {
       var table = $("#bikriTable").DataTable({
-        responsive: true,
         autoWidth: false,
-        scrollX: true,
+        paging: rowCount > 10,
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
         order: [],
         dom: "lrtip",
         columnDefs: [
-          { responsivePriority: 1, targets: 0 },
-          { responsivePriority: 2, targets: 3 },
-          { responsivePriority: 3, targets: 8 },
-          { responsivePriority: 100, targets: '_all' }
-        ]
+          { targets: [0, 1, 2, 5], className: "col-center" },
+          { targets: [6, 7], className: "col-right" },
+          { targets: 3, className: "col-farmer" },
+          { targets: 4, className: "col-place" },
+          { targets: 8, orderable: false, className: "col-actions" },
+        ],
       });
       $("#bikriTableSearch").on("input", function () {
         table.search(this.value).draw();
       });
-    } catch (e) {
-      console.warn("DataTable failed to initialize: ", e);
     }
   });
 </script>

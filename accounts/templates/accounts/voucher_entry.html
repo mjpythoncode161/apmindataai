@@ -8,14 +8,52 @@
 <link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
 <style>
   .voucher-table thead th { background: #343a40; color: #fff; font-size: 0.85rem; }
-  .voucher-table td, .voucher-table th { vertical-align: middle !important; padding: 6px 8px; }
-  .entry-type-toggle .btn { min-width: 48px; font-weight: 600; }
+  .voucher-table td, .voucher-table th { vertical-align: middle !important; padding: 5px 6px; }
+  .entry-type-toggle .btn { min-width: 42px; font-weight: 600; padding: 4px 10px; font-size: 0.85rem; }
   .total-row td { font-weight: bold; background: #f8f9fa; border-top: 2px solid #343a40; }
-  .balance-indicator { font-size: 1.1rem; font-weight: bold; }
+  .balance-indicator { font-size: 1rem; font-weight: bold; }
   .balanced { color: #28a745; }
   .unbalanced { color: #dc3545; }
-  .btn-remove-line { padding: 2px 8px; }
-  .select2-container { min-width: 220px; }
+  .btn-remove-line { padding: 2px 7px; font-size: 0.8rem; }
+
+  /* Medium-size fields */
+  #voucherForm .form-control.vchr-kb-field {
+    height: 34px;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+  }
+  .voucher-table .select2-container {
+    min-width: 160px;
+    max-width: 260px;
+    width: 100% !important;
+  }
+  .voucher-table .select2-container--bootstrap4 .select2-selection--single {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 4px 8px !important;
+    font-size: 0.9rem !important;
+    border-radius: 4px !important;
+  }
+  .voucher-table .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+    line-height: 24px !important;
+    padding-left: 0 !important;
+    font-size: 0.9rem !important;
+  }
+  .voucher-table .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+    height: 32px !important;
+    top: 1px !important;
+  }
+  .voucher-table .line-amount {
+    height: 34px;
+    max-width: 130px;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+  }
+  .voucher-table td:first-child { width: 38%; max-width: 280px; }
+  .voucher-table td:nth-child(2) { width: 100px; }
+  .voucher-table td:nth-child(3) { width: 140px; }
+  .voucher-table td:last-child { width: 44px; }
+
   .voucher-type-tabs .nav-link { font-weight: 600; }
   .voucher-type-tabs .nav-link.active { background: #007bff; color: #fff; border-color: #007bff; }
   .vchr-kb-hint { font-size: 0.82rem; margin-bottom: 12px !important; }
@@ -151,7 +189,6 @@
                   <th>Ledger Account</th>
                   <th style="width:90px">Dr / Cr</th>
                   <th style="width:140px">Amount (₹)</th>
-                  <th>Narration</th>
                   <th style="width:50px"></th>
                 </tr>
               </thead>
@@ -165,7 +202,7 @@
                     <div>Dr: <span id="totalDr" class="text-danger">0.00</span></div>
                     <div>Cr: <span id="totalCr" class="text-success">0.00</span></div>
                   </td>
-                  <td colspan="2">
+                  <td>
                     <span id="balanceIndicator" class="balance-indicator unbalanced">
                       <i class="fas fa-times-circle"></i> Not Balanced
                     </span>
@@ -231,9 +268,6 @@
     </td>
     <td>
       <input type="number" step="0.01" min="0" name="amount[]" class="form-control line-amount vchr-kb-field text-right" placeholder="0.00" />
-    </td>
-    <td>
-      <input type="text" name="line_narration[]" class="form-control vchr-kb-field line-narration" placeholder="Optional note" />
     </td>
     <td class="text-center">
       <button type="button" class="btn btn-sm btn-outline-danger btn-remove-line" title="Remove" tabindex="-1">
@@ -385,13 +419,7 @@ $(function () {
         focusNextFrom(this);
       }
     });
-    $row.find('.line-narration').off('keydown.vchrKb').on('keydown.vchrKb', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        focusNextFrom(this);
-      }
-    });
-    $row.find('.line-amount, .line-narration').off('focus.vchrKb').on('focus.vchrKb', function () {
+    $row.find('.line-amount').off('focus.vchrKb').on('focus.vchrKb', function () {
       highlightKbField($(this));
     });
   }
@@ -519,7 +547,6 @@ $(function () {
         var $row = addLine(line.entry_type);
         $row.find('.ledger-select').val(line.ledger_id).trigger('change');
         $row.find('.line-amount').val(line.amount);
-        $row.find('.line-narration').val(line.narration);
       });
       recalcTotals();
       return;

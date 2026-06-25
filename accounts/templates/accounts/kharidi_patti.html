@@ -5,7 +5,52 @@
 
 {% block extra_css %}
 <style>
-    .card-title { font-weight: 700; font-size: 1.1rem; }
+    .kp-page .content-header {
+        padding: 0.5rem 0;
+    }
+    .kp-page .content-header h1 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .kp-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    .kp-field {
+        min-width: 0;
+    }
+    .kp-field label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #495057;
+        margin-bottom: 2px;
+    }
+    .kp-field-date { width: 148px; }
+    .kp-field-buyer { width: min(280px, 100%); flex: 1 1 220px; }
+    .kp-field-transfer { width: min(200px, 100%); flex: 0 1 180px; }
+    .kp-field .form-control,
+    .kp-field .select2-container {
+        width: 100% !important;
+    }
+    .kp-field .select2-container .select2-selection--single {
+        height: 31px !important;
+        min-height: 31px;
+        font-size: 0.875rem;
+    }
+    .kp-field .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+        line-height: 29px !important;
+        padding-left: 8px;
+    }
+    .kp-field .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+        height: 29px !important;
+    }
+
+    .card-title { font-weight: 700; font-size: 1rem; }
     .table-sm th, .table-sm td { font-size: 0.85rem; padding: 6px !important; }
     .label-bold { font-weight: 600; color: #495057; font-size: 0.82rem; }
     .input-sm-custom { height: 32px !important; font-size: 0.85rem !important; }
@@ -104,28 +149,38 @@
 {% endblock %}
 
 {% block content %}
+<div class="kp-page">
 <div class="content-header">
     <div class="container-fluid">
-        <div class="row mb-2 align-items-center">
-            <div class="col-sm-4">
-                <h1 class="m-0 text-dark" style="font-weight: 800;">ಖರೀದಿ ಪಟ್ಟಿ <small class="text-muted">Trader Bill</small></h1>
+        <div class="row align-items-center">
+            <div class="col-lg-3 col-md-12 mb-2 mb-lg-0">
+                <h1 class="text-dark">ಖರೀದಿ ಪಟ್ಟಿ <small class="text-muted">Trader Bill</small></h1>
             </div>
-            <div class="col-sm-8 d-flex justify-content-end align-items-center">
-                <div class="mr-3">
-                    <label class="label-bold mb-0">ದಿನಾಂಕ:</label>
-                    <input type="date" id="billDate" class="form-control form-control-sm d-inline-block w-auto" value="{{ today }}">
+            <div class="col-lg-9 col-md-12">
+                <div class="kp-toolbar">
+                    <div class="kp-field kp-field-date">
+                        <label for="billDate">ದಿನಾಂಕ</label>
+                        <input type="date" id="billDate" class="form-control form-control-sm" value="{{ today }}">
+                    </div>
+                    <div class="kp-field kp-field-buyer">
+                        <label for="buyerSelect">ಖರೀದಿದಾರ (Buyer)</label>
+                        <select id="buyerSelect" class="form-control form-control-sm">
+                            <option value=""></option>
+                        </select>
+                    </div>
+                    <div class="kp-field kp-field-transfer">
+                        <label for="transferToSelect">Transfer To</label>
+                        <select id="transferToSelect" class="form-control form-control-sm">
+                            <option value=""></option>
+                        </select>
+                    </div>
+                    <div class="kp-field" style="flex:0 0 auto;">
+                        <label class="d-none d-md-block">&nbsp;</label>
+                        <button class="btn btn-sm btn-primary font-weight-bold" id="btnTransfer" title="Transfer lots to another trader">
+                            <i class="fas fa-exchange-alt mr-1"></i> TRANSFER
+                        </button>
+                    </div>
                 </div>
-                <div class="mr-3" style="width: 250px;">
-                    <select id="buyerSelect" class="form-control form-control-sm select2">
-                        <option value="">ಖರೀದಿದಾರ ಆಯ್ಕೆ (Select Buyer)</option>
-                    </select>
-                </div>
-                <div class="mr-2" style="width: 180px;">
-                    <select id="transferToSelect" class="form-control form-control-sm select2">
-                        <option value="">Transfer To...</option>
-                    </select>
-                </div>
-                <button class="btn btn-sm btn-primary font-weight-bold" id="btnTransfer" title="Transfer lots to another trader"><i class="fas fa-exchange-alt mr-1"></i> TRANSFER</button>
             </div>
         </div>
     </div>
@@ -331,6 +386,7 @@
         </div>
     </div>
 </section>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -346,29 +402,67 @@ $(function() {
     let availableLots = [];
     let selectedLotIds = new Set();
 
-    function setupSelect2(selector, placeholder, includeDate = true) {
-        $(selector).select2({
+    const BUYER_PLACEHOLDER = 'ಖರೀದಿದಾರ ಆಯ್ಕೆ (Select Buyer)';
+
+    function setupTransferSelect2() {
+        $('#transferToSelect').select2({
             theme: 'bootstrap4',
+            width: '100%',
+            allowClear: true,
+            placeholder: 'Transfer To...',
             ajax: {
                 url: "{% url 'get_traders' %}",
-                dataType: 'json', delay: 250,
+                dataType: 'json',
+                delay: 250,
                 data: function(params) {
-                    let reqData = { q: params.term };
-                    if (includeDate) {
-                        reqData.date = $('#billDate').val();
-                    }
-                    return reqData;
+                    return { q: params.term || '' };
                 },
-                processResults: function(data) { return { results: data.results }; },
+                processResults: function(data) { return { results: data.results || [] }; },
                 cache: true
             },
-            placeholder: placeholder,
             minimumInputLength: 0
         });
     }
 
-    setupSelect2('#buyerSelect', 'ಖರೀದಿದಾರ ಆಯ್ಕೆ (Select Buyer)', true);
-    setupSelect2('#transferToSelect', 'Transfer To...', false);
+    function initBuyerSelect2() {
+        $('#buyerSelect').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            allowClear: true,
+            placeholder: BUYER_PLACEHOLDER
+        });
+    }
+
+    function loadBuyerOptions(selectBuyerId) {
+        const d = $('#billDate').val();
+        const $sel = $('#buyerSelect');
+        if (!d) {
+            $sel.empty().append('<option value=""></option>').trigger('change');
+            return;
+        }
+        $.get("{% url 'get_traders_by_date' %}", { date: d }, function(data) {
+            const results = data.results || [];
+            const keepId = selectBuyerId || $sel.val();
+            $sel.empty().append('<option value=""></option>');
+            results.forEach(function(r) {
+                $sel.append(new Option(r.text, r.id, false, false));
+            });
+            if (keepId && $sel.find('option[value="' + keepId + '"]').length) {
+                $sel.val(String(keepId));
+            } else {
+                $sel.val('');
+            }
+            $sel.trigger('change');
+            if (results.length === 0) {
+                toastr.info('No buyers with vikri on this date. Add vikri first.');
+            }
+        }).fail(function() {
+            toastr.error('Could not load buyer list.');
+        });
+    }
+
+    setupTransferSelect2();
+    initBuyerSelect2();
 
     function fetchHistory() {
         const d = $('#billDate').val();
@@ -576,8 +670,12 @@ $(function() {
     });
 
     $('#billDate').on('change', function() {
-        $('#buyerSelect').val(null).trigger('change');
-        fetchMarketRates(); fetchHistory(); fetchLots();
+        $('#buyerSelect').val('').trigger('change');
+        loadBuyerOptions();
+        fetchMarketRates();
+        fetchHistory();
+        resetForm();
+        $('#lotTable tbody').html('<tr><td colspan="5" class="py-5 text-muted text-center">Select a buyer to fetch lots.</td></tr>');
     });
 
     $('.charge-input, #valRound').on('input change', recalculateGrandTotal);
@@ -665,15 +763,9 @@ $(function() {
         $('#billDate').val(bdate);
         fetchHistory();
         fetchMarketRates();
-        // Load buyer into Select2 and trigger lot fetch
-        $.get("{% url 'get_trader_details' %}", { buyer_id: buyerId }, function(data) {
-            if (data.success) {
-                const opt = new Option(data.name, buyerId, true, true);
-                $('#buyerSelect').empty().append(opt).trigger('change');
-                toastr.info('Bill loaded for editing.');
-            }
-        });
+        loadBuyerOptions(buyerId);
         $('html, body').animate({ scrollTop: 0 }, 400);
+        toastr.info('Bill loaded for editing.');
     });
 
     // DELETE: POST to delete_trader_bill
@@ -713,17 +805,7 @@ $(function() {
 
     fetchMarketRates();
     fetchHistory();
-
-    if (paramTrader) {
-        // Fetch details to get the name for Select2 display
-        $.get("{% url 'get_trader_details' %}", { buyer_id: paramTrader }, function(data) {
-            if (data.success) {
-                const opt = new Option(data.name, paramTrader, true, true);
-                $('#buyerSelect').append(opt).trigger('change');
-                toastr.success('Bill loaded from storage.');
-            }
-        });
-    }
+    loadBuyerOptions(paramTrader || null);
 });
 </script>
 {% endblock %}

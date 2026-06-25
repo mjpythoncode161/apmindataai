@@ -4,101 +4,41 @@
 {% block title %}Cess Report - {{ system_name }}{% endblock %}
 
 {% block extra_head %}
-<style>
-    @media print {
-        .main-header, .main-sidebar, .main-footer, .no-print, .btn-print {
-            display: none !important;
-        }
-        .content-wrapper {
-            margin-left: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-        }
-        .report-card { box-shadow: none !important; padding: 0 !important; }
-    }
-    
-    .report-card {
-        background: white;
-        padding: 25px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border-radius: 8px;
-        margin-top: 20px;
-    }
-
-    .report-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 10pt;
-        color: #000;
-    }
-    .report-table th, .report-table td {
-        border: 1px solid #000;
-        padding: 8px 6px;
-        text-align: right;
-    }
-    .report-table th {
-        background-color: #fff;
-        font-weight: bold;
-        text-align: center;
-        color: #000;
-    }
-    .text-left { text-align: left !important; }
-    .summary-row { font-weight: bold; background-color: #fff; }
-    
-    .report-header { text-align: center; margin-bottom: 25px; }
-    .company-name { font-size: 18pt; font-weight: bold; }
-    .report-title { font-size: 13pt; font-weight: bold; margin-top: 10px; }
-    
-    .btn-back {
-        padding: 8px 20px;
-        background: #6c757d;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        float: right;
-        text-decoration: none !important;
-    }
-    .btn-back:hover { color: #fff; background: #5a6268; }
-</style>
+{% include 'accounts/includes/gst_report_styles.html' %}
+{% include 'accounts/includes/gst_report_print_portrait.html' %}
 {% endblock %}
 
 {% block content %}
 <section class="content">
     <div class="container-fluid">
-        <div class="report-card">
-            <div class="no-print mb-3">
-                <a href="{% url 'gst_reports' %}" class="btn-back">
-                    <i class="fas fa-chevron-left mr-2"></i> Back to Reports
-                </a>
-            </div>
-            <div class="clearfix"></div>
+        {% include 'accounts/includes/gst_report_toolbar.html' %}
 
-            <div class="report-header">
-                <div class="company-name">ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ</div>
-                <div class="company-sub">ಎ ಪಿ ಎಂ ಸಿ ಯಾರ್ಡ್ - ಬ್ಯಾಡಗಿ | 29CFIPB5465B1ZL</div>
-                <div class="report-title">Cess Report From {{ from_date|date:"d-m-Y" }} To {{ to_date|date:"d-m-Y" }}</div>
+        <div class="gst-report-card" id="gstReportPrint">
+            <div class="gst-report-header">
+                {% include 'accounts/includes/company_report_header.html' %}
+                <div class="gst-report-title">Cess Report From {{ from_date|date:"d-m-Y" }} To {{ to_date|date:"d-m-Y" }}</div>
             </div>
 
-            <div class="table-responsive">
-                <table class="report-table">
+            <div class="gst-table-wrap">
+                <table class="gst-report-table">
                     <thead>
                         <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th style="width: 80px;">Bill No</th>
+                            <th style="width: 95px;">Date</th>
+                            <th style="width: 70px;">Bill No</th>
                             <th class="text-left">Name And Place</th>
-                            <th>Wt</th>
-                            <th>Bags</th>
-                            <th>Amount</th>
-                            <th>Cess</th>
-                            <th>W Fee</th>
+                            <th style="width: 75px;">Wt</th>
+                            <th style="width: 60px;">Bags</th>
+                            <th style="width: 95px;">Amount</th>
+                            <th style="width: 85px;">Cess</th>
+                            <th style="width: 75px;">W Fee</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in report_data %}
                         <tr>
-                            <td>{{ row.date|date:"d-m-Y" }}</td>
-                            <td>{{ row.bill_no }}</td>
-                            <td class="text-left font-weight-bold">{{ row.name_place }}</td>
+                            <td class="text-center">{{ row.date|date:"d-m-Y" }}</td>
+                            <td class="text-center">{{ row.bill_no }}</td>
+                            <td class="text-left">{{ row.name_place }}</td>
                             <td>{{ row.weight|floatformat:1 }}</td>
                             <td>{{ row.bags }}</td>
                             <td>{{ row.amount|floatformat:2 }}</td>
@@ -108,7 +48,7 @@
                         {% endfor %}
                     </tbody>
                     <tfoot>
-                        <tr class="summary-row">
+                        <tr class="gst-summary-row">
                             <td colspan="3" class="text-left">TOTAL</td>
                             <td>{{ totals.weight|floatformat:1 }}</td>
                             <td>{{ totals.bags }}</td>
@@ -120,8 +60,12 @@
                 </table>
             </div>
 
-            <div class="mt-4 small text-muted">Page 1 of 1</div>
+            <div class="gst-report-footer">Page 1 of 1</div>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% include 'accounts/includes/gst_report_scripts.html' %}
 {% endblock %}

@@ -162,6 +162,40 @@
         box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24);
       }
 
+      /* Compact sidebar — smaller menu text */
+      .main-sidebar .brand-link {
+        font-size: 0.95rem;
+        padding: 0.65rem 0.75rem;
+      }
+      .main-sidebar .brand-link .brand-text {
+        font-size: 0.95rem;
+      }
+      .nav-sidebar .nav-link {
+        font-size: 0.78rem;
+        padding: 0.38rem 0.65rem;
+      }
+      .nav-sidebar .nav-link p {
+        font-size: 0.78rem;
+        margin: 0;
+      }
+      .nav-sidebar > .nav-item > .nav-link > .nav-icon {
+        font-size: 0.82rem;
+        width: 1.4rem;
+      }
+      .nav-sidebar .nav-treeview .nav-link {
+        font-size: 0.72rem;
+        padding: 0.32rem 0.65rem 0.32rem 1.35rem;
+      }
+      .nav-sidebar .nav-treeview .nav-link p {
+        font-size: 0.72rem;
+      }
+      .nav-sidebar .nav-treeview .nav-icon {
+        font-size: 0.65rem;
+      }
+      .nav-sidebar .nav-link i.right {
+        font-size: 0.75rem;
+      }
+
       /* ── Clean table styling (light, no dark headers) ── */
       .content-wrapper .table thead th,
       .content-wrapper table thead th,
@@ -301,8 +335,11 @@
 
       <!-- Main Sidebar Container -->
       <aside class="main-sidebar sidebar-dark-primary elevation-4">
-        <a href="{% url 'home' %}" class="brand-link text-left">
-          <span class="brand-text font-weight-light px-2">LandLink</span>
+        <a href="{% url 'home' %}" class="brand-link text-left d-flex align-items-center">
+          {% if company.logo %}
+          <img src="{{ company.logo.url }}" alt="" class="brand-image img-circle elevation-3" style="opacity:.9; max-height:33px; max-width:33px; object-fit:contain;" />
+          {% endif %}
+          <span class="brand-text font-weight-light px-2">{{ company.display_name_english|default:"LandLink" }}</span>
         </a>
         <div class="sidebar">
           <nav class="mt-2">
@@ -351,6 +388,12 @@
                     <a href="{% url 'avak_list' %}" class="nav-link">
                       <i class="far fa-circle nav-icon"></i>
                       <p>ಅವಾಕ್ ಲಿಸ್ಟ್ Entry</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="{% url 'view_all_avak' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-info"></i>
+                      <p>View All (ಅವಕ್ ಲಿಸ್ಟ್)</p>
                     </a>
                   </li>
                   <li class="nav-item">
@@ -463,6 +506,12 @@
                       <p>Bank Master</p>
                     </a>
                   </li>
+                  <li class="nav-item">
+                    <a href="{% url 'company_settings' %}" class="nav-link">
+                      <i class="far fa-circle nav-icon text-success"></i>
+                      <p>Company Profile</p>
+                    </a>
+                  </li>
                 </ul>
               </li>
 
@@ -554,18 +603,6 @@
                   </li>
                 </ul>
               </li>
-              {% if request.user.is_superuser %}
-              <li class="nav-item">
-                <form method="post" action="{% url 'truncate_records' %}" onsubmit="return confirm('Delete all transaction, farmer, trader and user records?\n\nLedger Master and Grouping Master will NOT be deleted.');" style="margin:0;padding:0;">
-                  {% csrf_token %}
-                  <input type="hidden" name="delete_all" value="1">
-                  <button type="submit" class="nav-link btn btn-link text-danger" style="display:flex;align-items:center;padding: .5rem 1rem;border:none;background:none;width:100%;text-align:left;">
-                    <i class="nav-icon fas fa-trash-alt"></i>
-                    <p style="margin:0 0 0 10px">Delete All Records</p>
-                  </button>
-                </form>
-              </li>
-              {% endif %}
 
               {% endblock %}
             </ul>
@@ -578,7 +615,7 @@
 
       <!-- Footer -->
       <footer class="main-footer text-center">
-        <strong>© Company</strong>
+        <strong>© {{ company.display_name_english|default:"Company" }}</strong>
       </footer>
     </div>
 
@@ -593,6 +630,18 @@
     <script src="{% static 'assets/plugins/toastr/toastr.min.js' %}"></script>
     <script src="{% static 'assets/plugins/summernote/summernote-bs4.min.js' %}"></script>
     <script src="{% static 'assets/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+
+    <script>
+      window.COMPANY_PROFILE = {
+        name: "{{ company.display_name|default:''|escapejs }}",
+        nameEnglish: "{{ company.display_name_english|default:''|escapejs }}",
+        address: "{{ company.display_address|default:''|escapejs }}",
+        gst: "{{ company.gst_number|default:''|escapejs }}",
+        phone: "{{ company.phone|default:''|escapejs }}",
+        systemLabel: "{{ company.system_label|default:system_name|default:''|escapejs }}",
+        logoUrl: {% if company.logo %}"{{ company.logo.url|escapejs }}"{% else %}""{% endif %}
+      };
+    </script>
 
     <script>
       $(function () {

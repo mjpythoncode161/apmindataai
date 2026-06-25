@@ -118,7 +118,7 @@
       <!-- Left: Controls -->
       <div class="col-md-5 col-lg-4">
         <div class="chopada-card">
-          <div class="chopada-header">MSBC-2025-26</div>
+          <div class="chopada-header">{{ system_name }}</div>
           <div class="chopada-subtitle">ಚೋಪಡಾ</div>
           <div class="chopada-body">
             <!-- Radio options -->
@@ -185,7 +185,7 @@
   // Data pre-loaded from server for the current filter
   const SERVER_PRINT_DATA = {{ print_data|safe }};
   const SELECTED_DATE = "{{ selected_date_display }}";
-  const COMPANY = "ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ";
+  const COMPANY = (window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || "";
 
   function doPrint() {
     const date    = $('#ch_date').val();
@@ -299,8 +299,10 @@
         </thead>
         <tbody>`;
 
+    let grandTotal = 0;
     farmers.forEach(function(f) {
       let totalPayable = f.lots.reduce((s, l) => s + parseFloat(l.net_payable || 0), 0);
+      grandTotal += totalPayable;
       h += `
         <tr style="background:#eef7ee; font-weight:700;">
           <td colspan="8" style="text-align:left; padding:6px 8px; font-weight:700; border-bottom:1px solid #ccc; font-size:11px;">
@@ -335,6 +337,12 @@
           <td colspan="7"></td>
         </tr>`;
     });
+
+    h += `
+        <tr style="border-top:3px double #333; font-weight:800; background:#e9ecef; font-size:11px;">
+          <td style="text-align:right; padding:6px 8px; font-weight:800;">${grandTotal.toFixed(2)}</td>
+          <td colspan="7" style="text-align:left; padding:6px 8px; font-weight:800;">ಒಟ್ಟು (Grand Total)</td>
+        </tr>`;
 
     h += `</tbody></table>`;
     return h;

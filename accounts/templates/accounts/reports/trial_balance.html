@@ -95,9 +95,9 @@
       </div>
 
       <div class="tb-header">
-        <div class="tb-co">M S B AND COMPANY</div>
-        <div class="tb-addr">APMC YARD, BYADGI</div>
-        <div class="tb-gstin">GSTIN : 29CFIPB5465B1ZL</div>
+        <div class="tb-co">{{ company.display_name_english }}</div>
+        <div class="tb-addr">{{ company.display_address|upper }}</div>
+        <div class="tb-gstin">{% if company.gst_number %}GSTIN : {{ company.gst_number }}{% endif %}</div>
         <div class="tb-title">Trial Balance as on {{ as_on_display }}</div>
       </div>
 

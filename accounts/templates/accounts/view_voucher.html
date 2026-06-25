@@ -166,8 +166,8 @@
     <div class="receipt-wrap">
       <div class="rcp-head">
         <div class="rcp-sri">|| ಶ್ರೀ ಗುರು ಪ್ರಸನ್ನ ||</div>
-        <div class="rcp-co">ಎಂ ಎಸ್ ಬಿ &amp; ಕಂಪನಿ</div>
-        <div class="rcp-addr">M S B &amp; Company &nbsp;|&nbsp; APMC Yard, Byadagi – 581106</div>
+        <div class="rcp-co">{{ company.display_name }}</div>
+        <div class="rcp-addr">{{ company.display_name_english }} &nbsp;|&nbsp; {{ company.display_address }}</div>
         <div class="rcp-type">ವಿಕ್ರಿ ರಸೀದಿ</div>
       </div>
       <div class="rcp-meta">
@@ -219,7 +219,7 @@
   <div class="voucher-print-box">
     <div class="voucher-print-head">
       <div style="font-size: 14px;">|| ಶ್ರೀ ಗುರು ಪ್ರಸನ್ನ ||</div>
-      <h2>ಎಂ ಎಸ್ ಬಿ &amp; ಕಂಪನಿ</h2>
+      <h2>{{ company.display_name }}</h2>
       <div style="font-size: 14px; font-weight: bold;">APMC Yard, Byadagi – 581106</div>
       <div class="mt-2">
         <span class="voucher-type-badge badge-{% if voucher.voucher_type == 'Payment' %}danger{% elif voucher.voucher_type == 'Receipt' %}success{% elif voucher.voucher_type == 'Journal' %}info{% else %}warning{% endif %}">

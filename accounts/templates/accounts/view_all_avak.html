@@ -1,184 +1,325 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}View All Avak Entries - {{ date_instance|date:"d-m-Y" }}{% endblock %}
+{% block title %}Avak List — {{ date_instance|date:"d-m-Y" }}{% endblock %}
 
 {% block extra_head %}
 <style>
-    @media print {
-        .no-print {
-            display: none !important;
-        }
-        .main-footer, .main-header, .main-sidebar {
-            display: none !important;
-        }
-        .content-wrapper {
-            margin-left: 0 !important;
-            padding: 0 !important;
-        }
-        body {
-            background-color: #fff !important;
-        }
-        .card {
-            border: none !important;
-            box-shadow: none !important;
-        }
-        .report-page {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 10mm !important;
-        }
-    }
+  .kn-text {
+    font-family: 'Nirmala UI', 'Aparajita', 'Tunga', sans-serif;
+  }
 
-    .report-container {
-        max-width: 900px;
-        margin: 20px auto;
-        background: #fff;
-        padding: 20px;
-        border: 1px solid #ddd;
-        min-height: 297mm; /* A4 height approx */
-    }
+  /* Screen toolbar */
+  .avak-print-toolbar {
+    max-width: 210mm;
+    margin: 0 auto 12px;
+    padding: 0 8px;
+  }
+  .avak-print-toolbar .form-inline label {
+    font-weight: 600;
+    margin-right: 8px;
+  }
 
-    .report-header {
-        text-align: center;
-        border-bottom: 2px solid #000;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
-    }
+  /* Report page — A4 width on screen */
+  .avak-report-page {
+    max-width: 210mm;
+    margin: 0 auto 24px;
+    background: #fff;
+    padding: 14mm 12mm;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.35;
+  }
 
-    .report-header h4 {
-        margin: 0;
-        font-weight: bold;
-    }
+  .avak-report-title {
+    text-align: center;
+    font-size: 13pt;
+    font-weight: 700;
+    margin: 6px 0 2px;
+    letter-spacing: 0.02em;
+  }
 
-    .report-info {
-        display: flex;
-        justify-content: space-between;
-        font-size: 14px;
-        margin-bottom: 5px;
-        border-bottom: 1px solid #000;
-        padding-bottom: 5px;
-    }
+  .avak-report-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+  .avak-report-header .company-name {
+    font-size: 14pt;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .avak-report-header .company-sub {
+    font-size: 10pt;
+  }
+  .avak-report-header .company-logo {
+    max-height: 48px;
+    max-width: 140px;
+    margin-bottom: 4px;
+  }
 
-    .avak-entry {
-        border-bottom: 1px solid #000;
-        padding: 10px 0;
-    }
+  .avak-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10.5pt;
+    font-weight: 600;
+    border-bottom: 1.5px solid #000;
+    padding: 4px 0 6px;
+    margin-bottom: 6px;
+  }
 
-    .entry-main-info {
-        display: flex;
-        font-weight: bold;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-    }
+  .avak-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10.5pt;
+  }
+  .avak-data-table thead th {
+    background: #f0f0f0;
+    border: 1px solid #000;
+    padding: 5px 6px;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .avak-data-table thead th.col-farmer-h {
+    text-align: left;
+  }
+  .avak-data-table tbody td {
+    border: 1px solid #000;
+    padding: 5px 6px;
+    vertical-align: top;
+  }
+  .avak-data-table .col-lot { width: 9%; text-align: center; font-weight: 700; }
+  .avak-data-table .col-farmer { width: 38%; }
+  .avak-data-table .col-bags { width: 11%; text-align: center; font-weight: 700; }
+  .avak-data-table .col-rate { width: 12%; text-align: center; }
+  .avak-data-table .col-buyer { width: 30%; text-align: center; }
 
-    .col-lot { width: 80px; }
-    .col-farmer { flex: 1; margin-left: 20px; }
-    .col-bags { width: 100px; text-align: center; }
-    .col-rate { width: 90px; text-align: center; }
-    .col-buyer { width: 200px; text-align: center; }
+  .avak-entry-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .avak-entry-block + .avak-entry-block {
+    margin-top: 0;
+  }
 
-    .dashes-grid {
-        margin-top: 10px;
-    }
+  .bag-dash-wrap {
+    padding: 6px 4px 8px;
+    border: 1px solid #000;
+    border-top: none;
+    background: #fff;
+  }
+  .bag-dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .bag-dash-table td {
+    width: 10%;
+    padding: 2px 3px 0;
+    vertical-align: bottom;
+    height: 22px;
+  }
+  .bag-dash-cell {
+    display: block;
+    border-bottom: 1px dashed #333;
+    min-height: 18px;
+    position: relative;
+    padding-top: 10px;
+  }
+  .bag-dash-cell .bag-num {
+    position: absolute;
+    top: 0;
+    left: 2px;
+    font-size: 7.5pt;
+    color: #666;
+    line-height: 1;
+  }
 
-    .dash-row {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-    }
+  .avak-report-footer {
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1.5px solid #000;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10pt;
+    font-weight: 600;
+  }
 
-    .dash-item {
-        flex: 1;
-        border-bottom: 1px dashed #333;
-        height: 25px;
-        display: flex;
-        align-items: center;
-        font-size: 9px;
-        color: #888;
-        padding-left: 2px;
-    }
+  .avak-empty-msg {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+    border: 1px dashed #999;
+    margin-top: 12px;
+  }
 
-    .kn-text {
-        font-family: 'Aparajita', 'N Nirmala UI', sans-serif;
+  /* ── Print / Save as PDF ── */
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+  @media print {
+    html, body {
+      width: 100%;
+      height: auto;
+      background: #fff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
+    .no-print,
+    .main-header,
+    .main-sidebar,
+    .main-footer,
+    .content-header {
+      display: none !important;
+    }
+    .content-wrapper,
+    .content-wrapper > .content {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+    }
+    .wrapper {
+      background: #fff !important;
+    }
+    .avak-report-page {
+      max-width: none;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: none;
+      box-shadow: none;
+    }
+    .avak-data-table thead th {
+      background: #eee !important;
+    }
+    .avak-entry-block {
+      page-break-inside: avoid;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="content-header no-print">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1>All Avak Entries</h1>
-            </div>
-            <div class="col-sm-6 text-right">
-                <button onclick="window.print()" class="btn btn-primary">
-                    <i class="fas fa-print"></i> Print Report
-                </button>
-                <a href="{% url 'avak_list' %}?date={{ date_instance|date:'Y-m-d' }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back
-                </a>
-            </div>
-        </div>
+  <div class="container-fluid">
+    <div class="row mb-2 align-items-center">
+      <div class="col-sm-5">
+        <h1 class="m-0" style="font-size:1.25rem;">ಅವಕ್ ಲಿಸ್ಟ್ / Avak List</h1>
+      </div>
+      <div class="col-sm-7 text-sm-right">
+        <form method="get" class="form-inline d-inline-flex flex-wrap justify-content-sm-end align-items-center mb-2 mb-sm-0 mr-sm-2">
+          <label for="avakDate" class="mr-2 mb-1">ದಿನಾಂಕ:</label>
+          <input type="date" id="avakDate" name="date" class="form-control form-control-sm mr-2 mb-1"
+                 value="{{ date_instance|date:'Y-m-d' }}" onchange="this.form.submit()" />
+        </form>
+        <button type="button" class="btn btn-primary btn-sm mb-1" onclick="printAvakReport()">
+          <i class="fas fa-file-pdf"></i> Print / Save PDF
+        </button>
+        <a href="{% url 'avak_list' %}?date={{ date_instance|date:'Y-m-d' }}" class="btn btn-secondary btn-sm mb-1">
+          <i class="fas fa-arrow-left"></i> Back
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 
-<div class="report-container">
-    <div class="report-header">
-        <h4 class="kn-text">ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ </h4>
-        <p class="kn-text mb-0">ಎ ಪಿ ಎಂ ಸಿ ಯಾರ್ಡ್ ಬಾಗಲಕೋಟ</p>
-    </div>
+<div class="avak-report-page kn-text" id="avakReportPrint">
 
-    <div class="report-info">
-        <div>ದಿನಾಂಕ: <strong>{{ date_instance|date:"d-m-Y" }}</strong></div>
-        <div class="text-right">Page 1 of 1</div>
+  <div class="avak-report-header">
+    {% if company.logo %}
+    <img src="{{ company.logo.url }}" alt="" class="company-logo" />
+    {% endif %}
+    <div class="company-name">{{ company.display_name }}</div>
+    {% if company.display_address or company.gst_number %}
+    <div class="company-sub">
+      {{ company.display_address }}{% if company.gst_number and company.display_address %} | {% endif %}{{ company.gst_number }}
     </div>
+    {% endif %}
+    {% if company.phone %}
+    <div class="company-sub">PH: {{ company.phone }}</div>
+    {% endif %}
+  </div>
 
-    <div class="entry-main-info" style="background-color: #f8f9fa; padding: 5px;">
-        <div class="col-lot">ಲಾಟ್</div>
-        <div class="col-farmer">ಹೆಸರು & ಊರು</div>
-        <div class="col-bags">ಚೀಲಗಳು</div>
-        <div class="col-rate">ದರ</div>
-        <div class="col-buyer">ಖರೀದಿದಾರ</div>   
-    </div>
+  <div class="avak-report-title">ಅವಕ್ ಪಟ್ಟಿ (Avak List)</div>
 
-    {% for a in avaks %}
-    <div class="avak-entry">
-        <div class="entry-main-info">
-            <div class="col-lot">{{ a.lot_number }}</div>
-            <div class="col-farmer">
-                {% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}
-                {% if a.place %}, {{ a.place }}{% endif %}
-            </div>
-            <div class="col-bags">{{ a.no_of_bags }}</div>
-            <div class="col-rate">{% if a.rate %}{{ a.rate|floatformat:0 }}{% endif %}</div>
-            <div class="col-buyer">{% if a.buyer %}{{ a.buyer.short_code|default:a.buyer.name }}{% endif %}</div>
-            <div class="col-sig"></div>
-        </div>
-        
-        <div class="dashes-grid">
-            {% for row in a.rows_list %}
-                <div class="dash-row">
-                    {% for i in row %}
-                        <div class="dash-item">
-                            {{ i|add:1 }}
-                        </div>
-                    {% endfor %}
-                    {# Fill empty slots to maintain 10 columns grid look #}
-                    {% if forloop.last %}
-                        {% with last_count=row|length %}
-                            {% if last_count < 10 %}
-                                {% for j in "123456789"|slice:last_count %}
-                                    <div class="dash-item" style="border: none;"></div>
-                                {% endfor %}
-                            {% endif %}
-                        {% endwith %}
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endfor %}
+  <div class="avak-meta-row">
+    <span>ದಿನಾಂಕ: {{ date_instance|date:"d-m-Y" }}</span>
+    <span>ಲಾಟ್: {{ total_lots }} &nbsp;|&nbsp; ಚೀಲ: {{ total_bags }}</span>
+  </div>
+
+  {% if avaks %}
+  <table class="avak-data-table">
+    <thead>
+      <tr>
+        <th class="col-lot">ಲಾಟ್</th>
+        <th class="col-farmer-h col-farmer">ಹೆಸರು &amp; ಊರು</th>
+        <th class="col-bags">ಚೀಲಗಳು</th>
+        <th class="col-rate">ದರ</th>
+        <th class="col-buyer">ಖರೀದಿದಾರ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in avaks %}
+      <tr class="avak-entry-block">
+        <td class="col-lot">{{ a.lot_number }}</td>
+        <td class="col-farmer">
+          {% if a.farmer.name_kannada %}{{ a.farmer.name_kannada }}{% else %}{{ a.farmer.name }}{% endif %}{% if a.place %}, {{ a.place }}{% endif %}
+        </td>
+        <td class="col-bags">{{ a.no_of_bags }}</td>
+        <td class="col-rate">{% if a.rate %}{{ a.rate|floatformat:0 }}{% else %}&nbsp;{% endif %}</td>
+        <td class="col-buyer">{% if a.buyer %}{{ a.buyer.short_code|default:a.buyer.name }}{% else %}&nbsp;{% endif %}</td>
+      </tr>
+      <tr class="avak-entry-block">
+        <td colspan="5" class="p-0" style="border:1px solid #000; border-top:none;">
+          <div class="bag-dash-wrap">
+            <table class="bag-dash-table">
+              {% for row in a.rows_list %}
+              <tr>
+                {% for cell in row %}
+                <td>
+                  {% if cell %}
+                  <span class="bag-dash-cell"><span class="bag-num">{{ cell }}</span></span>
+                  {% else %}
+                  <span class="bag-dash-cell" style="border-color:#ddd;"></span>
+                  {% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="avak-report-footer">
+    <span>ಒಟ್ಟು ಲಾಟ್: {{ total_lots }}</span>
+    <span>ಒಟ್ಟು ಚೀಲ: {{ total_bags }}</span>
+    <span>{{ date_instance|date:"d-m-Y" }}</span>
+  </div>
+  {% else %}
+  <div class="avak-empty-msg">ಈ ದಿನಾಂಕಕ್ಕೆ ಅವಕ್ ದಾಖಲೆಗಳಿಲ್ಲ</div>
+  {% endif %}
+
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function printAvakReport() {
+  window.print();
+}
+{% if auto_print %}
+$(function () { setTimeout(printAvakReport, 400); });
+{% endif %}
+</script>
 {% endblock %}

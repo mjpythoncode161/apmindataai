@@ -337,7 +337,7 @@
                         <div class="print-slip" style="height: auto; display: flex; flex-direction: column;">
                             <div class="slip-header">
                                 <div style="font-size: 11px; font-weight: bold;">ಎ.ಪಿ.ಎಂ.ಸಿ. ಬಾಗಲಕೋಟೆ</div>
-                                <div style="font-size: 16px; font-weight: bold; margin: 2px 0;">${firm === 'Select Firm' ? 'ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ' : firm}</div>
+                                <div style="font-size: 16px; font-weight: bold; margin: 2px 0;">${firm === 'Select Firm' ? ((window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || '') : firm}</div>
                                 <div class="d-flex justify-content-between mt-1"><span>ಬೆಳೆಗಾರರು: ............................</span><span>Cell: ...............</span></div>
                                 <div class="d-flex justify-content-between pt-1" style="border-top:1.5px solid #000; font-weight:bold; font-size: 11px;">
                                     <span>Code: ${apmc}</span><span>Extend: ${extend}</span><span>DATE: ${date}</span>

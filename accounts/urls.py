@@ -54,6 +54,7 @@ urlpatterns = [
     # Market Rates
     path("market-rates/", views.market_rates, name="market_rates"),
     path("bank-master/", views.bank_master, name="bank_master"),
+    path("company-settings/", views.company_settings, name="company_settings"),
     path("api/get-market-rates/", views.get_market_rates, name="get_market_rates"),
     # Reports
     path("delivery-book/", views.delivery_book, name="delivery_book"),

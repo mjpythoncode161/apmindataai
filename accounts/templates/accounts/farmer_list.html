@@ -4,26 +4,9 @@
 {% block title %}{% if show_form %}Add Farmer{% else %}Farmer List{% endif %}{% endblock %}
 
 {% block extra_head %}
+{% include 'accounts/includes/account_list_styles.html' %}
 <style>
-  .page-wrap { padding: 15px; background: #f4f6f9; min-height: calc(100vh - 120px); }
-
-  /* ── LIST PAGE ── */
-  .list-header {
-    background: #1e7e34; color: #fff; padding: 12px 18px; border-radius: 6px;
-    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
-    margin-bottom: 12px;
-  }
-  .list-header h4 { margin: 0; font-weight: 700; }
-  .list-card { background: #fff; border-radius: 6px; border: 1px solid #dee2e6; overflow: hidden; }
-  .list-toolbar {
-    padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
-    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-  }
-  .acc-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-  .acc-table th { background: #343a40; color: #fff; padding: 10px 12px; white-space: nowrap; }
-  .acc-table td { padding: 9px 12px; border-bottom: 1px solid #eee; }
-  .acc-table tr:nth-child(even) { background: #f8f9fa; }
-  .table-scroll { overflow-x: auto; }
+  .page-wrap { padding: 0; background: transparent; min-height: auto; }
 
   /* ── BIG FORM PAGE ── */
   .form-page-header {
@@ -70,7 +53,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-wrap">
+<div class="acc-page-wrap page-wrap">
 
 {% if show_form %}
   <!-- ══════════ SEPARATE BIG FORM PAGE ══════════ -->
@@ -162,65 +145,64 @@
   </div>
 
 {% else %}
-  <!-- ══════════ SEPARATE LIST PAGE ══════════ -->
-  <div class="list-header">
+  <!-- ══════════ LIST PAGE ══════════ -->
+  <div class="acc-list-header acc-list-header-farmer">
     <h4><i class="fas fa-seedling mr-2"></i>ರೈತ ಲಿಸ್ಟ್ / Farmer List</h4>
-    <span class="badge badge-light px-3 py-2">{{ farmers|length }} records</span>
+    <span class="badge badge-light px-2 py-1">{{ farmers|length }} records</span>
   </div>
 
-  <div class="list-card">
-    <div class="list-toolbar">
-      <form method="get" class="d-flex align-items-center flex-wrap" style="gap:8px;">
-        <label class="mb-0 font-weight-bold">Date</label>
-        <input type="date" name="date" class="form-control" value="{{ date_value }}"
-               style="width:160px;" onchange="this.form.submit()" />
+  <div class="acc-list-card">
+    <div class="acc-list-toolbar">
+      <form method="get" class="d-flex align-items-center flex-wrap" style="gap:6px;">
+        <label class="font-weight-bold">Date</label>
+        <input type="date" name="date" class="form-control form-control-sm" value="{{ date_value }}"
+               style="width:142px;" onchange="this.form.submit()" />
       </form>
-      <form method="get" class="d-flex align-items-center flex-wrap" style="gap:8px;">
+      <form method="get" class="d-flex align-items-center flex-wrap" style="gap:6px;">
         <input type="hidden" name="date" value="{{ date_value }}" />
-        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search name / phone..."
-               value="{{ q|default:'' }}" style="width:200px;" />
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search..."
+               value="{{ q|default:'' }}" style="width:160px;" />
         <button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-search"></i></button>
         {% if q %}
           <a href="{% url 'farmer_list' %}?date={{ date_value }}" class="btn btn-outline-secondary btn-sm">Clear</a>
         {% endif %}
       </form>
-      <a href="{% url 'farmer_list' %}?date={{ date_value }}&add=1" class="btn btn-success ml-auto">
+      <a href="{% url 'farmer_list' %}?date={{ date_value }}&add=1" class="btn btn-success btn-sm ml-auto">
         <i class="fas fa-plus mr-1"></i> Add Farmer
       </a>
     </div>
-    <div class="table-scroll">
-      <table class="acc-table">
+    <div class="table-responsive">
+      <table class="acc-list-table table table-sm mb-0">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Place</th>
-            <th>ಹೆಸರು</th>
-            <th>Time</th>
-            <th>Action</th>
+            <th style="width:44px;">#</th>
+            <th class="th-left" style="width:22%;">Name</th>
+            <th class="th-left" style="width:14%;">Phone</th>
+            <th class="th-left" style="width:14%;">Place</th>
+            <th class="th-left" style="width:18%;">ಹೆಸರು</th>
+            <th style="width:56px;">Time</th>
+            <th style="width:76px;">Action</th>
           </tr>
         </thead>
         <tbody>
           {% for f in farmers %}
           <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ f.name }}</td>
-            <td>{{ f.phone }}</td>
-            <td>{{ f.address|default:"—" }}</td>
-            <td>{{ f.name_kannada|default:"—" }}</td>
-            <td>{{ f.created_at|date:"H:i" }}</td>
-            <td class="text-nowrap">
-              <a href="{% url 'edit_farmer' f.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
-              <a href="{% url 'delete_farmer' f.id %}" class="btn btn-sm btn-danger"
+            <td class="col-num">{{ forloop.counter }}</td>
+            <td class="col-name" title="{{ f.name }}">{{ f.name }}</td>
+            <td class="col-phone">{{ f.phone|default:"—" }}</td>
+            <td class="col-place" title="{{ f.address }}">{{ f.address|default:"—" }}</td>
+            <td class="col-kn" title="{{ f.name_kannada }}">{{ f.name_kannada|default:"—" }}</td>
+            <td class="col-time">{{ f.created_at|date:"H:i" }}</td>
+            <td class="col-actions">
+              <a href="{% url 'edit_farmer' f.id %}" class="btn btn-sm btn-primary" title="Edit"><i class="fas fa-edit"></i></a>
+              <a href="{% url 'delete_farmer' f.id %}" class="btn btn-sm btn-danger" title="Delete"
                  onclick="return confirm('Delete this farmer?');"><i class="fas fa-trash"></i></a>
             </td>
           </tr>
           {% empty %}
-          <tr>
-            <td colspan="7" class="text-center text-muted py-5">
-              No farmers found for <strong>{{ date_value }}</strong>
-              &nbsp;—&nbsp;
+          <tr class="acc-list-empty">
+            <td colspan="7">
+              No farmers for <strong>{{ date_value }}</strong> —
               <a href="{% url 'farmer_list' %}?date={{ date_value }}&add=1">Add Farmer</a>
             </td>
           </tr>

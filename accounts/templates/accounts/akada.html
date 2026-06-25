@@ -146,8 +146,8 @@
 <script>
   // Pre-render data from server (all traders for the current date)
   const SERVER_DATA = {{ akada_json|safe }};
-  const COMPANY_NAME = "ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ";  // Update as needed
-  const SYSTEM_LABEL = "MSBC-2025-26";
+  const COMPANY_NAME = (window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || "";
+  const SYSTEM_LABEL = (window.COMPANY_PROFILE && window.COMPANY_PROFILE.systemLabel) || "";
 
   function buildReport(traders, date) {
     if (!traders || traders.length === 0) {

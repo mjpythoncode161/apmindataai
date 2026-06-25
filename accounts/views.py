@@ -21,6 +21,7 @@ from .models import (
     BagTransferWeight,
     MarketRate,
     BankMaster,
+    CompanyProfile,
     TraderBill,
     TraderBillItem,
     FinancialTransaction,
@@ -1712,15 +1713,20 @@ def view_all_avak(request):
         "farmer", "buyer"
     ).order_by(Length("lot_number"), "lot_number")
 
-    # Prepare dashes for each avak
+    # Prepare bag dash rows (10 columns per row, padded)
+    total_bags = 0
     for avak in avaks:
-        num_bags = avak.no_of_bags
-        num_rows = (num_bags + 9) // 10
+        num_bags = int(avak.no_of_bags or 0)
+        total_bags += num_bags
+        num_rows = (num_bags + 9) // 10 if num_bags else 0
         rows = []
         for r in range(num_rows):
             start = r * 10
             end = min((r + 1) * 10, num_bags)
-            rows.append(range(start, end))
+            cells = [i + 1 for i in range(start, end)]
+            while len(cells) < 10:
+                cells.append(0)
+            rows.append(cells)
         avak.rows_list = rows
 
     return render(
@@ -1729,6 +1735,9 @@ def view_all_avak(request):
         {
             "avaks": avaks,
             "date_instance": today,
+            "total_bags": total_bags,
+            "total_lots": avaks.count(),
+            "auto_print": request.GET.get("print") == "1",
         },
     )
 
@@ -1770,7 +1779,13 @@ def get_traders(request):
     
     date_param = request.GET.get("date")
     if date_param:
-        trader_ids = Bikri.objects.filter(date=date_param, is_cancelled=False).values_list("buyer_id", flat=True).distinct()
+        bikri_ids = Bikri.objects.filter(
+            date=date_param, is_cancelled=False
+        ).values_list("buyer_id", flat=True).distinct()
+        bill_ids = TraderBill.objects.filter(
+            date=date_param
+        ).values_list("buyer_id", flat=True).distinct()
+        trader_ids = set(list(bikri_ids) + list(bill_ids))
         traders = traders.filter(id__in=trader_ids)
 
     if q:
@@ -2057,6 +2072,7 @@ def monthwise_gst_report(request):
             'grand_total': sum(r['grand_total'] or 0 for r in report_data),
         },
         'system_name': "MSBC-2025-26",
+        'auto_print': request.GET.get('print') == '1',
     }
     return render(request, "accounts/reports/monthwise_gst.html", context)
 
@@ -2124,6 +2140,7 @@ def detailed_gst_report(request):
             'grand_total': sum(r['grand_total'] or 0 for r in report_data),
         },
         'system_name': "MSBC-2025-26",
+        'auto_print': request.GET.get('print') == '1',
     }
     return render(request, "accounts/reports/detailed_gst.html", context)
 
@@ -2174,6 +2191,7 @@ def cess_report(request):
             'w_fee': sum(r['w_fee'] or 0 for r in report_data),
         },
         'system_name': "MSBC-2025-26",
+        'auto_print': request.GET.get('print') == '1',
     }
     return render(request, "accounts/reports/cess_report.html", context)
 
@@ -2227,6 +2245,7 @@ def weekly_cess_report(request):
             'w_fee': sum(r['w_fee'] or 0 for r in report_data),
         },
         'system_name': "MSBC-2025-26",
+        'auto_print': request.GET.get('print') == '1',
     }
     return render(request, "accounts/reports/weekly_cess.html", context)
 
@@ -2277,6 +2296,7 @@ def gstr1_report(request):
         'b2b_data': b2b_data,
         'b2c_data': b2c_data,
         'system_name': "MSBC-2025-26",
+        'auto_print': request.GET.get('print') == '1',
     }
     return render(request, "accounts/reports/gstr1_report.html", context)
 
@@ -2340,6 +2360,7 @@ def partywise_gst_report(request):
             'grand_total': sum(r['grand_total'] or 0 for r in report_data),
         },
         'system_name': "MSBC-2025-26",
+        'auto_print': request.GET.get('print') == '1',
     }
     return render(request, "accounts/reports/partywise_gst.html", context)
 
@@ -2416,6 +2437,7 @@ def bazar_kharidi(request):
         "total_as_on": total_as_on,
         "total_all": total_all,
         "system_name": "MSBC-2025-26",
+        "auto_print": request.GET.get("print") == "1",
     }
     return render(request, "accounts/bazar_kharidi.html", context)
 
@@ -2487,11 +2509,14 @@ def nondha(request):
     context = {
         "from_date": from_date.strftime("%Y-%m-%d"),
         "to_date": to_date.strftime("%Y-%m-%d"),
+        "from_date_display": from_date.strftime("%d-%m-%Y"),
+        "to_date_display": to_date.strftime("%d-%m-%Y"),
         "report_data": report_data,
         "total_credit": total_credit,
         "total_debit": total_debit,
         "total_diff": total_diff,
         "system_name": "MSBC-2025-26",
+        "auto_print": request.GET.get("print") == "1",
     }
     return render(request, "accounts/nondha.html", context)
 
@@ -2638,6 +2663,7 @@ def delivery_book(request):
             "total_avak_bags": total_avak,
             "total_bikri_bags": total_bikri,
             "total_balance": total_avak - total_bikri,
+            "auto_print": request.GET.get("print") == "1",
         },
     )
 
@@ -3441,6 +3467,7 @@ def view_bikri(request, bikri_id):
         "other_fee_1": other_fee_1,
         "other_fee_2": other_fee_2,
         "patti_no": patti_no,
+        "auto_print": request.GET.get("print") == "1",
     }
     return render(request, "accounts/view_bikri.html", context)
 
@@ -3456,16 +3483,22 @@ def get_traders_by_date(request):
     d = request.GET.get("date")
     if not d:
         return JsonResponse({"results": []})
-    
-    # Traders from Avak
-    t_ids_avak = Avak.objects.filter(date=d, buyer__isnull=False, is_cancelled=False).values_list("buyer_id", flat=True)
-    # Traders from Bikri
-    t_ids_bikri = Bikri.objects.filter(date=d, buyer__isnull=False, is_cancelled=False).values_list("buyer_id", flat=True)
-    
-    all_t_ids = set(list(t_ids_avak) + list(t_ids_bikri))
+
+    t_ids_avak = Avak.objects.filter(
+        date=d, buyer__isnull=False, is_cancelled=False
+    ).values_list("buyer_id", flat=True)
+    t_ids_bikri = Bikri.objects.filter(
+        date=d, is_cancelled=False
+    ).values_list("buyer_id", flat=True)
+    t_ids_bill = TraderBill.objects.filter(date=d).values_list("buyer_id", flat=True)
+
+    all_t_ids = set(list(t_ids_avak) + list(t_ids_bikri) + list(t_ids_bill))
     traders = Trader.objects.filter(id__in=all_t_ids).order_by("name")
-    
-    results = [{"id": t.id, "text": f"{t.short_code or t.name} ({t.name})"} for t in traders]
+
+    results = [
+        {"id": t.id, "text": f"{t.short_code or t.name} ({t.name})"}
+        for t in traders
+    ]
     return JsonResponse({"results": results})
 
 
@@ -3928,29 +3961,12 @@ def login_view(request):
 @login_required
 def home(request):
     today = date.today()
-    chart_labels = []
-    avak_chart = []
-    vikri_chart = []
+    total_avak_week = 0
+    total_vikri_week = 0
     for i in range(6, -1, -1):
         d = today - timedelta(days=i)
-        chart_labels.append(d.strftime("%d-%m"))
-        avak_chart.append(
-            Avak.objects.filter(date=d, is_cancelled=False).count()
-        )
-        vikri_chart.append(
-            Bikri.objects.filter(date=d, is_cancelled=False).count()
-        )
-
-    recent_avak = (
-        Avak.objects.filter(is_cancelled=False)
-        .select_related("farmer")
-        .order_by("-created_at")[:10]
-    )
-    recent_bikri = (
-        Bikri.objects.filter(is_cancelled=False)
-        .select_related("avak__farmer", "buyer")
-        .order_by("-created_at")[:10]
-    )
+        total_avak_week += Avak.objects.filter(date=d, is_cancelled=False).count()
+        total_vikri_week += Bikri.objects.filter(date=d, is_cancelled=False).count()
 
     new_accounts = []
     for f in Farmer.objects.order_by("-created_at")[:10]:
@@ -3985,13 +4001,8 @@ def home(request):
         "total_farmer_bill_today": Bikri.objects.filter(
             date=today, is_cancelled=False
         ).values("avak__farmer").distinct().count(),
-        "total_avak_week": sum(avak_chart),
-        "total_vikri_week": sum(vikri_chart),
-        "chart_labels_json": json.dumps(chart_labels),
-        "avak_chart_json": json.dumps(avak_chart),
-        "vikri_chart_json": json.dumps(vikri_chart),
-        "recent_avak": recent_avak,
-        "recent_bikri": recent_bikri,
+        "total_avak_week": total_avak_week,
+        "total_vikri_week": total_vikri_week,
         "new_accounts": new_accounts,
         "total_farmers": Farmer.objects.count(),
         "total_traders": Trader.objects.count(),
@@ -4407,6 +4418,32 @@ def bank_master(request):
         return redirect("bank_master")
 
     return render(request, "accounts/bank_master.html", {"bank": bank})
+
+
+@login_required
+def company_settings(request):
+    """Company name, address, GST, phone, logo — used on invoices and reports."""
+    company = CompanyProfile.get_settings()
+    if request.method == "POST":
+        company.company_name = request.POST.get("company_name", "").strip()
+        company.company_name_kannada = request.POST.get("company_name_kannada", "").strip()
+        company.address = request.POST.get("address", "").strip()
+        company.gst_number = request.POST.get("gst_number", "").strip()
+        company.phone = request.POST.get("phone", "").strip()
+        company.system_label = request.POST.get("system_label", "").strip()
+        if request.POST.get("remove_logo") == "1":
+            if company.logo:
+                company.logo.delete(save=False)
+            company.logo = None
+        elif request.FILES.get("logo"):
+            if company.logo:
+                company.logo.delete(save=False)
+            company.logo = request.FILES["logo"]
+        company.save()
+        messages.success(request, "Company profile saved. Invoices and reports will use these details.")
+        return redirect("company_settings")
+
+    return render(request, "accounts/company_settings.html", {"company": company})
 
 
 @login_required

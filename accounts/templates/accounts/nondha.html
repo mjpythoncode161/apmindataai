@@ -5,18 +5,6 @@
 
 {% block extra_head %}
 <style>
-    @media print {
-        .main-header, .main-sidebar, .main-footer, .no-print, .btn-print {
-            display: none !important;
-        }
-        .content-wrapper {
-            margin-left: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-        }
-        .report-card { box-shadow: none !important; padding: 0 !important; border: none !important; }
-    }
-
     .report-card {
         background: #fdfefe;
         padding: 0;
@@ -26,7 +14,6 @@
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
 
-    /* Reference Header: ಎಲ್ಲಾ ದಿನಗಳ ಪಟ್ಟಿ ಜಮಾ ಖರ್ಚು MSBC-2025-26 */
     .top-header-bar {
         background: #111;
         color: #fff;
@@ -38,7 +25,6 @@
         font-size: 1.15rem;
     }
 
-    /* Creamy Beige Control Bar */
     .controls-beige-bar {
         background: #ebd4b0;
         padding: 10px 15px;
@@ -76,11 +62,8 @@
         text-decoration: none !important;
         cursor: pointer;
     }
-    .btn-custom-dark:hover {
-        background: #000;
-    }
+    .btn-custom-dark:hover { background: #000; }
 
-    /* Table Styles */
     .report-table {
         width: 100%;
         border-collapse: collapse;
@@ -97,7 +80,6 @@
     }
     .report-table th.text-left { text-align: left; }
     .report-table th.text-center { text-align: center; }
-    
     .report-table td {
         padding: 8px 15px;
         border-bottom: 1px solid #ccc;
@@ -108,15 +90,8 @@
     }
     .report-table td.text-left { text-align: left; }
     .report-table td.text-center { text-align: center; }
-
-    .report-table tbody tr:nth-child(even) {
-        background-color: #f2f4f4;
-    }
-    .report-table tbody tr:hover {
-        background-color: #e5e8e8;
-    }
-
-    /* Black Footer with Total */
+    .report-table tbody tr:nth-child(even) { background-color: #f2f4f4; }
+    .report-table tbody tr:hover { background-color: #e5e8e8; }
     .report-table tfoot tr.summary-row {
         background-color: #111 !important;
         color: #fff;
@@ -128,12 +103,63 @@
         padding: 10px 15px;
         color: #fff !important;
     }
-
-    /* Solid Cyan/Teal accent bar at the bottom */
     .teal-accent-bar {
         background-color: #00cecb;
-        height: 250px; /* Expands to fill the large empty space beautifully */
+        height: 25px;
         width: 100%;
+    }
+
+    @page { size: A4 portrait; margin: 10mm 12mm; }
+    @media print {
+        html, body {
+            background: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .no-print, .main-header, .main-sidebar, .main-footer {
+            display: none !important;
+        }
+        .content-wrapper, .content-wrapper > .content {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+        }
+        .container-fluid { padding: 0 !important; }
+        .report-card {
+            box-shadow: none !important;
+            padding: 0 !important;
+            border: none !important;
+            margin: 0 !important;
+        }
+        .top-header-bar {
+            background: #111 !important;
+            color: #fff !important;
+            -webkit-print-color-adjust: exact;
+        }
+        .teal-accent-bar { display: none !important; }
+        .report-table {
+            border: 1.5px solid #000 !important;
+        }
+        .report-table th,
+        .report-table td {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+        }
+        .report-table th {
+            background: #ececec !important;
+            color: #000 !important;
+            font-weight: 700 !important;
+        }
+        .report-table tbody tr,
+        .report-table tbody tr:nth-child(even) {
+            background: #fff !important;
+        }
+        .report-table tfoot tr.summary-row,
+        .report-table tfoot tr.summary-row td {
+            background: #e2e6ea !important;
+            color: #000 !important;
+            font-weight: 700 !important;
+        }
     }
 </style>
 {% endblock %}
@@ -141,24 +167,21 @@
 {% block content %}
 <section class="content">
     <div class="container-fluid">
-        <div class="report-card">
-            <!-- Top Dark Header: ಎಲ್ಲಾ ದಿನಗಳ ಪಟ್ಟಿ ಜಮಾ ಖರ್ಚು MSBC-2025-26 -->
+        <div class="report-card" id="nondhaPrint">
             <div class="top-header-bar">
                 <span>ಎಲ್ಲಾ ದಿನಗಳ ಪಟ್ಟಿ ಜಮಾ ಖರ್ಚು</span>
                 <span>{{ system_name }}</span>
             </div>
 
-            <!-- Beige Control Bar -->
             <div class="controls-beige-bar no-print">
                 <label>From</label>
                 <input type="date" id="from_date" class="date-input-custom" value="{{ from_date }}">
                 <label>To</label>
                 <input type="date" id="to_date" class="date-input-custom" value="{{ to_date }}">
-                <button onclick="reloadPage()" class="btn-custom-dark ml-3">Filter</button>
-                <button class="btn-custom-dark ml-3" onclick="window.print()">Print</button>
+                <button type="button" onclick="reloadPage()" class="btn-custom-dark">Filter</button>
+                <button type="button" class="btn-custom-dark" onclick="printNondha()">Print / Save PDF</button>
             </div>
 
-            <!-- The Beautiful Data Table -->
             <div class="table-responsive">
                 <table class="report-table">
                     <thead>
@@ -196,8 +219,7 @@
                 </table>
             </div>
 
-            <!-- Bottom Teal Accent Bar -->
-            <div class="teal-accent-bar"></div>
+            <div class="teal-accent-bar no-print"></div>
         </div>
     </div>
 </section>
@@ -205,10 +227,14 @@
 
 {% block extra_scripts %}
 <script>
-    function reloadPage() {
-        const f = $('#from_date').val();
-        const t = $('#to_date').val();
-        window.location.href = '?from_date=' + f + '&to_date=' + t;
-    }
+function printNondha() { window.print(); }
+function reloadPage() {
+    const f = $('#from_date').val();
+    const t = $('#to_date').val();
+    if (f && t) window.location.href = '?from_date=' + f + '&to_date=' + t;
+}
+$(function () {
+    {% if auto_print %} setTimeout(printNondha, 400); {% endif %}
+});
 </script>
 {% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Company Settings{% endblock %}
+
+{% block content %}
+<section class="content-header">
+  <div class="container-fluid text-center">
+    <h3 class="text-primary font-weight-bold">Company Settings</h3>
+    <p class="text-muted mb-0">Name, address, GST, phone &amp; logo — used on invoices, bills, vouchers and all reports</p>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid d-flex justify-content-center">
+    <div class="card shadow-lg" style="max-width: 620px; width: 100%;">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-building mr-2"></i>Company Profile</h5>
+      </div>
+      <div class="card-body">
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-success alert-dismissible fade show py-2">
+          {{ msg }}
+          <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post" action="{% url 'company_settings' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="font-weight-bold">Company Name (English)</label>
+            <input type="text" name="company_name" class="form-control" value="{{ company.company_name }}" placeholder="e.g. M S B AND COMPANY" />
+          </div>
+          <div class="form-group">
+            <label class="font-weight-bold">Company Name (Kannada)</label>
+            <input type="text" name="company_name_kannada" class="form-control kn-text" value="{{ company.company_name_kannada }}" placeholder="e.g. ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ" />
+          </div>
+          <div class="form-group">
+            <label class="font-weight-bold">Address</label>
+            <textarea name="address" class="form-control" rows="2" placeholder="APMC Yard, Byadgi – 581106">{{ company.address }}</textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold">GST Number</label>
+              <input type="text" name="gst_number" class="form-control" value="{{ company.gst_number }}" placeholder="e.g. 29CFIPB5465B1ZL" />
+            </div>
+            <div class="col-md-6 form-group">
+              <label class="font-weight-bold">Phone Number</label>
+              <input type="text" name="phone" class="form-control" value="{{ company.phone }}" placeholder="e.g. 9986726789" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="font-weight-bold">System / Year Label</label>
+            <input type="text" name="system_label" class="form-control" value="{{ company.system_label }}" placeholder="e.g. MSBC-2025-26" />
+            <small class="text-muted">Shown on reports header, chopada, delivery book, etc.</small>
+          </div>
+          <div class="form-group">
+            <label class="font-weight-bold">Company Logo</label>
+            {% if company.logo %}
+            <div class="mb-2 p-2 border rounded bg-light text-center">
+              <img src="{{ company.logo.url }}" alt="Logo" style="max-height: 80px; max-width: 200px;" />
+            </div>
+            <div class="custom-control custom-checkbox mb-2">
+              <input type="checkbox" class="custom-control-input" id="remove_logo" name="remove_logo" value="1" />
+              <label class="custom-control-label text-danger" for="remove_logo">Remove current logo</label>
+            </div>
+            {% endif %}
+            <div class="custom-file">
+              <input type="file" name="logo" class="custom-file-input" id="logoFile" accept="image/*" />
+              <label class="custom-file-label" for="logoFile">Choose logo image (PNG/JPG)</label>
+            </div>
+          </div>
+          <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary px-5 font-weight-bold">
+              <i class="fas fa-save mr-1"></i> Save Company Profile
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-4 p-3 bg-light border rounded">
+          <small class="text-muted d-block mb-2">Preview (invoice / report header):</small>
+          <div class="text-center">
+            {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="" style="max-height: 50px; margin-bottom: 6px;" />
+            {% endif %}
+            <div class="font-weight-bold">{{ company.display_name }}</div>
+            <div style="font-size:0.9rem;">{{ company.display_address }}</div>
+            {% if company.gst_number %}<div style="font-size:0.85rem;">GSTIN: {{ company.gst_number }}</div>{% endif %}
+            {% if company.phone %}<div style="font-size:0.85rem;">PH: {{ company.phone }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(function () {
+  bsCustomFileInput.init();
+});
+</script>
+{% endblock %}
