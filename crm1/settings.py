@@ -30,19 +30,19 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "yourdomain.com",
     "www.yourdomain.com",
-    "landlink-tai1.onrender.com",
+    "apmindataai.onrender.com",
 ]
 
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "realindataai.onrender.com",
+    "apmindataai.onrender.com",
 ]
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://realindataai.onrender.com",
+    "https://apmindataai.onrender.com",
 ]
 
 
