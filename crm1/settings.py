@@ -16,36 +16,41 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def _env_bool(name, default=False):
+    return os.environ.get(name, str(default)).lower() in ("1", "true", "yes", "on")
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "cz=&%f*9(d*zo$_55p=(p)(eki#p$pb^0159-)8k^6$9c3l&_b"
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "cz=&%f*9(d*zo$_55p=(p)(eki#p$pb^0159-)8k^6$9c3l&_b",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # Set to False in production
+DEBUG = _env_bool("DEBUG", True)
 
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "yourdomain.com",
-    "www.yourdomain.com",
+    "147.93.107.11",
     "apmindataai.onrender.com",
+    ".onrender.com",
 ]
-
-
-ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "apmindataai.onrender.com",
-]
-
+if os.environ.get("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS = [
+        h.strip() for h in os.environ["ALLOWED_HOSTS"].split(",") if h.strip()
+    ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://apmindataai.onrender.com",
 ]
-
-
+if os.environ.get("CSRF_TRUSTED_ORIGINS"):
+    CSRF_TRUSTED_ORIGINS = [
+        o.strip() for o in os.environ["CSRF_TRUSTED_ORIGINS"].split(",") if o.strip()
+    ]
 # Application definition
 
 INSTALLED_APPS = [
@@ -60,6 +65,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -138,15 +144,22 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Silence AutoField W042 warnings
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
-
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-
 
 SESSION_COOKIE_AGE = 86400
 

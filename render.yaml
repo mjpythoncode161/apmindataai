@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: apmindataai
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn crm1.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: DEBUG
+        value: "false"
+      - key: PYTHON_VERSION
+        value: "3.11.9"

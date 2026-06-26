@@ -1,0 +1,6 @@
+# Ignore Django templates (formatting can break `{% %}` / `{{ }}` tags)
+**/templates/**/*.html
+**/templates/**/*.htm
+
+# Ignore static vendor assets
+static/**

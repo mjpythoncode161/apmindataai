@@ -1,6 +1,7 @@
-
 # ── Core Framework ─────────────────────────────────────────────────────────────
 Django==4.2.27
+gunicorn==23.0.0
+whitenoise==6.9.0
 
 # ── Image Processing (required for ImageField) ─────────────────────────────────
 Pillow==11.3.0
