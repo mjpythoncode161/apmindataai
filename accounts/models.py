@@ -231,6 +231,9 @@ class MarketRate(models.Model):
     gst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     rakham_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
+    # TDS on buyer commission (Sec 194H) — Kharidi Patti
+    tds_percent = models.DecimalField(max_digits=5, decimal_places=2, default=2)
+
     # Flags
     print_farmer_weights = models.BooleanField(default=False)
     print_detailed_bikri_bill = models.BooleanField(default=False)

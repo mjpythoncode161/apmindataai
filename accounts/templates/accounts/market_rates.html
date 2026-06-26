@@ -93,8 +93,18 @@
                         </div>
                     </div>
 
-    
+                    <div class="text-center my-3">
+                        <h5 class="text-primary font-weight-bold">TDS (ಖರೀದಿ ಪಟ್ಟಿ — Sec 194H)</h5>
+                    </div>
 
+                    <div class="form-group row">
+                        <label class="col-sm-6 col-form-label text-right">TDS (%)</label>
+                        <div class="col-sm-5">
+                            <input type="number" step="0.01" min="0" max="100" name="tds_percent" class="form-control h-auto py-1" value="{{ rates.tds_percent|default:'2.00' }}">
+                        </div>
+                    </div>
+
+    
                     <div class="text-center mt-4">
                         <button type="submit" class="btn btn-info px-5">Save</button>
                     </div>

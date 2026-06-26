@@ -116,7 +116,7 @@
     </div>
 
     <div class="bdv-note">
-      TDS (Sec 194H): FY ಒಟ್ಟು ದಲಾಲಿ ₹{{ tds_threshold|floatformat:0 }} ಮೀರಿದ ನಂತರ — PAN ಇದ್ದರೆ 2%, ಇಲ್ಲದಿದ್ದರೆ 5%
+      TDS (Sec 194H): ದಲಾಲಿ ₹{{ tds_threshold|floatformat:0 }} ಮತ್ತು ಮೇಲೆ — {{ tds_percent|floatformat:2 }}% (Market Rates)
     </div>
 
     <button type="button" class="bdv-btn" onclick="openReport('tds_only')">

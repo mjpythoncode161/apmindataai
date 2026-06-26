@@ -7,7 +7,7 @@ from django.db.models import Q, Sum
 
 TDS_COMMISSION_THRESHOLD = Decimal("20000.00")
 TDS_RATE = Decimal("0.02")
-TDS_RATE_NO_PAN = Decimal("0.05")
+DEFAULT_TDS_PERCENT = Decimal("2.00")
 
 
 def _to_decimal(value, default="0"):
@@ -38,24 +38,52 @@ def financial_year_end(d):
     return date(start.year + 1, 3, 31)
 
 
-def tds_rate_for_trader(trader):
-    pan = (getattr(trader, "pan", None) or "").strip()
-    return TDS_RATE if pan else TDS_RATE_NO_PAN
+def get_tds_percent_for_date(target_date):
+    """TDS % from MarketRate for the given date (or closest preceding)."""
+    from accounts.models import MarketRate
+
+    if not target_date:
+        return DEFAULT_TDS_PERCENT
+
+    rates = (
+        MarketRate.objects.filter(date__lte=target_date)
+        .order_by("-date")
+        .only("tds_percent")
+        .first()
+    )
+    if not rates or rates.tds_percent is None:
+        return DEFAULT_TDS_PERCENT
+
+    percent = _to_decimal(rates.tds_percent)
+    if percent < 0:
+        return Decimal("0")
+    if percent > 100:
+        return Decimal("100")
+    return percent
 
 
-def _tds_from_cumulative(cumulative_before, commission, rate):
-    """Return (tds_amount, tds_applicable) for one bill."""
+def get_tds_rate_for_date(target_date):
+    """Decimal rate e.g. 0.02 for 2%."""
+    return get_tds_percent_for_date(target_date) / Decimal("100")
+
+
+def tds_rate_for_trader(trader, bill_date=None):
+    """TDS rate from market rates for the bill date."""
+    if bill_date:
+        return get_tds_rate_for_date(bill_date)
+    return TDS_RATE
+
+
+def _tds_from_commission(commission, rate):
+    """Return (tds_amount, tds_applicable) for one bill.
+
+    Commission below ₹20,000 — no TDS.
+    Commission ₹20,000 or above — 2% on full commission (e.g. 20000 × 2/100 = 400).
+    """
     commission = _to_decimal(commission)
-    cumulative_after = cumulative_before + commission
-    if cumulative_after <= TDS_COMMISSION_THRESHOLD:
+    if commission < TDS_COMMISSION_THRESHOLD:
         return Decimal("0.00"), False
-
-    if cumulative_before >= TDS_COMMISSION_THRESHOLD:
-        tds_base = commission
-    else:
-        tds_base = cumulative_after - TDS_COMMISSION_THRESHOLD
-
-    return _quantize_money(tds_base * rate), True
+    return _quantize_money(commission * rate), True
 
 
 def calculate_bill_tds(bill):
@@ -76,8 +104,8 @@ def calculate_bill_tds(bill):
     )
     cumulative_before = _to_decimal(prior)
     commission = _to_decimal(bill.commission)
-    rate = tds_rate_for_trader(bill.buyer)
-    tds, applicable = _tds_from_cumulative(cumulative_before, commission, rate)
+    rate = tds_rate_for_trader(bill.buyer, bill.date)
+    tds, applicable = _tds_from_commission(commission, rate)
 
     return {
         "commission": commission,
@@ -118,13 +146,13 @@ def build_tds_report_rows(bills, filter_mode="all"):
     for bill in sorted(bills, key=lambda b: (b.date, b.invoice_no or "", b.id)):
         key = (bill.buyer_id, financial_year_start(bill.date))
         cumulative = Decimal("0")
-        rate = tds_rate_for_trader(bill.buyer)
+        rate = tds_rate_for_trader(bill.buyer, bill.date)
         tds_info = None
 
         for fy_bill in fy_bills_cache.get(key, []):
             comm = _to_decimal(fy_bill.commission)
             if fy_bill.id == bill.id:
-                tds, applicable = _tds_from_cumulative(cumulative, comm, rate)
+                tds, applicable = _tds_from_commission(comm, rate)
                 tds_info = {
                     "date": bill.date,
                     "bill_no": bill.invoice_no,

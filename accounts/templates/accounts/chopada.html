@@ -243,7 +243,7 @@
       <table class="bastani-table">
         <thead>
           <tr>
-            <th>ತೂಕ (ರೂ)</th>
+            <th>ರಕಮು</th>
             <th>ಲಾಟ್</th>
             <th>ಬ್ಯಾಗ್</th>
             <th>ತೂಕ (ಕಿ.ಗ್ರಾ)</th>
@@ -254,7 +254,7 @@
         <tbody>`;
     rows.forEach(function(r) {
       h += `<tr>
-        <td class="row-amount">${parseFloat(r.net_payable).toFixed(2)}</td>
+        <td class="row-amount">${parseFloat(r.amount || 0).toFixed(2)}</td>
         <td class="row-lot">${r.lot_no}</td>
         <td class="row-lot">${r.bags}</td>
         <td class="row-lot">${parseFloat(r.weight).toFixed(2)}<br><span style="font-size:9px;">${parseFloat(r.weight).toFixed(1)}</span></td>
@@ -262,11 +262,11 @@
         <td class="row-trader">${r.trader}</td>
       </tr>`;
     });
-    let totalPayable = rows.reduce((s, r) => s + parseFloat(r.net_payable || 0), 0);
+    let totalAmount = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
     h += `</tbody>
       <tfoot>
         <tr style="border-top:2px solid #333; font-weight:700;">
-          <td class="row-amount">${totalPayable.toFixed(2)}</td>
+          <td class="row-amount">${totalAmount.toFixed(2)}</td>
           <td colspan="5"></td>
         </tr>
       </tfoot>
@@ -287,7 +287,7 @@
       <table class="poorna-table" style="margin-top:6px; width:100%; border-collapse:collapse;">
         <thead>
           <tr style="border-bottom:2px solid #333; background:#f2f2f2;">
-            <th style="text-align:right; width:95px; padding:4px;">ಬಾಪ್ಯ ಚೊಟ್</th>
+            <th style="text-align:right; width:95px; padding:4px;">ರಕಮು</th>
             <th style="text-align:center; width:50px; padding:4px;">ಲಾಟ್</th>
             <th style="text-align:center; width:50px; padding:4px;">ಬ್ಯಾಗ್</th>
             <th style="text-align:right; width:90px; padding:4px;">ತೂಕ/ದರ</th>
@@ -301,8 +301,8 @@
 
     let grandTotal = 0;
     farmers.forEach(function(f) {
-      let totalPayable = f.lots.reduce((s, l) => s + parseFloat(l.net_payable || 0), 0);
-      grandTotal += totalPayable;
+      let totalAmount = f.lots.reduce((s, l) => s + parseFloat(l.amount || 0), 0);
+      grandTotal += totalAmount;
       h += `
         <tr style="background:#eef7ee; font-weight:700;">
           <td colspan="8" style="text-align:left; padding:6px 8px; font-weight:700; border-bottom:1px solid #ccc; font-size:11px;">
@@ -312,7 +312,7 @@
 
       f.lots.forEach(function(l) {
         h += `<tr style="border-bottom:1px solid #eee;">
-          <td style="text-align:right; padding:4px;">${parseFloat(l.net_payable).toFixed(2)}</td>
+          <td style="text-align:right; padding:4px;">${parseFloat(l.amount || 0).toFixed(2)}</td>
           <td style="text-align:center; padding:4px;">${l.lot_no}</td>
           <td style="text-align:center; padding:4px;">${l.bags}</td>
           <td style="text-align:right; padding:4px;">${parseFloat(l.weight).toFixed(1)}</td>
@@ -333,7 +333,7 @@
 
       h += `
         <tr style="border-bottom:2px solid #ccc; font-weight:700; background:#f9f9f9; font-size:10px;">
-          <td style="text-align:right; padding:4px 8px; font-weight:700;">${totalPayable.toFixed(2)}</td>
+          <td style="text-align:right; padding:4px 8px; font-weight:700;">${totalAmount.toFixed(2)}</td>
           <td colspan="7"></td>
         </tr>`;
     });

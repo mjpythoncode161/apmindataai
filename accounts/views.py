@@ -726,35 +726,114 @@ def _sum_avak_deductions_once(bikri_list):
     return rent, unload_fee, other_fee_1, other_fee_2
 
 
+def _avak_deduction_total(avak):
+    if not avak:
+        return Decimal("0")
+    return (
+        _to_decimal(avak.freight)
+        + _to_decimal(avak.hamali_total)
+        + _to_decimal(avak.empty_bags)
+        + _to_decimal(avak.advance)
+    )
+
+
+def _group_net_payable_rates(group, sale_date):
+    """Market/farmer rates shared by view_bikri and chopada."""
+    market_rates = MarketRate.objects.filter(date=sale_date).first()
+    if market_rates:
+        return (
+            _to_decimal(market_rates.farmer_hamali_per_bag),
+            _to_decimal(market_rates.farmer_packing_per_bag),
+            _to_decimal(market_rates.rakham_percent),
+        )
+    first = group[0]
+    return (
+        _to_decimal(first.farmer_hamali_rate or first.hamali_rate),
+        _to_decimal(first.farmer_packing_rate or first.packing_rate),
+        _get_rakham_percent_for_date(sale_date),
+    )
+
+
+def _calc_group_net_payable_breakdown(group, sale_date):
+    """Per-bikri net payable rows that sum to the combined view_bikri total."""
+    if not group:
+        return Decimal("0"), []
+
+    group = sorted(
+        group,
+        key=lambda b: (
+            _lot_number_sort_key(b.avak.lot_number if b.avak else ""),
+            b.id,
+        ),
+    )
+
+    total_bags = sum(int(b.no_of_bags or 0) for b in group)
+    total_amount = sum(_to_decimal(b.amount) for b in group)
+    farmer_hamali_rate, farmer_packing_rate, rakham_percent = _group_net_payable_rates(
+        group, sale_date
+    )
+
+    farmer_hamali = Decimal(str(total_bags)) * farmer_hamali_rate
+    farmer_packing = Decimal(str(total_bags)) * farmer_packing_rate
+    rent, unload_fee, other_fee_1, other_fee_2 = _sum_avak_deductions_once(group)
+    total_deductions = rent + unload_fee + other_fee_1 + other_fee_2
+
+    rakham_total = _calculate_rakham_amount(total_amount, rakham_percent)
+    bill_amount = total_amount - farmer_hamali + farmer_packing
+    total_net = _quantize_money(bill_amount - rakham_total - total_deductions)
+
+    avak_deduction = {}
+    for b in group:
+        if b.avak_id and b.avak_id not in avak_deduction:
+            avak_deduction[b.avak_id] = _avak_deduction_total(b.avak)
+
+    avak_deduction_assigned = set()
+    rows = []
+    allocated_net = Decimal("0")
+
+    for idx, b in enumerate(group):
+        amount = _to_decimal(b.amount)
+        bags = int(b.no_of_bags or 0)
+        lot_hamali = Decimal(str(bags)) * farmer_hamali_rate
+        lot_packing = Decimal(str(bags)) * farmer_packing_rate
+        lot_bill = amount - lot_hamali + lot_packing
+
+        if total_amount > 0:
+            rakham_share = _quantize_money(rakham_total * amount / total_amount)
+        else:
+            rakham_share = Decimal("0")
+
+        lot_avak_deduction = Decimal("0")
+        if b.avak_id and b.avak_id not in avak_deduction_assigned:
+            avak_deduction_assigned.add(b.avak_id)
+            lot_avak_deduction = avak_deduction.get(b.avak_id, Decimal("0"))
+
+        if idx == len(group) - 1:
+            lot_net = _quantize_money(total_net - allocated_net)
+        else:
+            lot_net = _quantize_money(lot_bill - rakham_share - lot_avak_deduction)
+            allocated_net += lot_net
+
+        rows.append(
+            {
+                "bikri": b,
+                "net_payable": lot_net,
+                "deduction": rakham_share + lot_avak_deduction,
+                "rakham_share": rakham_share,
+            }
+        )
+
+    return total_net, rows
+
+
 def _calc_group_net_payable(group, sale_date):
     """Calculate combined net payable for a group of bikris on the same date.
 
     Uses the same logic as view_bikri: dynamic market rates + avak fields,
     so that farmer_ledger and bikri view always show the same net amount.
     """
-    total_bags   = sum(b.no_of_bags for b in group)
-    total_amount = sum(b.amount for b in group)
-
-    market_rates = MarketRate.objects.filter(date=sale_date).first()
-    if market_rates:
-        farmer_hamali_rate = _to_decimal(market_rates.farmer_hamali_per_bag)
-        farmer_packing_rate = _to_decimal(market_rates.farmer_packing_per_bag)
-        rakham_percent = _to_decimal(market_rates.rakham_percent)
-    else:
-        first = group[0]
-        farmer_hamali_rate  = _to_decimal(first.farmer_hamali_rate or first.hamali_rate)
-        farmer_packing_rate = _to_decimal(first.farmer_packing_rate or first.packing_rate)
-        rakham_percent = _get_rakham_percent_for_date(sale_date)
-
-    farmer_hamali  = Decimal(str(total_bags)) * farmer_hamali_rate
-    farmer_packing = Decimal(str(total_bags)) * farmer_packing_rate
-
-    rent, unload_fee, other_fee_1, other_fee_2 = _sum_avak_deductions_once(group)
-
-    rakham_amount = _calculate_rakham_amount(total_amount, rakham_percent)
-    bill_amount   = total_amount - farmer_hamali + farmer_packing
-    net_payable   = bill_amount - rakham_amount - rent - unload_fee - other_fee_1 - other_fee_2
-    return _quantize_money(net_payable)
+    total_net, _ = _calc_group_net_payable_breakdown(group, sale_date)
+    return total_net
 
 
 def _farmer_display_name(farmer, override=None):
@@ -1940,6 +2019,50 @@ def get_places(request):
     return JsonResponse({"results": results})
 
 
+def _collect_farmer_bikri_groups(filtered_avaks):
+    """Group active bikri rows by farmer for chopada (matches view_bikri grouping)."""
+    from collections import OrderedDict
+
+    farmer_groups = OrderedDict()
+    for avak in filtered_avaks:
+        if avak.is_cancelled:
+            continue
+        fid = avak.farmer_id
+        if fid not in farmer_groups:
+            farmer_groups[fid] = {
+                "farmer_name": avak.farmer.name,
+                "bikris": [],
+            }
+        for b in avak.bikri_entries.all():
+            if b.is_cancelled:
+                continue
+            farmer_groups[fid]["bikris"].append(b)
+    return farmer_groups
+
+
+def _chopada_lot_row(avak, breakdown_row):
+    b = breakdown_row["bikri"]
+    bill_no = (b.bill_no or "").strip() or "-"
+    if bill_no == "-" and hasattr(b, "traderbillitem"):
+        try:
+            bill_no = b.traderbillitem.bill.invoice_no
+        except Exception:
+            pass
+    return {
+        "lot_no": avak.lot_number,
+        "avak_bags": avak.no_of_bags,
+        "bags": b.no_of_bags,
+        "weight": float(b.total_weight),
+        "rate": float(b.rate),
+        "trader": b.buyer.short_code or b.buyer.name if b.buyer else "-",
+        "net_payable": float(breakdown_row["net_payable"]),
+        "amount": float(b.amount),
+        "deduction": float(breakdown_row["deduction"]),
+        "bill_no": bill_no,
+        "bag_weights": [float(w.weight) for w in b.weights.all().order_by("bag_no")],
+    }
+
+
 @login_required
 def chopada(request):
     from django.db.models.functions import Length as DbLength
@@ -1965,7 +2088,6 @@ def chopada(request):
 
     print_data = None
     if do_print:
-        rakham_percent = _get_rakham_percent_for_date(selected)
         avaks = (
             Avak.objects.filter(date=selected)
             .select_related("farmer")
@@ -1991,80 +2113,41 @@ def chopada(request):
 
         if mode == "bastani":
             rows = []
-            for avak in filtered:
-                if avak.is_cancelled:
-                    continue
-                for b in avak.bikri_entries.all():
-                    if b.is_cancelled:
-                        continue
-                    net_payable_calc, _rakham_amount = _calculate_net_payable_for_bikri(
-                        b, rakham_percent
-                    )
+            for data in _collect_farmer_bikri_groups(filtered).values():
+                _, breakdown = _calc_group_net_payable_breakdown(data["bikris"], selected)
+                for row in breakdown:
+                    b = row["bikri"]
+                    avak = b.avak
                     rows.append(
                         {
                             "lot_no": avak.lot_number,
-                            "farmer_name": avak.farmer.name,
+                            "farmer_name": data["farmer_name"],
                             "bags": b.no_of_bags,
                             "weight": float(b.total_weight),
                             "rate": float(b.rate),
                             "trader": (
                                 b.buyer.short_code or b.buyer.name if b.buyer else "-"
                             ),
-                            "net_payable": float(net_payable_calc),
+                            "net_payable": float(row["net_payable"]),
                             "amount": float(b.amount),
                         }
                     )
+            rows.sort(key=lambda r: _lot_number_sort_key(r["lot_no"]))
             print_data = rows
 
         elif mode == "poorna":
-            farmer_dict = {}
-            for avak in filtered:
-                if avak.is_cancelled:
-                    continue
-                fid = avak.farmer_id
-                if fid not in farmer_dict:
-                    farmer_dict[fid] = {
-                        "farmer_name": avak.farmer.name,
-                        "lots": [],
+            print_data = []
+            for data in _collect_farmer_bikri_groups(filtered).values():
+                lots = []
+                _, breakdown = _calc_group_net_payable_breakdown(data["bikris"], selected)
+                for row in breakdown:
+                    lots.append(_chopada_lot_row(row["bikri"].avak, row))
+                print_data.append(
+                    {
+                        "farmer_name": data["farmer_name"],
+                        "lots": lots,
                     }
-                for b in avak.bikri_entries.all():
-                    if b.is_cancelled:
-                        continue
-                    net_payable_calc, rakham_amount = _calculate_net_payable_for_bikri(
-                        b, rakham_percent
-                    )
-                    deduction = (
-                        float(b.rent)
-                        + float(b.unload_fee)
-                        + float(rakham_amount)
-                        + float(b.other_fee_1)
-                        + float(b.other_fee_2)
-                    )
-                    bill_no = (b.bill_no or "").strip() or "-"
-                    if bill_no == "-" and hasattr(b, "traderbillitem"):
-                        try:
-                            bill_no = b.traderbillitem.bill.invoice_no
-                        except Exception:
-                            pass
-
-                    farmer_dict[fid]["lots"].append(
-                        {
-                            "lot_no": avak.lot_number,
-                            "avak_bags": avak.no_of_bags,
-                            "bags": b.no_of_bags,
-                            "weight": float(b.total_weight),
-                            "rate": float(b.rate),
-                            "trader": (
-                                b.buyer.short_code or b.buyer.name if b.buyer else "-"
-                            ),
-                            "net_payable": float(net_payable_calc),
-                            "amount": float(b.amount),
-                            "deduction": deduction,
-                            "bill_no": bill_no,
-                            "bag_weights": [float(w.weight) for w in b.weights.all().order_by("bag_no")],
-                        }
-                    )
-            print_data = list(farmer_dict.values())
+                )
 
         elif mode == "registered":
             active_lots = []
@@ -4422,6 +4505,7 @@ def market_rates(request):
                 cess_percent=latest.cess_percent,
                 gst_percent=latest.gst_percent,
                 rakham_percent=latest.rakham_percent,
+                tds_percent=latest.tds_percent,
                 print_farmer_weights=latest.print_farmer_weights,
                 print_detailed_bikri_bill=latest.print_detailed_bikri_bill,
             )
@@ -4448,6 +4532,7 @@ def market_rates(request):
         cess_percent = _to_decimal(request.POST.get("cess_percent"))
         gst_percent = _to_decimal(request.POST.get("gst_percent"))
         rakham_percent = _to_decimal(request.POST.get("rakham_percent"))
+        tds_percent = _to_decimal(request.POST.get("tds_percent"))
 
         if rakham_percent < 0 or rakham_percent > 100:
             messages.error(request, "ರಖಂ (%) must be between 0 and 100.")
@@ -4464,6 +4549,40 @@ def market_rates(request):
                 cess_percent=cess_percent,
                 gst_percent=gst_percent,
                 rakham_percent=rakham_percent,
+                tds_percent=tds_percent,
+            )
+
+            last_updated_record = MarketRate.objects.order_by("-updated_at").first()
+            last_updated_date = (
+                last_updated_record.date.strftime("%d-%m-%Y")
+                if last_updated_record
+                else "N/A"
+            )
+            return render(
+                request,
+                "accounts/market_rates.html",
+                {
+                    "rates": rates,
+                    "selected_date": post_date_str,
+                    "last_updated_date": last_updated_date,
+                },
+            )
+
+        if tds_percent < 0 or tds_percent > 100:
+            messages.error(request, "TDS (%) must be between 0 and 100.")
+            rates = MarketRate(
+                date=post_date,
+                farmer_packing_per_bag=farmer_packing_per_bag,
+                farmer_hamali_per_bag=farmer_hamali_per_bag,
+                farmer_unloading_per_bag=farmer_unloading_per_bag,
+                trader_packing_per_bag=trader_packing_per_bag,
+                trader_hamali_per_bag=trader_hamali_per_bag,
+                weighman_fee_per_bag=weighman_fee_per_bag,
+                dalali_percent=dalali_percent,
+                cess_percent=cess_percent,
+                gst_percent=gst_percent,
+                rakham_percent=rakham_percent,
+                tds_percent=tds_percent,
             )
 
             last_updated_record = MarketRate.objects.order_by("-updated_at").first()
@@ -4493,6 +4612,7 @@ def market_rates(request):
         rates.cess_percent = cess_percent
         rates.gst_percent = gst_percent
         rates.rakham_percent = rakham_percent
+        rates.tds_percent = tds_percent
         rates.print_farmer_weights = request.POST.get("print_farmer_weights") == "on"
         rates.print_detailed_bikri_bill = (
             request.POST.get("print_detailed_bikri_bill") == "on"
@@ -4608,6 +4728,7 @@ def get_market_rates(request):
                 "cess_percent": 0.60,
                 "gst_percent": 5.00,
                 "rakham_percent": 0.00,
+                "tds_percent": 2.00,
             }
         )
 
@@ -4623,6 +4744,7 @@ def get_market_rates(request):
             "cess_percent": float(rates.cess_percent),
             "gst_percent": float(rates.gst_percent),
             "rakham_percent": float(rates.rakham_percent),
+            "tds_percent": float(rates.tds_percent),
         }
     )
 
@@ -4992,7 +5114,7 @@ def lot_detail_modification(request):
 @login_required
 def buyer_dalali_vivara(request):
     """Options page — buyer commission / TDS report (Kharidi Patti)."""
-    from accounts.tds_utils import TDS_COMMISSION_THRESHOLD
+    from accounts.tds_utils import TDS_COMMISSION_THRESHOLD, get_tds_percent_for_date
 
     today = date.today()
     if today.month >= 4:
@@ -5004,6 +5126,7 @@ def buyer_dalali_vivara(request):
         "from_date": request.GET.get("from_date") or default_from.isoformat(),
         "to_date": request.GET.get("to_date") or today.isoformat(),
         "tds_threshold": TDS_COMMISSION_THRESHOLD,
+        "tds_percent": get_tds_percent_for_date(today),
     }
     return render(request, "accounts/buyer_dalali_vivara.html", context)
 
