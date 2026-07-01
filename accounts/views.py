@@ -2356,14 +2356,12 @@ def cess_report(request):
     from_date_obj = date.fromisoformat(from_date)
     to_date_obj = date.fromisoformat(to_date)
     
-    # Image 3 shows Cess Report listing bills
     bills = TraderBill.objects.filter(
         date__range=[from_date, to_date]
     ).select_related('buyer').order_by('date', 'invoice_no')
     
     report_data = []
     for b in bills:
-        # Resolve 'Name and Place'
         name_place = f"{b.buyer.name}"
         if b.buyer.address:
             name_place += f" & {b.buyer.address}"
@@ -2378,6 +2376,28 @@ def cess_report(request):
             'cess': b.cess,
             'w_fee': b.weighman_fee,
         })
+
+    def _numeric_bill_range(raw_values):
+        nums = []
+        for raw in raw_values:
+            try:
+                nums.append(int(str(raw).strip()))
+            except (TypeError, ValueError):
+                continue
+        if not nums:
+            return None, None
+        return min(nums), max(nums)
+
+    vikri_bill_nos = (
+        Bikri.objects.filter(date__range=[from_date, to_date], is_cancelled=False)
+        .exclude(bill_no="")
+        .exclude(bill_no__isnull=True)
+        .values_list("bill_no", flat=True)
+        .distinct()
+    )
+    kharidi_bill_nos = bills.values_list("invoice_no", flat=True).distinct()
+    vikri_bill_from, vikri_bill_to = _numeric_bill_range(vikri_bill_nos)
+    kharidi_bill_from, kharidi_bill_to = _numeric_bill_range(kharidi_bill_nos)
     
     context = {
         'from_date': from_date_obj,
@@ -2390,6 +2410,10 @@ def cess_report(request):
             'cess': sum(r['cess'] or 0 for r in report_data),
             'w_fee': sum(r['w_fee'] or 0 for r in report_data),
         },
+        'vikri_bill_from': vikri_bill_from,
+        'vikri_bill_to': vikri_bill_to,
+        'kharidi_bill_from': kharidi_bill_from,
+        'kharidi_bill_to': kharidi_bill_to,
         'system_name': "MSBC-2025-26",
         'auto_print': request.GET.get('print') == '1',
     }
@@ -2503,8 +2527,6 @@ def gstr1_report(request):
 
 @login_required
 def partywise_gst_report(request):
-    from django.db.models import Sum
-    
     from_date = request.GET.get('from_date')
     to_date = request.GET.get('to_date')
     
@@ -2514,50 +2536,65 @@ def partywise_gst_report(request):
     from_date_obj = date.fromisoformat(from_date)
     to_date_obj = date.fromisoformat(to_date)
     
-    parties = TraderBill.objects.filter(
+    bills = TraderBill.objects.filter(
         date__range=[from_date, to_date]
-    ).values('buyer__name', 'buyer__gstin').annotate(
-        weight=Sum('total_weight'),
-        bastani=Sum('total_amount'),
-        packing=Sum('packing'),
-        hamali=Sum('hamali'),
-        wm_fee=Sum('weighman_fee'),
-        commission=Sum('commission'),
-        cess=Sum('cess'),
-        gst_total=Sum('gst'),
-        round_off=Sum('round_off'),
-        grand_total=Sum('grand_total'),
-    ).order_by('buyer__name')
-    
-    report_data = []
-    for p in parties:
-        taxable_amount = (p['bastani'] or 0) + (p['packing'] or 0) + (p['hamali'] or 0) + \
-                        (p['wm_fee'] or 0) + (p['commission'] or 0) + (p['cess'] or 0)
-        report_data.append({
-            'name': p['buyer__name'],
-            'gstin': p['buyer__gstin'] or '-',
-            'weight': p['weight'],
-            'bastani': p['bastani'],
-            'packing': p['packing'],
-            'hamali': p['hamali'],
-            'wm_fee': p['wm_fee'],
-            'commission': p['commission'],
-            'cess': p['cess'],
+    ).select_related('buyer').order_by('buyer__name', 'date', 'invoice_no')
+
+    parties_map = {}
+    for b in bills:
+        buyer_id = b.buyer_id
+        if buyer_id not in parties_map:
+            parties_map[buyer_id] = {
+                'name': b.buyer.name,
+                'gstin': b.buyer.gstin or '-',
+                'bills': [],
+            }
+
+        taxable_amount = (
+            (b.total_amount or 0)
+            + (b.packing or 0)
+            + (b.hamali or 0)
+            + (b.weighman_fee or 0)
+            + (b.commission or 0)
+            + (b.cess or 0)
+        )
+        parties_map[buyer_id]['bills'].append({
+            'date': b.date,
+            'bill_no': b.invoice_no,
+            'weight': b.total_weight,
+            'bastani': b.total_amount,
+            'packing': b.packing,
+            'hamali': b.hamali,
+            'wm_fee': b.weighman_fee,
+            'commission': b.commission,
+            'cess': b.cess,
             'taxable_amount': taxable_amount,
-            'sgst': (p['gst_total'] or 0) / 2,
-            'cgst': (p['gst_total'] or 0) / 2,
-            'round_off': p['round_off'],
-            'grand_total': p['grand_total'],
+            'sgst': (b.gst or 0) / 2,
+            'cgst': (b.gst or 0) / 2,
+            'round_off': b.round_off,
+            'grand_total': b.grand_total,
         })
-        
+
+    parties = list(parties_map.values())
+    all_bills = [bill for party in parties for bill in party['bills']]
+
     context = {
         'from_date': from_date_obj,
         'to_date': to_date_obj,
-        'report_data': report_data,
+        'parties': parties,
         'totals': {
-            'weight': sum(r['weight'] or 0 for r in report_data),
-            'taxable_amount': sum(r['taxable_amount'] or 0 for r in report_data),
-            'grand_total': sum(r['grand_total'] or 0 for r in report_data),
+            'weight': sum(b['weight'] or 0 for b in all_bills),
+            'bastani': sum(b['bastani'] or 0 for b in all_bills),
+            'packing': sum(b['packing'] or 0 for b in all_bills),
+            'hamali': sum(b['hamali'] or 0 for b in all_bills),
+            'wm_fee': sum(b['wm_fee'] or 0 for b in all_bills),
+            'commission': sum(b['commission'] or 0 for b in all_bills),
+            'cess': sum(b['cess'] or 0 for b in all_bills),
+            'taxable_amount': sum(b['taxable_amount'] or 0 for b in all_bills),
+            'sgst': sum(b['sgst'] or 0 for b in all_bills),
+            'cgst': sum(b['cgst'] or 0 for b in all_bills),
+            'round_off': sum(b['round_off'] or 0 for b in all_bills),
+            'grand_total': sum(b['grand_total'] or 0 for b in all_bills),
         },
         'system_name': "MSBC-2025-26",
         'auto_print': request.GET.get('print') == '1',
@@ -4442,7 +4479,6 @@ def get_next_lot_number(request):
 @login_required
 def tender_form(request):
     date_param = request.GET.get("date")
-    trader_id = request.GET.get("trader_id")
 
     if date_param:
         try:
@@ -4453,11 +4489,6 @@ def tender_form(request):
         today = date.today()
 
     avaks = Avak.objects.filter(date=today, is_cancelled=False).order_by("lot_number")
-    traders = Trader.objects.all()
-
-    selected_trader = None
-    if trader_id:
-        selected_trader = Trader.objects.filter(id=trader_id).first()
 
     # Calculate totals
     total_bags = sum(a.no_of_bags for a in avaks)
@@ -4467,8 +4498,6 @@ def tender_form(request):
         "accounts/tender_form.html",
         {
             "avaks": avaks,
-            "traders": traders,
-            "selected_trader": selected_trader,
             "date_value": today.strftime("%Y-%m-%d"),
             "total_bags": total_bags,
             "no_of_lots": avaks.count(),

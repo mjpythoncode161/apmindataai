@@ -6,6 +6,139 @@
 {% block extra_head %}
 {% include 'accounts/includes/gst_report_styles.html' %}
 {% include 'accounts/includes/gst_report_print_landscape.html' %}
+<style>
+  .pgst-report-header {
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+  }
+  .pgst-report-header .pgst-company-name {
+    font-size: 17pt;
+    font-weight: 800;
+    color: #000;
+    line-height: 1.25;
+  }
+  .pgst-report-header .pgst-company-address,
+  .pgst-report-header .pgst-gstin {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #111;
+    margin-top: 2px;
+  }
+  .pgst-title-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-top: 10px;
+    min-height: 24px;
+  }
+  .pgst-title-row .gst-report-title {
+    margin-top: 0;
+    font-size: 13pt;
+    font-weight: 800;
+  }
+  .pgst-title-row .pgst-page-no {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10pt;
+    font-weight: 700;
+    color: #222;
+  }
+  .pgst-report-header .gst-report-date {
+    margin-top: 4px;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+  .pgst-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0 6px;
+    padding: 4px 0;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #000;
+  }
+  .pgst-report-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .pgst-report-table col.col-date { width: 7%; }
+  .pgst-report-table col.col-num { width: 7.75%; }
+  .pgst-report-table col.col-total { width: 8.5%; }
+  .pgst-report-table thead th {
+    text-align: center;
+    white-space: nowrap;
+    font-size: 8.5pt;
+    padding: 5px 4px;
+  }
+  .pgst-report-table tbody td,
+  .pgst-report-table tfoot td {
+    padding: 4px 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pgst-report-table tbody tr.party-header-row td,
+  .pgst-report-table tbody tr.bill-meta-row td,
+  .pgst-report-table tbody tr.empty-row td {
+    background: #fff !important;
+  }
+  .pgst-report-table tbody tr.data-row td {
+    font-weight: 600;
+  }
+  .pgst-report-table .party-header-row td {
+    background: #f5f5f5 !important;
+    font-weight: 800;
+    border-top: 1.5px solid #000;
+    border-bottom: 1px solid #000;
+    text-align: left !important;
+    padding: 5px 6px;
+  }
+  .pgst-report-table .party-header-row .party-gstin {
+    text-align: right !important;
+    white-space: nowrap;
+  }
+  .pgst-report-table .bill-meta-row td {
+    font-weight: 700;
+    font-size: 9pt;
+    text-align: left !important;
+    background: #fff !important;
+    border-bottom: 1px dashed #999;
+    padding: 3px 6px;
+  }
+  .pgst-report-table tfoot tr.gst-summary-row td {
+    background: #e2e6ea !important;
+    font-weight: 800;
+    border-top: 2px solid #000;
+    text-align: right;
+  }
+  .pgst-report-table tfoot tr.gst-summary-row td.text-left {
+    text-align: left !important;
+  }
+  .pgst-report-table tbody tr.empty-row td {
+    text-align: center !important;
+    color: #888;
+    font-weight: 600;
+    padding: 12px 8px;
+  }
+  @media print {
+    .pgst-title-row,
+    .pgst-item-row {
+      page-break-after: avoid;
+    }
+    .pgst-report-table .party-header-row td {
+      background: #f5f5f5 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,53 +147,113 @@
         {% include 'accounts/includes/gst_report_toolbar.html' %}
 
         <div class="gst-report-card" id="gstReportPrint">
-            <div class="gst-report-header">
-                {% include 'accounts/includes/company_report_header.html' %}
-                <div class="gst-report-title">Partywise GST Report</div>
+            <div class="gst-report-header pgst-report-header">
+                <div class="pgst-company-name kn-text">{{ company.display_name }}</div>
+                <div class="pgst-company-address kn-text">{{ company.display_address }}</div>
+                <div class="pgst-gstin">GSTIN : {{ company.gst_number|default:"—" }}</div>
+
+                <div class="pgst-title-row">
+                    <div class="gst-report-title">Partywise GST Report</div>
+                    <div class="pgst-page-no">Page 1 of 1</div>
+                </div>
                 <div class="gst-report-date">{{ from_date|date:"d-m-Y" }} TO {{ to_date|date:"d-m-Y" }}</div>
             </div>
 
+            <div class="pgst-item-row">
+                <span>Item : Dry Chillies</span>
+                <span>HSN Code : 09042110</span>
+            </div>
+
             <div class="gst-table-wrap">
-                <table class="gst-report-table">
+                <table class="gst-report-table gst-report-table--compact pgst-report-table">
+                    <colgroup>
+                        <col class="col-date">
+                        <col class="col-num" span="6">
+                        <col class="col-num" style="width:8%;">
+                        <col class="col-num" span="3">
+                        <col class="col-total">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="text-left">Trader Name</th>
-                            <th style="width: 140px;">GSTIN</th>
-                            <th style="width: 85px;">Weight</th>
-                            <th style="width: 105px;">Taxable Amt</th>
-                            <th style="width: 85px;">SGST</th>
-                            <th style="width: 85px;">CGST</th>
-                            <th style="width: 70px;">R/o</th>
-                            <th style="width: 105px;">Grand Total</th>
+                            <th>Date</th>
+                            <th>Bastani</th>
+                            <th>Packing</th>
+                            <th>Hamali</th>
+                            <th>WM Fee</th>
+                            <th>Commission</th>
+                            <th>Cess</th>
+                            <th>Taxable Amount</th>
+                            <th>SGST</th>
+                            <th>CGST</th>
+                            <th>R/o</th>
+                            <th>Grand Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in report_data %}
-                        <tr>
-                            <td class="text-left">{{ row.name }}</td>
-                            <td class="text-center">{{ row.gstin }}</td>
-                            <td>{{ row.weight|floatformat:2 }}</td>
-                            <td>{{ row.taxable_amount|floatformat:2 }}</td>
-                            <td>{{ row.sgst|floatformat:2 }}</td>
-                            <td>{{ row.cgst|floatformat:2 }}</td>
-                            <td>{{ row.round_off|floatformat:2 }}</td>
-                            <td>{{ row.grand_total|floatformat:2 }}</td>
+                        {% for party in parties %}
+                        <tr class="party-header-row">
+                            <td colspan="6" class="party-name">{{ party.name }}</td>
+                            <td colspan="6" class="party-gstin">GSTIN : {{ party.gstin }}</td>
+                        </tr>
+                        {% for bill in party.bills %}
+                        <tr class="data-row">
+                            <td class="text-center">{{ bill.date|date:"d-m-y" }}</td>
+                            <td>{{ bill.bastani|floatformat:2 }}</td>
+                            <td>{{ bill.packing|floatformat:2 }}</td>
+                            <td>{{ bill.hamali|floatformat:2 }}</td>
+                            <td>{{ bill.wm_fee|floatformat:2 }}</td>
+                            <td>{{ bill.commission|floatformat:2 }}</td>
+                            <td>{{ bill.cess|floatformat:2 }}</td>
+                            <td>{{ bill.taxable_amount|floatformat:2 }}</td>
+                            <td>{{ bill.sgst|floatformat:2 }}</td>
+                            <td>{{ bill.cgst|floatformat:2 }}</td>
+                            <td>{{ bill.round_off|floatformat:2 }}</td>
+                            <td>{{ bill.grand_total|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="bill-meta-row">
+                            <td>Bill No : {{ bill.bill_no }}</td>
+                            <td>Weight : {{ bill.weight|floatformat:1 }}</td>
+                            <td colspan="10"></td>
+                        </tr>
+                        {% endfor %}
+                        {% empty %}
+                        <tr class="empty-row">
+                            <td colspan="12">No bills found for this period</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr class="gst-summary-row">
-                            <td colspan="2" class="text-left">TOTAL</td>
-                            <td>{{ totals.weight|floatformat:2 }}</td>
+                            <td class="text-left">TOTAL</td>
+                            <td>{{ totals.bastani|floatformat:2 }}</td>
+                            <td>{{ totals.packing|floatformat:2 }}</td>
+                            <td>{{ totals.hamali|floatformat:2 }}</td>
+                            <td>{{ totals.wm_fee|floatformat:2 }}</td>
+                            <td>{{ totals.commission|floatformat:2 }}</td>
+                            <td>{{ totals.cess|floatformat:2 }}</td>
                             <td>{{ totals.taxable_amount|floatformat:2 }}</td>
-                            <td colspan="3"></td>
+                            <td>{{ totals.sgst|floatformat:2 }}</td>
+                            <td>{{ totals.cgst|floatformat:2 }}</td>
+                            <td>{{ totals.round_off|floatformat:2 }}</td>
+                            <td>{{ totals.grand_total|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="gst-summary-row">
+                            <td class="text-left">Total Weight : {{ totals.weight|floatformat:2 }}</td>
+                            <td>{{ totals.bastani|floatformat:2 }}</td>
+                            <td>{{ totals.packing|floatformat:2 }}</td>
+                            <td>{{ totals.hamali|floatformat:2 }}</td>
+                            <td>{{ totals.wm_fee|floatformat:2 }}</td>
+                            <td>{{ totals.commission|floatformat:2 }}</td>
+                            <td>{{ totals.cess|floatformat:2 }}</td>
+                            <td>{{ totals.taxable_amount|floatformat:2 }}</td>
+                            <td>{{ totals.sgst|floatformat:2 }}</td>
+                            <td>{{ totals.cgst|floatformat:2 }}</td>
+                            <td>{{ totals.round_off|floatformat:2 }}</td>
                             <td>{{ totals.grand_total|floatformat:2 }}</td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
-
-            <div class="gst-report-footer">Generated on: {% now "d-m-Y H:i" %}</div>
         </div>
     </div>
 </section>

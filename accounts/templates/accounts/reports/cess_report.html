@@ -6,6 +6,67 @@
 {% block extra_head %}
 {% include 'accounts/includes/gst_report_styles.html' %}
 {% include 'accounts/includes/gst_report_print_portrait.html' %}
+<style>
+  .cess-report-header {
+    text-align: center;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+  }
+  .cess-report-header .cess-company-name {
+    font-size: 17pt;
+    font-weight: 800;
+    color: #000;
+    line-height: 1.25;
+  }
+  .cess-report-header .cess-company-address {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #111;
+    margin-top: 2px;
+  }
+  .cess-meta-row {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr 1fr;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 10pt;
+    font-weight: 700;
+    color: #000;
+  }
+  .cess-meta-left { text-align: left; line-height: 1.35; }
+  .cess-meta-center { text-align: center; line-height: 1.35; }
+  .cess-meta-right { text-align: right; line-height: 1.35; }
+  .cess-title-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-top: 10px;
+    min-height: 24px;
+  }
+  .cess-title-row .gst-report-title {
+    margin-top: 0;
+    font-size: 12.5pt;
+    font-weight: 800;
+  }
+  .cess-title-row .cess-page-no {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10pt;
+    font-weight: 700;
+    color: #222;
+  }
+  @media print {
+    .cess-meta-row,
+    .cess-title-row {
+      page-break-after: avoid;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,9 +75,40 @@
         {% include 'accounts/includes/gst_report_toolbar.html' %}
 
         <div class="gst-report-card" id="gstReportPrint">
-            <div class="gst-report-header">
-                {% include 'accounts/includes/company_report_header.html' %}
-                <div class="gst-report-title">Cess Report From {{ from_date|date:"d-m-Y" }} To {{ to_date|date:"d-m-Y" }}</div>
+            <div class="gst-report-header cess-report-header">
+                <div class="cess-company-name kn-text">{{ company.display_name }}</div>
+                <div class="cess-company-address kn-text">{{ company.display_address }}</div>
+
+                <div class="cess-meta-row">
+                    <div class="cess-meta-left">
+                        <div>Vikri Bills</div>
+                        <div>
+                            {% if vikri_bill_from is not None and vikri_bill_to is not None %}
+                                {{ vikri_bill_from }} To {{ vikri_bill_to }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="cess-meta-center">
+                        APMC Code : BYD0679 &nbsp; GSTIN : {{ company.gst_number|default:"—" }}
+                    </div>
+                    <div class="cess-meta-right">
+                        <div>Kharidi Bills</div>
+                        <div>
+                            {% if kharidi_bill_from is not None and kharidi_bill_to is not None %}
+                                {{ kharidi_bill_from }} To {{ kharidi_bill_to }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cess-title-row">
+                    <div class="gst-report-title">Cess Report From {{ from_date|date:"d-m-Y" }} To {{ to_date|date:"d-m-Y" }}</div>
+                    <div class="cess-page-no">Page 1 of 1</div>
+                </div>
             </div>
 
             <div class="gst-table-wrap">
@@ -60,7 +152,6 @@
                 </table>
             </div>
 
-            <div class="gst-report-footer">Page 1 of 1</div>
         </div>
     </div>
 </section>

@@ -55,38 +55,65 @@
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        padding: 2mm 1.8mm 1.5mm;
+        padding: 1.8mm 1.4mm 1.2mm;
         font-family: 'Noto Sans Kannada', 'Nirmala UI', 'Source Sans Pro', sans-serif;
         color: #000;
         background: #fff;
         overflow: hidden;
     }
 
-    .tf-slip-head { text-align: center; flex-shrink: 0; line-height: 1.25; }
-    .tf-slip-apmc { font-size: 8pt; font-weight: 700; }
-    .tf-slip-firm { font-size: 11pt; font-weight: 800; margin: 0.8mm 0; }
-    .tf-slip-grower {
+    .tf-slip-head { flex-shrink: 0; line-height: 1.25; }
+    .tf-slip-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        font-size: 6.8pt;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .tf-slip-top-right { text-align: right; font-size: 6.5pt; }
+    .tf-slip-firm {
+        text-align: center;
+        font-size: 11pt;
+        font-weight: 800;
+        margin: 0.8mm 0 0.6mm;
+        line-height: 1.12;
+    }
+    .tf-slip-bidder {
         display: flex;
         justify-content: space-between;
         font-size: 6.8pt;
         font-weight: 600;
-        padding: 0.5mm 0;
-        border-bottom: 0.75pt solid #000;
+        margin: 0.3mm 0;
     }
-    .tf-slip-meta {
+    .tf-slip-legal {
+        font-size: 5.6pt;
+        line-height: 1.32;
+        text-align: justify;
+        margin: 0.5mm 0 0.8mm;
+        font-weight: 600;
+    }
+    .tf-slip-codes {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        background: #e6e6e6;
-        border-bottom: 0.75pt solid #000;
-        padding: 1mm 0.6mm;
-        font-size: 6.8pt;
-        font-weight: 700;
+        gap: 2mm;
+        margin-bottom: 1mm;
         flex-shrink: 0;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
     }
-    .tf-slip-meta span { white-space: nowrap; }
+    .tf-slip-code-box,
+    .tf-slip-date-box {
+        flex: 1;
+        border: 0.75pt solid #000;
+        text-align: center;
+        font-weight: 800;
+        font-size: 7.5pt;
+        padding: 0.9mm 0.5mm;
+        min-height: 6mm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
 
     .tf-slip-table-wrap {
         flex: 1 1 auto;
@@ -103,23 +130,32 @@
         border: 0.6pt solid #000;
         text-align: center;
         vertical-align: middle;
-        padding: 0 0.5mm;
-        font-size: 6.5pt;
-        line-height: 1.1;
-        height: 7mm;
+        padding: 0.4mm 0.5mm;
+        line-height: 1.15;
         overflow: hidden;
     }
+    .tf-slip-table td {
+        font-size: 6.2pt;
+        height: 6.2mm;
+    }
     .tf-slip-table thead th {
-        height: 5.5mm;
-        font-weight: 700;
+        height: 8.5mm;
+        font-size: 7.2pt;
+        font-weight: 800;
+        padding: 0.6mm 0.4mm;
+        text-align: center;
+        vertical-align: middle;
+        white-space: normal;
+        word-break: keep-all;
+        overflow: visible;
         background: #eeeeee !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
-    .tf-slip-table .col-lot { width: 11%; }
-    .tf-slip-table .col-est { width: 22%; }
+    .tf-slip-table .col-lot { width: 14%; }
+    .tf-slip-table .col-est { width: 20%; }
     .tf-slip-table .col-bag { width: 14%; }
-    .tf-slip-table .col-rate { width: 28%; }
+    .tf-slip-table .col-rate { width: 27%; }
     .tf-slip-table .col-rem { width: 25%; }
 
     .tf-slip-sign {
@@ -144,8 +180,8 @@
     }
     #previewModal .tf-print-sheet {
         transform-origin: top center;
-        transform: scale(0.42);
-        margin-bottom: -116mm;
+        transform: scale(0.36);
+        margin-bottom: -128mm;
     }
 
     @media print {
@@ -283,20 +319,15 @@
                 <div class="clearfix"></div>
                 <div class="field-group mt-1">
                     <label>Firm Name:</label>
-                    <select id="trader_select" class="input-custom select2">
-                        <option value="">Select Firm</option>
-                        {% for t in traders %}
-                        <option value="{{ t.id }}" {% if selected_trader.id == t.id %}selected{% endif %}>{{ t.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <input type="text" id="firm_name" value="{{ company.display_name }}" class="input-custom" readonly>
                 </div>
                 <div class="field-group">
                     <label>APMC Code:</label>
-                    <input type="text" id="apmc_code" value="{{ selected_trader.pan|default:'BYD0679' }}" class="input-custom">
+                    <input type="text" id="apmc_code" value="BYD0679" class="input-custom">
                 </div>
                 <div class="field-group">
                     <label>Mobile No:</label>
-                    <input type="text" value="{{ selected_trader.phone|default:'' }}" class="input-custom">
+                    <input type="text" id="mobile_no" value="{{ company.phone|default:'' }}" class="input-custom">
                 </div>
             </div>
         </div>
@@ -333,10 +364,7 @@
         if($('.select2').length) $('.select2').select2({ theme: 'bootstrap4' });
 
         $('#entry_date').on('change', function() {
-            window.location.href = `?date=${this.value}&trader_id=${$('#trader_select').val()}`;
-        });
-        $('#trader_select').on('change', function() {
-            window.location.href = `?date=${$('#entry_date').val()}&trader_id=${this.value}`;
+            window.location.href = `?date=${this.value}`;
         });
         $('#refreshBtn').on('click', function() { location.reload(); });
 
@@ -437,14 +465,21 @@
         });
 
         // PRINT — 3 slips per A4 landscape sheet
+        function formatPrintDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return dateStr;
+        }
+
         function buildSlipHtml() {
-            const firmSelect = $('#trader_select option:selected').text();
-            const firm = (firmSelect && firmSelect !== 'Select Firm')
-                ? firmSelect
-                : ((window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || 'ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ');
+            const firm = ($('#firm_name').val() || '').trim()
+                || ((window.COMPANY_PROFILE && window.COMPANY_PROFILE.name) || 'ಎಂ ಎಸ್ ಬಿ & ಕಂಪನಿ');
             const apmc = $('#apmc_code').val() || 'BYD0679';
             const dateVal = $('#print_date').val() || $('#entry_date').val();
-            const extend = $('#extend_input').val() || '';
+            const dateDisplay = formatPrintDate(dateVal);
+            const mobile = ($('#mobile_no').val() || '').trim();
+            const cellDisplay = mobile || '--';
 
             const rows = [];
             $('.lot-row').each(function() {
@@ -478,26 +513,31 @@
             return `
                 <div class="tf-slip">
                     <div class="tf-slip-head">
-                        <div class="tf-slip-apmc">ಎ.ಪಿ.ಎಂ.ಸಿ. ಬಾಗಲಕೋಟೆ</div>
+                        <div class="tf-slip-top">
+                            <span>ಎ.ಪಿ.ಎಂ.ಸಿ. ಬ್ಯಾಡಗಿ</span>
+                            <span class="tf-slip-top-right">ಮೆಣಸಿನಕಾಯಿ ಟೆಂಡರ್ ಚೀಟಿ</span>
+                        </div>
                         <div class="tf-slip-firm">${firm}</div>
-                        <div class="tf-slip-grower">
-                            <span>ಬೆಳೆಗಾರರು: ............................</span>
-                            <span>Cell: ...............</span>
+                        <div class="tf-slip-bidder">
+                            <span>ಬೇಡುವವರು :</span>
+                            <span>Cell : ${cellDisplay}</span>
+                        </div>
+                        <div class="tf-slip-legal">
+                            ಕ.ಉ.ಮ.ಮಾ.ನಿ. ಕಾಯ್ದೆ ಕಲಂ 75-7 ಗಳಿಗೆ ಒಳಪಟ್ಟು ಈ ಚೀಟಿಯಲ್ಲಿಯ ಮಾಲು ಕೊಳ್ಳಲು ಒಪ್ಪಿರುತ್ತೇನೆ. ಸದರ ಕಾ.ಕ. 54 ರನ್ವಯ ಆದ ನಿರ್ಣಯಕ್ಕೆ ಬದ್ಧನಿರುತ್ತೇನೆ
                         </div>
                     </div>
-                    <div class="tf-slip-meta">
-                        <span>Code: ${apmc}</span>
-                        <span>Extend: ${extend}</span>
-                        <span>DATE: ${dateVal}</span>
+                    <div class="tf-slip-codes">
+                        <div class="tf-slip-code-box">${apmc}</div>
+                        <div class="tf-slip-date-box">DATE : ${dateDisplay}</div>
                     </div>
                     <div class="tf-slip-table-wrap">
                         <table class="tf-slip-table">
                             <thead>
                                 <tr>
-                                    <th class="col-lot">ಲಾಟು</th>
+                                    <th class="col-lot">ಲಾಟ್</th>
                                     <th class="col-est">ಅಂದಾಜು</th>
                                     <th class="col-bag">ಚೀಲ</th>
-                                    <th class="col-rate">ಕ್ವಿಂಟಲ್ ದರ</th>
+                                    <th class="col-rate">ಕ್ವಿಂಟಲ್<br>ದರ</th>
                                     <th class="col-rem">ಶರಾ</th>
                                 </tr>
                             </thead>

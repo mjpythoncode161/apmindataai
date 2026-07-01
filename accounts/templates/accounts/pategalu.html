@@ -40,9 +40,22 @@
     overflow: hidden;
   }
   .pategalu-table-box .tbl-title {
-    background: #2c6ca2; color: #fff; text-align: center;
-    padding: 6px; font-weight: 700; font-size: 0.9rem;
+    background: #2c6ca2; color: #fff;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 10px; font-weight: 700; font-size: 0.9rem;
   }
+  .btn-tbl-print {
+    background: #fff;
+    color: #2c6ca2;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-tbl-print:hover { background: #e8f2fb; }
   .ptable {
     width: 100%; border-collapse: collapse; font-size: 0.88rem;
   }
@@ -67,20 +80,33 @@
     color: #0c5460;
   }
 
-  /* Print button */
   .btn-pategalu-print {
-    background: #2c6ca2; color: #fff; border: none;
-    padding: 7px 22px; border-radius: 3px; font-weight: 700; cursor: pointer;
+    color: #fff; border: none;
+    padding: 7px 16px; border-radius: 3px; font-weight: 700; cursor: pointer;
   }
-  .btn-pategalu-print:hover { background: #1a4f7a; }
+  .btn-pategalu-print-trader { background: #2c6ca2; }
+  .btn-pategalu-print-farmer { background: #1e7e34; }
+  .btn-pategalu-print-trader:hover { background: #1a4f7a; }
+  .btn-pategalu-print-farmer:hover { background: #155724; }
 
   /* ─── Print styles ─── */
   @media print {
     .pategalu-controls, .main-header, .main-footer, .main-sidebar,
-    .content-header { display: none !important; }
+    .content-header, .no-print { display: none !important; }
     .content-wrapper { margin-left: 0 !important; }
     .pategalu-wrap { display: flex !important; gap: 20px; }
     .pategalu-table-box { flex: 1; page-break-inside: avoid; }
+    body.print-trader-only .pategalu-table-box-farmer { display: none !important; }
+    body.print-farmer-only .pategalu-table-box-trader { display: none !important; }
+    body.print-trader-only .pategalu-wrap,
+    body.print-farmer-only .pategalu-wrap {
+      display: block !important;
+    }
+    body.print-trader-only .pategalu-table-box-trader,
+    body.print-farmer-only .pategalu-table-box-farmer {
+      width: 100%;
+      max-width: 100%;
+    }
     .ptable tbody tr:nth-child(even) { background: #f0f7ff !important; -webkit-print-color-adjust: exact; }
     .ptable thead tr { background: #4a90d9 !important; -webkit-print-color-adjust: exact; }
     .ptable tfoot tr { background: #333 !important; -webkit-print-color-adjust: exact; }
@@ -104,8 +130,11 @@
     <div class="pategalu-controls no-print">
       <label><i class="fas fa-calendar-alt mr-1"></i> Date:</label>
       <input type="date" id="pategalu_date" value="{{ selected_date }}" onchange="reloadPage()">
-      <button onclick="window.print()" class="btn-pategalu-print">
-        <i class="fas fa-print mr-1"></i> Print
+      <button type="button" onclick="printPategalu('trader')" class="btn-pategalu-print btn-pategalu-print-trader">
+        <i class="fas fa-print mr-1"></i> Print Trader Bills
+      </button>
+      <button type="button" onclick="printPategalu('farmer')" class="btn-pategalu-print btn-pategalu-print-farmer">
+        <i class="fas fa-print mr-1"></i> Print Farmer Bills
       </button>
     </div>
 
@@ -119,8 +148,13 @@
     <div class="pategalu-wrap mt-0">
 
       <!-- Table 1: Trader Bills -->
-      <div class="pategalu-table-box">
-        <div class="tbl-title">ವ್ಯಾಪಾರಿ ಪಟ್ಟಿ (Trader Bills)</div>
+      <div class="pategalu-table-box pategalu-table-box-trader" id="traderBillsSection">
+        <div class="tbl-title">
+          <span>ವ್ಯಾಪಾರಿ ಪಟ್ಟಿ (Trader Bills)</span>
+          <button type="button" class="btn-tbl-print no-print" onclick="printPategalu('trader')">
+            <i class="fas fa-print"></i> Print
+          </button>
+        </div>
         <table class="ptable">
           <thead>
             <tr>
@@ -152,8 +186,13 @@
       </div>
 
       <!-- Table 2: Farmer Bills -->
-      <div class="pategalu-table-box">
-        <div class="tbl-title">ರೈತರ ಪಟ್ಟಿ (Farmer Bills)</div>
+      <div class="pategalu-table-box pategalu-table-box-farmer" id="farmerBillsSection">
+        <div class="tbl-title">
+          <span>ರೈತರ ಪಟ್ಟಿ (Farmer Bills)</span>
+          <button type="button" class="btn-tbl-print no-print" onclick="printPategalu('farmer')">
+            <i class="fas fa-print"></i> Print
+          </button>
+        </div>
         <table class="ptable">
           <thead>
             <tr>
@@ -195,5 +234,21 @@
     const d = $('#pategalu_date').val();
     if (d) window.location.href = '{% url "pategalu" %}?date=' + d;
   }
+
+  function clearPategaluPrintMode() {
+    document.body.classList.remove('print-trader-only', 'print-farmer-only');
+  }
+
+  function printPategalu(mode) {
+    clearPategaluPrintMode();
+    if (mode === 'trader') {
+      document.body.classList.add('print-trader-only');
+    } else if (mode === 'farmer') {
+      document.body.classList.add('print-farmer-only');
+    }
+    window.print();
+  }
+
+  window.onafterprint = clearPategaluPrintMode;
 </script>
 {% endblock %}

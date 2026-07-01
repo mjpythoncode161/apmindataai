@@ -1,11 +1,77 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Detailed GST Report - {{ system_name }}{% endblock %}
+{% block title %}GST Report - {{ system_name }}{% endblock %}
 
 {% block extra_head %}
 {% include 'accounts/includes/gst_report_styles.html' %}
 {% include 'accounts/includes/gst_report_print_landscape.html' %}
+<style>
+  .dgst-report-header {
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+  }
+  .dgst-report-header .dgst-company-name {
+    font-size: 17pt;
+    font-weight: 800;
+    color: #000;
+    line-height: 1.25;
+  }
+  .dgst-report-header .dgst-company-address,
+  .dgst-report-header .dgst-gstin {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #111;
+    margin-top: 2px;
+  }
+  .dgst-title-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-top: 10px;
+    min-height: 24px;
+  }
+  .dgst-title-row .gst-report-title {
+    margin-top: 0;
+    font-size: 13pt;
+    font-weight: 800;
+  }
+  .dgst-title-row .dgst-page-no {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10pt;
+    font-weight: 700;
+    color: #222;
+  }
+  .dgst-report-header .gst-report-date {
+    margin-top: 4px;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+  .dgst-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0 6px;
+    padding: 4px 0;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #000;
+  }
+  @media print {
+    .dgst-title-row,
+    .dgst-item-row {
+      page-break-after: avoid;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,10 +80,21 @@
         {% include 'accounts/includes/gst_report_toolbar.html' %}
 
         <div class="gst-report-card" id="gstReportPrint">
-            <div class="gst-report-header">
-                {% include 'accounts/includes/company_report_header.html' %}
-                <div class="gst-report-title">Detailed GST Report</div>
+            <div class="gst-report-header dgst-report-header">
+                <div class="dgst-company-name kn-text">{{ company.display_name }}</div>
+                <div class="dgst-company-address kn-text">{{ company.display_address }}</div>
+                <div class="dgst-gstin">GSTIN : {{ company.gst_number|default:"—" }}</div>
+
+                <div class="dgst-title-row">
+                    <div class="gst-report-title">GST Report</div>
+                    <div class="dgst-page-no">Page 1 of 1</div>
+                </div>
                 <div class="gst-report-date">{{ from_date|date:"d-m-Y" }} TO {{ to_date|date:"d-m-Y" }}</div>
+            </div>
+
+            <div class="dgst-item-row">
+                <span>Item : Dry Chillies</span>
+                <span>HSN Code : 09042110</span>
             </div>
 
             <div class="gst-table-wrap">
@@ -25,31 +102,25 @@
                     <thead>
                         <tr>
                             <th style="width: 72px;">Date</th>
-                            <th style="width: 52px;">Bill No</th>
                             <th class="text-left">Name</th>
-                            <th style="width: 120px;">GSTIN</th>
-                            <th>Weight</th>
                             <th>Bastani</th>
                             <th>Packing</th>
                             <th>Hamali</th>
                             <th>WM Fee</th>
                             <th>Commission</th>
                             <th>Cess</th>
-                            <th>Taxable</th>
+                            <th>Taxable Amount</th>
                             <th>SGST</th>
                             <th>CGST</th>
                             <th>R/o</th>
-                            <th>Total</th>
+                            <th>Grand Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in report_data %}
                         <tr>
                             <td class="text-center">{{ row.date|date:"d-m-Y" }}</td>
-                            <td class="text-center">{{ row.bill_no }}</td>
                             <td class="text-left">{{ row.name }}</td>
-                            <td class="text-center">{{ row.gstin }}</td>
-                            <td>{{ row.weight|floatformat:2 }}</td>
                             <td>{{ row.bastani|floatformat:2 }}</td>
                             <td>{{ row.packing|floatformat:2 }}</td>
                             <td>{{ row.hamali|floatformat:2 }}</td>
@@ -66,8 +137,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="gst-summary-row">
-                            <td colspan="4" class="text-left">TOTAL</td>
-                            <td>{{ totals.weight|floatformat:2 }}</td>
+                            <td colspan="2" class="text-left">TOTAL</td>
                             <td>{{ totals.bastani|floatformat:2 }}</td>
                             <td>{{ totals.packing|floatformat:2 }}</td>
                             <td>{{ totals.hamali|floatformat:2 }}</td>
@@ -82,11 +152,6 @@
                         </tr>
                     </tfoot>
                 </table>
-            </div>
-
-            <div class="gst-report-footer d-flex justify-content-between">
-                <span>Generated on: {% now "d-m-Y H:i" %}</span>
-                <span>Page 1 of 1</span>
             </div>
         </div>
     </div>

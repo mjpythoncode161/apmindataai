@@ -6,52 +6,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tax Invoice - {{ bill.invoice_no }}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;700&display=swap');
-        body { 
-            font-family: 'Noto Sans Kannada', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            color: #000; 
-            background: #fff; 
-            font-size: 11px;
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@500;600;700;800&display=swap');
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans Kannada', 'Nirmala UI', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 16px;
+            color: #000;
+            background: #f0f2f5;
+            font-size: 11.5px;
+            font-weight: 600;
+            line-height: 1.4;
         }
-        .invoice-container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            border: 2px solid #000; 
-            padding: 10px;
-            box-sizing: border-box;
+        .bill-toolbar {
+            max-width: 800px;
+            margin: 0 auto 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .bill-toolbar .toolbar-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .bill-toolbar .toolbar-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar-btn {
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.12);
+        }
+        .toolbar-btn-back { background: #6c757d; color: #fff; }
+        .toolbar-btn-print { background: #2563eb; color: #fff; }
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #000;
+            padding: 10px 12px;
+            background: #fff;
         }
         .subject-line {
             text-align: center;
-            font-weight: bold;
+            font-weight: 800;
             border-bottom: 1px solid #000;
             padding-bottom: 4px;
             font-size: 11px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
         }
         .main-header {
             text-align: center;
-            margin-top: 5px;
-            line-height: 1.4;
+            margin-top: 6px;
+            line-height: 1.38;
         }
-        .main-header .renuka {
-            font-size: 10px;
-            font-weight: bold;
-        }
-        .main-header .sub-header {
+        .main-header .motto {
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 700;
+        }
+        .main-header .apmc-line {
+            font-size: 11.5px;
+            font-weight: 700;
         }
         .main-header .company-name {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 800;
-            margin: 2px 0;
-            letter-spacing: 1px;
+            margin: 3px 0;
+            letter-spacing: 0.5px;
         }
         .main-header .address {
-            font-size: 11px;
-            font-weight: bold;
+            font-size: 11.5px;
+            font-weight: 700;
         }
         .meta-section {
             display: grid;
@@ -59,173 +96,231 @@
             border-top: 1px solid #000;
             border-bottom: 1px solid #000;
             margin-top: 8px;
-            padding: 5px 0;
+            padding: 6px 0;
             align-items: center;
+            gap: 8px;
         }
-        .meta-left {
-            line-height: 1.5;
-            font-weight: bold;
-            padding-left: 5px;
+        .meta-left,
+        .meta-right {
+            line-height: 1.55;
+            font-weight: 700;
+            font-size: 11px;
         }
+        .meta-left { padding-left: 4px; text-align: left; }
+        .meta-right { padding-right: 4px; text-align: right; }
         .meta-middle {
             border: 1px solid #000;
-            padding: 4px 15px;
+            padding: 5px 14px;
             font-weight: 800;
-            font-size: 12px;
             text-align: center;
             background: #fff;
+            line-height: 1.28;
+            min-width: 118px;
         }
-        .meta-right {
-            text-align: right;
-            line-height: 1.5;
-            font-weight: bold;
-            padding-right: 5px;
+        .meta-middle .meta-kn {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 800;
+        }
+        .meta-middle .meta-en {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
         }
         .buyer-section {
             display: grid;
             grid-template-columns: 1.2fr auto 1fr;
             border-bottom: 1px solid #000;
-            padding: 6px 5px;
+            padding: 7px 4px;
             align-items: center;
-            line-height: 1.6;
+            line-height: 1.55;
+            gap: 8px;
         }
-        .buyer-left {
-            font-weight: bold;
+        .buyer-left,
+        .buyer-right {
+            font-weight: 700;
+            font-size: 11px;
+        }
+        .buyer-left { text-align: left; }
+        .buyer-right { text-align: right; }
+        .buyer-left .buyer-name {
+            font-size: 12px;
+            font-weight: 800;
         }
         .buyer-middle {
             border: 1px solid #000;
-            padding: 6px 20px;
-            font-size: 14px;
+            padding: 6px 18px;
+            font-size: 13px;
             font-weight: 800;
             text-align: center;
-            min-width: 80px;
-        }
-        .buyer-right {
-            text-align: right;
-            font-weight: bold;
+            min-width: 84px;
         }
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: -1px;
+            table-layout: fixed;
         }
-        .invoice-table th, .invoice-table td {
+        .invoice-table th,
+        .invoice-table td {
             border: 1px solid #000;
-            padding: 4px 6px;
-            font-size: 10.5px;
+            padding: 5px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            vertical-align: middle;
         }
         .invoice-table th {
-            font-weight: bold;
-            background: #fff;
             text-align: center;
-            font-size: 10px;
+            font-weight: 800;
+            font-size: 10.5px;
+            background: #f8f8f8;
         }
         .invoice-table tbody td {
             text-align: center;
-            height: 22px;
+            height: 24px;
+        }
+        .invoice-table .text-left { text-align: left; padding-left: 8px; }
+        .invoice-table .text-right { text-align: right; padding-right: 8px; }
+        .invoice-table .row-total {
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            background: #fafafa;
+            font-weight: 800;
+        }
+        .invoice-table .row-grand {
+            background: #e8edf3;
+            font-size: 11.5px;
+            font-weight: 800;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+        }
+        .invoice-table .row-label-right {
+            text-align: right;
+            padding-right: 10px;
+            font-weight: 800;
         }
         .amount-words-section {
-            margin-top: 15px;
-            font-weight: bold;
-            font-size: 11px;
+            margin-top: 14px;
+            font-weight: 800;
+            font-size: 11.5px;
         }
         .bank-details-section {
-            margin-top: 16px;
-            padding: 8px 0 4px 0;
-            font-weight: bold;
-            font-size: 10.5px;
-            line-height: 1.65;
+            margin-top: 14px;
+            padding: 8px 0 4px;
+            font-weight: 700;
+            font-size: 11px;
+            line-height: 1.6;
             border-top: 1px dashed #999;
         }
         .bank-details-section .bank-heading {
-            font-size: 10px;
+            font-size: 10.5px;
+            font-weight: 800;
             text-decoration: underline;
             margin-bottom: 4px;
         }
         .footer-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 22px;
+            margin-top: 20px;
             align-items: flex-end;
-            font-weight: bold;
+            font-weight: 700;
         }
-        .footer-left {
-            font-size: 10px;
-        }
+        .footer-left { font-size: 10.5px; font-weight: 800; }
         .footer-right {
             text-align: right;
             line-height: 1.5;
+            font-weight: 700;
         }
-        .no-print-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #28a745;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-size: 12px;
-        }
-        .no-print-back-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: #6c757d;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-size: 12px;
-            text-decoration: none;
+        .footer-right .sign-name {
+            font-weight: 800;
+            font-size: 12.5px;
+            margin-top: 4px;
             display: inline-block;
         }
+        .acct-stmt-bar {
+            max-width: 800px;
+            margin: 12px auto;
+            padding: 8px 12px;
+            background: #eef6ff;
+            border: 1px solid #99c;
+            border-radius: 5px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+        @page {
+            size: A4 portrait;
+            margin: 8mm 10mm;
+        }
         @media print {
-            .no-print-btn, .no-print-back-btn { display: none !important; }
-            body { padding: 0; }
-            .invoice-container { border: 2px solid #000 !important; }
+            body {
+                padding: 0;
+                background: #fff;
+                font-size: 11px;
+                font-weight: 700;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print { display: none !important; }
+            .invoice-container {
+                max-width: 100%;
+                width: 100%;
+                margin: 0;
+                border: 2px solid #000 !important;
+                box-shadow: none;
+            }
+            .invoice-table th { background: #f8f8f8 !important; }
+            .invoice-table .row-grand,
+            .invoice-table .row-total { background: #e8edf3 !important; }
         }
     </style>
 </head>
 <body>
 
-    <button class="no-print-back-btn" onclick="if (window.opener) { window.close(); } else { window.location.href='{% url 'kharidi_patti_list' %}'; }">
-        &larr; BACK
-    </button>
+    <div class="bill-toolbar no-print">
+        <div class="toolbar-title">Tax Invoice — {{ bill.invoice_no }}</div>
+        <div class="toolbar-actions">
+            <button type="button" class="toolbar-btn toolbar-btn-back" onclick="if (window.opener) { window.close(); } else { window.location.href='{% url 'kharidi_patti_list' %}'; }">
+                ← Back
+            </button>
+            <button type="button" class="toolbar-btn toolbar-btn-print" onclick="printTraderBill()">
+                Print / Save PDF
+            </button>
+        </div>
+    </div>
 
-    <div class="invoice-container">
-        <div class="subject-line">Subject To ಬ್ಯಾಡಗಿ Jurisdiction</div>
+    <div class="invoice-container" id="traderBillPrint">
+        <div class="subject-line">Subject To BYADGI Jurisdiction</div>
 
         <div class="main-header">
-            {% if company.logo %}<img src="{{ company.logo.url }}" alt="" style="max-height:60px; margin-bottom:4px;" />{% endif %}
-            <div class="renuka">|| ಶ್ರೀ ರೇಣುಕಾ ಪ್ರಸನ್ನ ||</div>
-            <div class="sub-header">ಕೆ. ಎಸ್. ಈರಪ್ಪ ಮತ್ತು ಸಾಂಗಾ ಯವರ</div>
+            <div class="motto">|| ಶ್ರೀ ಗುರು ಪ್ರಸನ್ನಃ ||</div>
+            <div class="apmc-line">ಕೃಷಿ ಉತ್ಪನ್ನ ಮಾರುಕಟ್ಟೆ ಸಮಿತಿ ಬ್ಯಾಡಗಿ</div>
             <div class="company-name">{{ company.display_name }}</div>
             <div class="address">{{ company.display_address }}</div>
         </div>
 
         <div class="meta-section">
             <div class="meta-left">
-                {% if company.gst_number %}<div>GSTN : {{ company.gst_number }}</div>{% endif %}
-                <div>PAN : CFIPB5465B</div>
+                <div>GSTN : {{ company.gst_number|default:"—" }}</div>
+                <div>PAN : {% if company.gst_number|length >= 12 %}{{ company.gst_number|slice:"2:12" }}{% else %}CFIPB5465B{% endif %}</div>
                 <div>FSSAI : </div>
             </div>
-            <div class="meta-middle">TAX INVOICE</div>
+            <div class="meta-middle">
+                <span class="meta-kn">ದಲಾಲಿ ಪಟ್ಟಿ</span>
+                <span class="meta-en">TAX INVOICE</span>
+            </div>
             <div class="meta-right">
-                {% if company.phone %}<div>PH : {{ company.phone }}</div>{% endif %}
+                <div>PH : {{ company.phone|default:"" }}</div>
                 <div>APMC CODE : BYD0679</div>
             </div>
         </div>
 
         <div class="buyer-section">
             <div class="buyer-left">
-                <div>ಖರೀದಿದಾರರು : <span style="font-size: 12px; font-weight:800;">{{ bill.buyer.name|upper }}</span></div>
+                <div>ಖರೀದಿದಾರರು : <span class="buyer-name">{{ bill.buyer.name|upper }}</span></div>
                 <div>FSSAI : </div>
                 <div>GSTN : <span style="font-weight:bold;">{{ bill.buyer.gstin|default:"-" }}</span></div>
             </div>
@@ -254,92 +349,90 @@
                 {% for item in items %}
                 <tr>
                     <td>{{ item.bikri.avak.lot_number }}</td>
-                    <td style="text-align: left; font-weight: bold; padding-left: 10px;">DRY CHILLIES</td>
+                    <td class="text-left">DRY CHILLIES</td>
                     <td>09042110</td>
                     <td>{{ item.bikri.no_of_bags }}</td>
                     <td>{{ item.bikri.total_weight|floatformat:1 }}</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ item.bikri.rate|floatformat:2 }}</td>
-                    <td style="text-align: right; padding-right: 10px; font-weight: bold;">{{ item.bikri.amount|floatformat:2 }}</td>
+                    <td class="text-right">{{ item.bikri.rate|floatformat:2 }}</td>
+                    <td class="text-right">{{ item.bikri.amount|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
                 {% for transfer in transfers %}
                 <tr>
                     <td>-</td>
-                    <td style="text-align: left; font-weight: bold; padding-left: 10px;">DRY CHILLIES <small>(Tr)</small></td>
+                    <td class="text-left">DRY CHILLIES <small>(Tr)</small></td>
                     <td>09042110</td>
                     <td>{{ transfer.no_of_bags }}</td>
                     <td>{{ transfer.total_weight|floatformat:1 }}</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ transfer.rate|floatformat:2 }}</td>
-                    <td style="text-align: right; padding-right: 10px; font-weight: bold;">{{ transfer.amount|floatformat:2 }}</td>
+                    <td class="text-right">{{ transfer.rate|floatformat:2 }}</td>
+                    <td class="text-right">{{ transfer.amount|floatformat:2 }}</td>
                 </tr>
                 {% endfor %}
                 
-                <!-- Main Totals Row -->
-                <tr style="font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; background: #fafafa;">
-                    <td colspan="3" style="text-align: right; padding-right: 15px;">TOTALS:</td>
+                <tr class="row-total">
+                    <td colspan="3" class="row-label-right">TOTALS:</td>
                     <td>{{ bill.total_bags }}</td>
                     <td>{{ bill.total_weight|floatformat:1 }}</td>
                     <td>-</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.total_amount|floatformat:2 }}</td>
+                    <td class="text-right">{{ bill.total_amount|floatformat:2 }}</td>
                 </tr>
 
-                <!-- Expenses Breakdown Rows -->
                 <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">Packing @</td>
-                    <td id="packing_rate_lbl" style="text-align: right; padding-right: 8px;">5.00 /Bag</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.packing|floatformat:2 }}</td>
-                </tr>
-                <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">Hamali @</td>
-                    <td id="hamali_rate_lbl" style="text-align: right; padding-right: 8px;">4.85 /Bag</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.hamali|floatformat:2 }}</td>
+                    <td colspan="5" class="row-label-right">Packing @</td>
+                    <td id="packing_rate_lbl" class="text-right">5.00 /Bag</td>
+                    <td class="text-right">{{ bill.packing|floatformat:2 }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">Weighing Fee @</td>
-                    <td id="weigh_rate_lbl" style="text-align: right; padding-right: 8px;">1.50 /Bag</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.weighman_fee|floatformat:2 }}</td>
+                    <td colspan="5" class="row-label-right">Hamali @</td>
+                    <td id="hamali_rate_lbl" class="text-right">4.85 /Bag</td>
+                    <td class="text-right">{{ bill.hamali|floatformat:2 }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">Commission @</td>
-                    <td id="comm_rate_lbl" style="text-align: right; padding-right: 8px;">2.00 %</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.commission|floatformat:2 }}</td>
+                    <td colspan="5" class="row-label-right">Weighing Fee @</td>
+                    <td id="weigh_rate_lbl" class="text-right">1.50 /Bag</td>
+                    <td class="text-right">{{ bill.weighman_fee|floatformat:2 }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">Cess @</td>
-                    <td id="cess_rate_lbl" style="text-align: right; padding-right: 8px;">0.60 %</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.cess|floatformat:2 }}</td>
-                </tr>
-                <tr style="background: #f2f2f2; font-weight: bold;">
-                    <td colspan="6" style="text-align: right; font-weight: bold;">Taxable Amount</td>
-                    <td id="taxable_amt_lbl" style="text-align: right; padding-right: 10px;">0.00</td>
+                    <td colspan="5" class="row-label-right">Commission @</td>
+                    <td id="comm_rate_lbl" class="text-right">2.00 %</td>
+                    <td class="text-right">{{ bill.commission|floatformat:2 }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">SGST @</td>
-                    <td style="text-align: right; padding-right: 8px;">2.50 %</td>
-                    <td id="sgst_amt_lbl" style="text-align: right; padding-right: 10px;">0.00</td>
+                    <td colspan="5" class="row-label-right">Cess @</td>
+                    <td id="cess_rate_lbl" class="text-right">0.60 %</td>
+                    <td class="text-right">{{ bill.cess|floatformat:2 }}</td>
+                </tr>
+                <tr class="row-total">
+                    <td colspan="6" class="row-label-right">Taxable Amount</td>
+                    <td id="taxable_amt_lbl" class="text-right">0.00</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold;">CGST @</td>
-                    <td style="text-align: right; padding-right: 8px;">2.50 %</td>
-                    <td id="cgst_amt_lbl" style="text-align: right; padding-right: 10px;">0.00</td>
+                    <td colspan="5" class="row-label-right">SGST @</td>
+                    <td class="text-right">2.50 %</td>
+                    <td id="sgst_amt_lbl" class="text-right">0.00</td>
                 </tr>
                 <tr>
-                    <td colspan="6" style="text-align: right; font-weight: bold;">Round Off</td>
-                    <td style="text-align: right; padding-right: 10px;">{{ bill.round_off|floatformat:2 }}</td>
+                    <td colspan="5" class="row-label-right">CGST @</td>
+                    <td class="text-right">2.50 %</td>
+                    <td id="cgst_amt_lbl" class="text-right">0.00</td>
                 </tr>
-                <tr style="background: #e2e8f0; font-size: 12px; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000;">
-                    <td colspan="6" style="text-align: right; font-size: 11px;">Grand Total Amount</td>
-                    <td style="text-align: right; padding-right: 10px; font-size: 12px; font-weight: 800;">₹ {{ bill.grand_total|floatformat:2 }}</td>
+                <tr>
+                    <td colspan="6" class="row-label-right">Round Off</td>
+                    <td class="text-right">{{ bill.round_off|floatformat:2 }}</td>
+                </tr>
+                <tr class="row-grand">
+                    <td colspan="6" class="row-label-right">Grand Total Amount</td>
+                    <td class="text-right">₹ {{ bill.grand_total|floatformat:2 }}</td>
                 </tr>
                 {% if tds_info.tds_applicable %}
-                <tr style="background: #fef3c7; font-weight: bold;">
-                    <td colspan="5" style="text-align: right; font-size: 11px;">Less: TDS @ {{ tds_info.tds_rate_percent|floatformat:2 }}% on Commission (194H)</td>
-                    <td style="text-align: right; padding-right: 8px;"></td>
-                    <td style="text-align: right; padding-right: 10px; color: #c0392b;">₹ {{ tds_info.tds|floatformat:2 }}</td>
+                <tr style="background: #fef3c7;">
+                    <td colspan="5" class="row-label-right">Less: TDS @ {{ tds_info.tds_rate_percent|floatformat:2 }}% on Commission (194H)</td>
+                    <td></td>
+                    <td class="text-right" style="color:#c0392b;">₹ {{ tds_info.tds|floatformat:2 }}</td>
                 </tr>
-                <tr style="background: #d1fae5; font-size: 12px; font-weight: bold; border-bottom: 2px solid #000;">
-                    <td colspan="6" style="text-align: right; font-size: 11px;">Net Payable Amount</td>
-                    <td id="net_payable_lbl" style="text-align: right; padding-right: 10px; font-size: 12px; font-weight: 800;">₹ 0.00</td>
+                <tr class="row-grand" style="background:#d1fae5;">
+                    <td colspan="6" class="row-label-right">Net Payable Amount</td>
+                    <td id="net_payable_lbl" class="text-right">₹ 0.00</td>
                 </tr>
                 {% endif %}
             </tbody>
@@ -365,12 +458,16 @@
             </div>
             <div class="footer-right">
                 For<br>
-                <span style="font-weight: 800; font-size: 13px; margin-top: 5px; display: inline-block;">{% if bank.account_holder %}{{ bank.account_holder }}{% else %}{{ company.display_name }}{% endif %}</span>
+                <span class="sign-name">{% if bank.account_holder %}{{ bank.account_holder }}{% else %}{{ company.display_name }}{% endif %}</span>
             </div>
         </div>
     </div>
 
     <script>
+        function printTraderBill() {
+            window.print();
+        }
+
         // Number to Words Converter
         function numberToWords(num) {
             const a = ['','one ','two ','three ','four ','five ','six ','seven ','eight ','nine ','ten ','eleven ','twelve ','thirteen ','fourteen ','fifteen ','sixteen ','seventeen ','eighteen ','nineteen '];
@@ -451,22 +548,16 @@
         };
     </script>
 
-    <!-- Account Statement Voucher Link (hidden from print) -->
-    <div style="display:none;" class="no-print" id="acct-stmt-bar">
-      <div style="max-width:800px;margin:12px auto;padding:8px 12px;background:#eef6ff;border:1px solid #99c;border-radius:5px;font-family:sans-serif;font-size:13px;display:flex;align-items:center;gap:12px;">
+    <!-- Account Statement Voucher Link -->
+    <div class="acct-stmt-bar no-print" id="acct-stmt-bar">
         <strong>ಖಾತಾ ಪಟ್ಟಿ:</strong>
         {% if auto_voucher %}
-          <a href="{% url 'view_voucher' auto_voucher.id %}" class="btn btn-sm btn-success" style="padding:3px 10px;">
+          <a href="{% url 'view_voucher' auto_voucher.id %}" style="padding:3px 10px;background:#28a745;color:#fff;border-radius:4px;text-decoration:none;font-weight:700;">
             ✓ ಖಾತಾ ಪಟ್ಟಿ ತೋರಿಸಿ ({{ auto_voucher.voucher_no }})
           </a>
         {% else %}
           <span style="color:#888;">ಖಾತಾ ಪಟ್ಟಿ ಇನ್ನು ರಚಿಸಲಾಗಿಲ್ಲ</span>
         {% endif %}
-      </div>
     </div>
-    <script>
-      // Show the account statement bar only when NOT printing
-      document.getElementById('acct-stmt-bar').style.display = 'block';
-    </script>
 </body>
 </html>
