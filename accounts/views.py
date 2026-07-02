@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from decimal import Decimal, InvalidOperation
 from django.db import IntegrityError, transaction, connection
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.db.models import Q, Sum, Count
 
 
@@ -34,7 +34,10 @@ from .ledger_defaults import ensure_default_ledgers
 
 from datetime import date, timedelta
 import calendar
+import csv
+import io
 import json
+import re
 
 # Default per-bag weight (kg) for avak lots before Bikri weighing (Lot Detail Modification).
 DEFAULT_AVG_BAG_WEIGHT_KG = Decimal("30")
@@ -2027,17 +2030,22 @@ def _collect_farmer_bikri_groups(filtered_avaks):
     for avak in filtered_avaks:
         if avak.is_cancelled:
             continue
-        fid = avak.farmer_id
-        if fid not in farmer_groups:
-            farmer_groups[fid] = {
-                "farmer_name": avak.farmer.name,
-                "bikris": [],
-            }
         for b in avak.bikri_entries.all():
             if b.is_cancelled:
                 continue
+            fid = avak.farmer_id
+            if fid not in farmer_groups:
+                farmer_groups[fid] = {
+                    "farmer_name": _farmer_display_name(avak.farmer),
+                    "bikris": [],
+                }
             farmer_groups[fid]["bikris"].append(b)
     return farmer_groups
+
+
+def _chopada_place_display(farmer, avak, bikri=None):
+    override = getattr(bikri, "village_override", None) if bikri else None
+    return _farmer_display_place(farmer, avak.place if avak else None, override)
 
 
 def _chopada_lot_row(avak, breakdown_row):
@@ -2048,6 +2056,7 @@ def _chopada_lot_row(avak, breakdown_row):
             bill_no = b.traderbillitem.bill.invoice_no
         except Exception:
             pass
+    farmer = avak.farmer
     return {
         "lot_no": avak.lot_number,
         "avak_bags": avak.no_of_bags,
@@ -2055,12 +2064,139 @@ def _chopada_lot_row(avak, breakdown_row):
         "weight": float(b.total_weight),
         "rate": float(b.rate),
         "trader": b.buyer.short_code or b.buyer.name if b.buyer else "-",
-        "net_payable": float(breakdown_row["net_payable"]),
-        "amount": float(b.amount),
-        "deduction": float(breakdown_row["deduction"]),
+        "place": _chopada_place_display(farmer, avak, b),
         "bill_no": bill_no,
         "bag_weights": [float(w.weight) for w in b.weights.all().order_by("bag_no")],
     }
+
+
+def _chopada_poorna_row(avak, breakdown_row):
+    """Single poorna chopada block row (matches legacy poorns chopda PDF)."""
+    base = _chopada_lot_row(avak, breakdown_row)
+    b = breakdown_row["bikri"]
+    farmer_name = _farmer_display_name(avak.farmer)
+    place = base["place"] or ""
+    if place:
+        farmer_place = f"{farmer_name} - {place}"
+    else:
+        farmer_place = farmer_name
+
+    if b.amount:
+        amount = _quantize_money(b.amount)
+    else:
+        amount = _quantize_money(
+            Decimal(str(base["weight"])) / Decimal("100") * Decimal(str(base["rate"]))
+        )
+
+    patti_no = base["bill_no"]
+    if patti_no == "-":
+        patti_no = ""
+
+    return {
+        "lot_no": base["lot_no"],
+        "bags": base["bags"],
+        "weight": base["weight"],
+        "rate": base["rate"],
+        "patti_no": patti_no,
+        "farmer_place": farmer_place,
+        "amount": float(amount),
+        "amount_fmt": _format_indian_amount(amount),
+        "trader": base["trader"],
+    }
+
+
+def _chopada_poorna_summary(filtered):
+    sold = partial = remaining = 0
+    for avak in filtered:
+        if avak.is_cancelled:
+            continue
+        active_bikris = [
+            b for b in avak.bikri_entries.all() if not b.is_cancelled
+        ]
+        if not active_bikris:
+            remaining += 1
+            continue
+        sold_bags = sum(int(b.no_of_bags or 0) for b in active_bikris)
+        if sold_bags >= int(avak.no_of_bags or 0):
+            sold += 1
+        else:
+            partial += 1
+    return {
+        "sold_lots": sold,
+        "partial_lots": partial,
+        "remaining_lots": remaining,
+    }
+
+
+def _build_chopada_print_data(mode, filtered, selected):
+    if mode == "bastani":
+        rows = []
+        for data in _collect_farmer_bikri_groups(filtered).values():
+            _, breakdown = _calc_group_net_payable_breakdown(data["bikris"], selected)
+            for row in breakdown:
+                b = row["bikri"]
+                avak = b.avak
+                rows.append(
+                    {
+                        "lot_no": avak.lot_number,
+                        "farmer_name": data["farmer_name"],
+                        "bags": b.no_of_bags,
+                        "weight": float(b.total_weight),
+                        "rate": float(b.rate),
+                        "trader": (
+                            b.buyer.short_code or b.buyer.name if b.buyer else "-"
+                        ),
+                        "place": _chopada_lot_row(avak, row)["place"],
+                    }
+                )
+        rows.sort(key=lambda r: _lot_number_sort_key(r["lot_no"]))
+        return rows
+
+    if mode == "poorna":
+        rows = []
+        gt_bastani = 0
+        gt_amount = Decimal("0")
+        for avak in filtered:
+            if avak.is_cancelled:
+                continue
+            bikris = [b for b in avak.bikri_entries.all() if not b.is_cancelled]
+            if not bikris:
+                continue
+            _, breakdown = _calc_group_net_payable_breakdown(bikris, selected)
+            for row in breakdown:
+                poorna_row = _chopada_poorna_row(avak, row)
+                rows.append(poorna_row)
+                gt_bastani += int(poorna_row["bags"] or 0)
+                gt_amount += Decimal(str(poorna_row["amount"]))
+        rows.sort(key=lambda r: _lot_number_sort_key(r["lot_no"]))
+        if not rows:
+            return None
+        summary = _chopada_poorna_summary(filtered)
+        summary["total_bastani"] = gt_bastani
+        summary["total_amount"] = float(gt_amount)
+        summary["total_amount_fmt"] = _format_indian_amount(gt_amount)
+        return {"rows": rows, "summary": summary}
+
+    if mode == "registered":
+        active_lots = []
+        deleted_lots = []
+        for a in filtered:
+            lot_info = {
+                "lot_no": a.lot_number,
+                "farmer": _farmer_display_name(a.farmer),
+                "bags": a.no_of_bags,
+                "place": _chopada_place_display(a.farmer, a),
+            }
+            if a.is_cancelled:
+                deleted_lots.append(lot_info)
+            else:
+                active_lots.append(lot_info)
+        return {
+            "active": active_lots,
+            "deleted": deleted_lots,
+        }
+
+    return None
 
 
 @login_required
@@ -2084,89 +2220,35 @@ def chopada(request):
 
     selected_str = selected.strftime("%Y-%m-%d")
 
-    farmers_all = Farmer.objects.order_by("name")
+    farmers_all = Farmer.objects.order_by("name_kannada", "name")
 
-    print_data = None
-    if do_print:
-        avaks = (
-            Avak.objects.filter(date=selected)
-            .select_related("farmer")
-            .prefetch_related("bikri_entries__buyer", "bikri_entries__traderbillitem__bill")
-            .order_by(DbLength("lot_number"), "lot_number")
+    avaks = (
+        Avak.objects.filter(date=selected)
+        .select_related("farmer")
+        .prefetch_related(
+            "bikri_entries__buyer",
+            "bikri_entries__traderbillitem__bill",
+            "bikri_entries__weights",
         )
+        .order_by(DbLength("lot_number"), "lot_number")
+    )
 
-        # Apply numeric lot-range filter
-        from_int = int(from_lot) if str(from_lot).isdigit() else 1
-        to_int = int(to_lot) if str(to_lot).isdigit() else None
+    from_int = int(from_lot) if str(from_lot).isdigit() else 1
+    to_int = int(to_lot) if str(to_lot).isdigit() else None
 
-        filtered = []
-        for a in avaks:
-            if a.lot_number.isdigit():
-                n = int(a.lot_number)
-                if n < from_int:
-                    continue
-                if to_int and n > to_int:
-                    continue
-            if farmer_id and str(farmer_id).isdigit() and a.farmer_id != int(farmer_id):
+    filtered = []
+    for a in avaks:
+        if a.lot_number.isdigit():
+            n = int(a.lot_number)
+            if n < from_int:
                 continue
-            filtered.append(a)
+            if to_int and n > to_int:
+                continue
+        if farmer_id and str(farmer_id).isdigit() and a.farmer_id != int(farmer_id):
+            continue
+        filtered.append(a)
 
-        if mode == "bastani":
-            rows = []
-            for data in _collect_farmer_bikri_groups(filtered).values():
-                _, breakdown = _calc_group_net_payable_breakdown(data["bikris"], selected)
-                for row in breakdown:
-                    b = row["bikri"]
-                    avak = b.avak
-                    rows.append(
-                        {
-                            "lot_no": avak.lot_number,
-                            "farmer_name": data["farmer_name"],
-                            "bags": b.no_of_bags,
-                            "weight": float(b.total_weight),
-                            "rate": float(b.rate),
-                            "trader": (
-                                b.buyer.short_code or b.buyer.name if b.buyer else "-"
-                            ),
-                            "net_payable": float(row["net_payable"]),
-                            "amount": float(b.amount),
-                        }
-                    )
-            rows.sort(key=lambda r: _lot_number_sort_key(r["lot_no"]))
-            print_data = rows
-
-        elif mode == "poorna":
-            print_data = []
-            for data in _collect_farmer_bikri_groups(filtered).values():
-                lots = []
-                _, breakdown = _calc_group_net_payable_breakdown(data["bikris"], selected)
-                for row in breakdown:
-                    lots.append(_chopada_lot_row(row["bikri"].avak, row))
-                print_data.append(
-                    {
-                        "farmer_name": data["farmer_name"],
-                        "lots": lots,
-                    }
-                )
-
-        elif mode == "registered":
-            active_lots = []
-            deleted_lots = []
-            for a in filtered:
-                lot_info = {
-                    "lot_no": a.lot_number,
-                    "farmer": a.farmer.name,
-                    "bags": a.no_of_bags,
-                    "place": a.place or a.farmer.address or "",
-                }
-                if a.is_cancelled:
-                    deleted_lots.append(lot_info)
-                else:
-                    active_lots.append(lot_info)
-            print_data = {
-                "active": active_lots,
-                "deleted": deleted_lots,
-            }
+    print_data = _build_chopada_print_data(mode, filtered, selected)
 
     return render(
         request,
@@ -2513,12 +2595,29 @@ def gstr1_report(request):
             b2b_data.append(row)
         else:
             b2c_data.append(row)
+
+    def _gstr1_totals(rows):
+        return {
+            'taxable_amount': sum(r['taxable_amount'] or 0 for r in rows),
+            'cgst': sum(r['cgst'] or 0 for r in rows),
+            'sgst': sum(r['sgst'] or 0 for r in rows),
+            'total_gst': sum(r['total_gst'] or 0 for r in rows),
+            'grand_total': sum(r['grand_total'] or 0 for r in rows),
+        }
+
+    b2b_totals = _gstr1_totals(b2b_data)
+    b2c_totals = _gstr1_totals(b2c_data)
+    all_rows = b2b_data + b2c_data
+    grand_totals = _gstr1_totals(all_rows)
             
     context = {
         'from_date': from_date_obj,
         'to_date': to_date_obj,
         'b2b_data': b2b_data,
         'b2c_data': b2c_data,
+        'b2b_totals': b2b_totals,
+        'b2c_totals': b2c_totals,
+        'grand_totals': grand_totals,
         'system_name': "MSBC-2025-26",
         'auto_print': request.GET.get('print') == '1',
     }
@@ -3667,6 +3766,7 @@ def view_bikri(request, bikri_id):
     
     bill_amount = total_amount - farmer_hamali + farmer_packing
     other_deductions_total = rent + unload_fee + other_fee_1 + other_fee_2
+    amount_after_rakham = _quantize_money(bill_amount - rakham_amount)
     
     net_payable_calc = bill_amount - rakham_amount - other_deductions_total
     net_payable_calc = _quantize_money(net_payable_calc)
@@ -3695,6 +3795,7 @@ def view_bikri(request, bikri_id):
         "farmer_packing_rate": farmer_packing_rate,
         "amount_after_farmer_hamali": total_amount - farmer_hamali,
         "bill_amount": bill_amount,
+        "amount_after_rakham": amount_after_rakham,
         "rakham_percent": rakham_percent,
         "rakham_amount": rakham_amount,
         "other_deductions_total": other_deductions_total,
@@ -7701,6 +7802,111 @@ def _build_monthwise_for_selection(entity_type, selected_ledger, selected_farmer
     return "", []
 
 
+def _export_ledger_book_excel(
+    account_name,
+    entity_type,
+    from_date,
+    to_date,
+    opening_balance,
+    opening_balance_type,
+    ledger_entries,
+    entries,
+    total_dr,
+    total_cr,
+    dr_count,
+    cr_count,
+    closing_balance,
+    closing_balance_type,
+):
+    """CSV with UTF-8 BOM — opens correctly in Microsoft Excel."""
+    buffer = io.StringIO()
+    buffer.write("\ufeff")
+    writer = csv.writer(buffer)
+
+    period = ""
+    if from_date and to_date:
+        period = f"{from_date} to {to_date}"
+    elif from_date:
+        period = f"From {from_date}"
+    elif to_date:
+        period = f"Up to {to_date}"
+
+    writer.writerow(["Account Statement"])
+    writer.writerow(["Account", account_name])
+    if period:
+        writer.writerow(["Period", period])
+    writer.writerow([])
+
+    headers = ["Date", "Bill No", "Voucher / Ref No", "Type", "Narration", "Debit", "Credit", "Balance"]
+    writer.writerow(headers)
+
+    ob_dr = f"{opening_balance:.2f}" if opening_balance_type == "Dr" else ""
+    ob_cr = f"{opening_balance:.2f}" if opening_balance_type == "Cr" else ""
+    writer.writerow([
+        "",
+        "",
+        "",
+        "Opening Balance",
+        "",
+        ob_dr,
+        ob_cr,
+        f"{opening_balance:.2f} {opening_balance_type}",
+    ])
+
+    if entity_type == "ledger":
+        for row in ledger_entries:
+            dr_val = f"{row['amount']:.2f}" if row["entry_type"] == "Dr" else ""
+            cr_val = f"{row['amount']:.2f}" if row["entry_type"] == "Cr" else ""
+            writer.writerow([
+                row["date"].strftime("%d-%m-%Y"),
+                row.get("bill_no") or "",
+                row["voucher_no"],
+                row["voucher_type"],
+                row["narration"],
+                dr_val,
+                cr_val,
+                f"{row['running_balance']:.2f} {row['running_balance_type']}",
+            ])
+    else:
+        for entry in entries:
+            dr_val = f"{entry['dr_amount']:.2f}" if entry.get("dr_amount") else ""
+            cr_val = f"{entry['cr_amount']:.2f}" if entry.get("cr_amount") else ""
+            ref_no = entry.get("ref_no", "")
+            if entry.get("extra_refs"):
+                ref_no = "; ".join([ref_no] + entry["extra_refs"])
+            narration = entry.get("narration", "")
+            if entry.get("bill_info"):
+                narration = f"{narration} ({entry['bill_info']})" if narration else entry["bill_info"]
+            writer.writerow([
+                entry["date"].strftime("%d-%m-%Y"),
+                entry.get("bill_no") or "",
+                ref_no,
+                entry.get("type", ""),
+                narration,
+                dr_val,
+                cr_val,
+                f"{entry['running_balance']:.2f} {entry['running_balance_type']}",
+            ])
+
+    writer.writerow([])
+    writer.writerow([
+        "Grand Total",
+        "",
+        "",
+        "",
+        f"{dr_count} Dr / {cr_count} Cr entries",
+        f"{total_dr:.2f}",
+        f"{total_cr:.2f}",
+        f"{closing_balance:.2f} {closing_balance_type}",
+    ])
+
+    safe_name = re.sub(r"[^\w\-]+", "_", account_name or "ledger").strip("_")[:40]
+    filename = f"ledger_statement_{safe_name}.csv"
+    response = HttpResponse(buffer.getvalue(), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
 @login_required
 def ledger_book(request):
     """Full ledger book – choose an account (incl. farmers/traders) and date range."""
@@ -7932,6 +8138,32 @@ def ledger_book(request):
                 row["running_balance_type"] = "Dr" if running_bal >= 0 else "Cr"
             closing_balance = abs(running_bal)
             closing_balance_type = "Dr" if running_bal >= 0 else "Cr"
+
+    if request.GET.get("export") == "excel" and entity_type:
+        if entity_type == "ledger" and selected_ledger:
+            account_name = selected_ledger.name
+        elif entity_type == "farmer" and selected_farmer:
+            account_name = _farmer_display_name(selected_farmer)
+        elif entity_type == "trader" and selected_trader:
+            account_name = selected_trader.name
+        else:
+            account_name = "Account"
+        return _export_ledger_book_excel(
+            account_name=account_name,
+            entity_type=entity_type,
+            from_date=from_date,
+            to_date=to_date,
+            opening_balance=opening_balance,
+            opening_balance_type=opening_balance_type,
+            ledger_entries=ledger_entries,
+            entries=entries,
+            total_dr=total_dr,
+            total_cr=total_cr,
+            dr_count=dr_count,
+            cr_count=cr_count,
+            closing_balance=closing_balance,
+            closing_balance_type=closing_balance_type,
+        )
 
     return render(request, "accounts/ledger_book.html", {
         "ledger_accounts":       ledger_accounts,

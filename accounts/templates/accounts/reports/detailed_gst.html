@@ -119,7 +119,7 @@
                     <tbody>
                         {% for row in report_data %}
                         <tr>
-                            <td class="text-center">{{ row.date|date:"d-m-Y" }}</td>
+                            <td class="text-center">{{ row.date|date:"d-m-y" }}</td>
                             <td class="text-left">{{ row.name }}</td>
                             <td>{{ row.bastani|floatformat:2 }}</td>
                             <td>{{ row.packing|floatformat:2 }}</td>
@@ -133,9 +133,17 @@
                             <td>{{ row.round_off|floatformat:2 }}</td>
                             <td>{{ row.grand_total|floatformat:2 }}</td>
                         </tr>
+                        <tr class="bill-meta-row">
+                            <td class="text-left">S No : {{ forloop.counter }}</td>
+                            <td colspan="3" class="text-left">Bill No : {{ row.bill_no }}</td>
+                            <td colspan="2" class="text-left">Weight : {{ row.weight|floatformat:1 }}</td>
+                            <td colspan="7" class="text-left">GSTIN : {{ row.gstin }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="13" class="text-center">No bills found for this period</td>
+                        </tr>
                         {% endfor %}
-                    </tbody>
-                    <tfoot>
                         <tr class="gst-summary-row">
                             <td colspan="2" class="text-left">TOTAL</td>
                             <td>{{ totals.bastani|floatformat:2 }}</td>
@@ -150,7 +158,10 @@
                             <td>{{ totals.round_off|floatformat:2 }}</td>
                             <td>{{ totals.grand_total|floatformat:2 }}</td>
                         </tr>
-                    </tfoot>
+                        <tr class="gst-summary-row gst-weight-row">
+                            <td colspan="13" class="text-left">Total Weight : {{ totals.weight|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>

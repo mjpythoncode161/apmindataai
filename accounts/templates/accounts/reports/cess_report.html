@@ -138,8 +138,6 @@
                             <td>{{ row.w_fee|floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
-                    </tbody>
-                    <tfoot>
                         <tr class="gst-summary-row">
                             <td colspan="3" class="text-left">TOTAL</td>
                             <td>{{ totals.weight|floatformat:1 }}</td>
@@ -148,7 +146,7 @@
                             <td>{{ totals.cess|floatformat:2 }}</td>
                             <td>{{ totals.w_fee|floatformat:2 }}</td>
                         </tr>
-                    </tfoot>
+                    </tbody>
                 </table>
             </div>
 

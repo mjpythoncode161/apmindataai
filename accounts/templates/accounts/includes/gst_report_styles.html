@@ -93,17 +93,36 @@
     font-variant-numeric: tabular-nums;
     background: #fff;
   }
-  .gst-report-table tbody tr:nth-child(even) td {
+  .gst-report-table tbody tr:nth-child(even):not(.gst-summary-row):not(.bill-meta-row) td {
     background: #fafafa;
   }
+  .gst-report-table tr.gst-weight-row td {
+    text-align: left !important;
+    border-top: 1px solid #000;
+  }
+  .gst-report-table tbody tr.bill-meta-row td {
+    font-weight: 700;
+    font-size: 8.5pt;
+    text-align: left !important;
+    background: #fff !important;
+    border-bottom: 1px dashed #999;
+    padding: 3px 6px;
+    font-variant-numeric: normal;
+    white-space: nowrap;
+  }
   .gst-report-table tfoot td,
-  .gst-report-table tr.gst-summary-row td {
+  .gst-report-table tr.gst-summary-row td,
+  .gst-report-table tbody tr.gst-summary-row td {
     background: #e2e6ea !important;
     color: #000 !important;
-    font-weight: 700;
+    font-weight: 800;
     border-top: 2px solid #000;
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+  .gst-report-table tbody tr.gst-summary-row td.text-left,
+  .gst-report-table tfoot tr.gst-summary-row td.text-left {
+    text-align: left !important;
   }
 
   .gst-report-table .text-left { text-align: left !important; }
@@ -182,9 +201,15 @@
       border: 1.5px solid #000 !important;
       page-break-inside: auto;
     }
-    .gst-report-table tr {
+    .gst-report-table tbody tr {
+      page-break-inside: auto;
+      break-inside: auto;
+    }
+    .gst-report-table tbody tr.gst-summary-row,
+    .gst-report-table tfoot tr.gst-summary-row {
       page-break-inside: avoid;
       break-inside: avoid;
+      page-break-before: auto;
     }
     .gst-report-table th,
     .gst-report-table td {
@@ -194,11 +219,15 @@
       background: #ececec !important;
     }
     .gst-report-table tfoot td,
-    .gst-report-table tr.gst-summary-row td {
+    .gst-report-table tr.gst-summary-row td,
+    .gst-report-table tbody tr.gst-summary-row td {
       background: #e2e6ea !important;
     }
-    .gst-report-table tbody tr:nth-child(even) td {
+    .gst-report-table tbody tr:nth-child(even):not(.gst-summary-row):not(.bill-meta-row) td {
       background: #fafafa !important;
+    }
+    .gst-report-table tbody tr.bill-meta-row td {
+      background: #fff !important;
     }
     .gst-section-title {
       background: #ececec !important;

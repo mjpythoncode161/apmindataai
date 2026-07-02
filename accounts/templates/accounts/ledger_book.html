@@ -8,6 +8,102 @@
 <link rel="stylesheet" href="{% static 'assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}" />
 <style>
   .ledger-report-toggle .btn { font-weight: 600; }
+  .ledger-export-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .ledger-export-bar .btn {
+    font-size: 0.8125rem;
+    padding: 0.2rem 0.45rem;
+    line-height: 1.3;
+  }
+  .ledger-export-bar .btn .fa-file-pdf {
+    font-size: 0.65rem;
+    vertical-align: 0.05em;
+  }
+  .ledger-export-bar .btn .fa-file-excel {
+    font-size: 0.75rem;
+    vertical-align: -0.05em;
+  }
+  .ledger-print-header {
+    display: none;
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+  }
+  .ledger-print-header .company-name {
+    font-size: 16pt;
+    font-weight: 800;
+  }
+  .ledger-print-header .report-title {
+    font-size: 12pt;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .ledger-print-header .report-meta {
+    font-size: 10pt;
+    margin-top: 2px;
+  }
+  @media print {
+    .no-print,
+    .main-header,
+    .main-sidebar,
+    .main-footer,
+    .content-header,
+    .ledger-report-toggle,
+    .card-outline.card-primary {
+      display: none !important;
+    }
+    .content-wrapper,
+    .content-wrapper > .content,
+    section.content,
+    .container-fluid {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+    }
+    .wrapper { background: #fff !important; }
+    #ledgerStatementPrint {
+      box-shadow: none !important;
+      border: none !important;
+    }
+    #ledgerStatementPrint .card-header {
+      background: #fff !important;
+      color: #000 !important;
+      border-bottom: 1px solid #000 !important;
+    }
+    #ledgerStatementPrint .ledger-print-header {
+      display: block !important;
+    }
+    #ledgerStatementPrint .table {
+      font-size: 9pt;
+      color: #000 !important;
+    }
+    #ledgerStatementPrint .table thead th {
+      background: #eee !important;
+      color: #000 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #ledgerStatementPrint .table tfoot tr,
+    #ledgerStatementPrint .table-secondary {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #ledgerStatementPrint a {
+      color: #000 !important;
+      text-decoration: none !important;
+    }
+    #ledgerStatementPrint .badge {
+      border: 1px solid #666;
+      color: #000 !important;
+      background: #fff !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -79,12 +175,28 @@
     </div>
 
     {% if entity_type == 'ledger' and selected_ledger %}
-    <div class="card shadow">
-      <div class="card-header">
+    <div class="card shadow" id="ledgerStatementPrint">
+      <div class="ledger-print-header">
+        <div class="company-name kn-text">{{ company.display_name }}</div>
+        <div class="report-title">Account Statement</div>
+        <div class="report-meta">
+          <strong>{{ selected_ledger.name }}</strong>
+          {% if from_date or to_date %} — {{ from_date|default:"..." }} to {{ to_date|default:"..." }}{% endif %}
+        </div>
+      </div>
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
         <h5 class="card-title mb-0">
           Account: <strong>{{ selected_ledger.name }}</strong>
           <small class="text-muted ml-2">{{ selected_ledger.group.name }}</small>
         </h5>
+        <div class="ledger-export-bar no-print mt-2 mt-md-0">
+          <a href="{% url 'ledger_book' %}?ledger_id={{ ledger_id|urlencode }}&from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel mr-1"></i> Download Excel
+          </a>
+          <button type="button" class="btn btn-primary btn-sm" onclick="printLedgerStatement()">
+            <i class="fas fa-file-pdf fa-xs mr-1"></i> Print / Save PDF
+          </button>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -149,17 +261,35 @@
     </div>
 
     {% elif entity_type == 'farmer' or entity_type == 'trader' %}
-    <div class="card shadow">
-      <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card shadow" id="ledgerStatementPrint">
+      <div class="ledger-print-header">
+        <div class="company-name kn-text">{{ company.display_name }}</div>
+        <div class="report-title">Account Statement</div>
+        <div class="report-meta">
+          <strong>{% if entity_type == 'farmer' %}{{ selected_farmer.name }}{% else %}{{ selected_trader.name }}{% endif %}</strong>
+          {% if from_date or to_date %} — {{ from_date|default:"..." }} to {{ to_date|default:"..." }}{% endif %}
+        </div>
+      </div>
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
         <h5 class="card-title mb-0">
           {% if entity_type == 'farmer' %}<i class="fas fa-seedling text-success mr-1"></i>{% else %}<i class="fas fa-store text-primary mr-1"></i>{% endif %}
           <strong>{% if entity_type == 'farmer' %}{{ selected_farmer.name }}{% else %}{{ selected_trader.name }}{% endif %}</strong>
         </h5>
-        <div>
-          <span class="badge badge-secondary mr-2">Opening: ₹{{ opening_balance|floatformat:2 }} {{ opening_balance_type }}</span>
-          <span class="badge badge-{% if closing_balance_type == 'Dr' %}danger{% else %}success{% endif %}">
-            Closing: ₹{{ closing_balance|floatformat:2 }} {{ closing_balance_type }}
-          </span>
+        <div class="d-flex align-items-center flex-wrap">
+          <div class="mr-2 mb-2 mb-md-0">
+            <span class="badge badge-secondary mr-1">Opening: ₹{{ opening_balance|floatformat:2 }} {{ opening_balance_type }}</span>
+            <span class="badge badge-{% if closing_balance_type == 'Dr' %}danger{% else %}success{% endif %}">
+              Closing: ₹{{ closing_balance|floatformat:2 }} {{ closing_balance_type }}
+            </span>
+          </div>
+          <div class="ledger-export-bar no-print">
+            <a href="{% url 'ledger_book' %}?ledger_id={{ ledger_id|urlencode }}&from_date={{ from_date }}&to_date={{ to_date }}&export=excel" class="btn btn-success btn-sm">
+              <i class="fas fa-file-excel mr-1"></i> Download Excel
+            </a>
+            <button type="button" class="btn btn-primary btn-sm" onclick="printLedgerStatement()">
+              <i class="fas fa-file-pdf fa-xs mr-1"></i> Print / Save PDF
+            </button>
+          </div>
         </div>
       </div>
       <div class="card-body p-0">
@@ -248,5 +378,8 @@
 $(function () {
   $('#ledgerSelect').select2({ theme: 'bootstrap4', width: '100%' });
 });
+function printLedgerStatement() {
+  window.print();
+}
 </script>
 {% endblock %}

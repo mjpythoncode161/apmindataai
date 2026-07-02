@@ -54,6 +54,14 @@
                         {% else %}
                             <tr><td colspan="9" class="text-center py-3">No B2B Invoices Found</td></tr>
                         {% endif %}
+                        <tr class="gst-summary-row">
+                            <td colspan="4" class="text-left">B2B TOTAL</td>
+                            <td>{{ b2b_totals.taxable_amount|floatformat:2 }}</td>
+                            <td>{{ b2b_totals.cgst|floatformat:2 }}</td>
+                            <td>{{ b2b_totals.sgst|floatformat:2 }}</td>
+                            <td>{{ b2b_totals.total_gst|floatformat:2 }}</td>
+                            <td>{{ b2b_totals.grand_total|floatformat:2 }}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -90,6 +98,29 @@
                         {% else %}
                             <tr><td colspan="8" class="text-center py-3">No B2C Invoices Found</td></tr>
                         {% endif %}
+                        <tr class="gst-summary-row">
+                            <td colspan="3" class="text-left">B2C TOTAL</td>
+                            <td>{{ b2c_totals.taxable_amount|floatformat:2 }}</td>
+                            <td>{{ b2c_totals.cgst|floatformat:2 }}</td>
+                            <td>{{ b2c_totals.sgst|floatformat:2 }}</td>
+                            <td>{{ b2c_totals.total_gst|floatformat:2 }}</td>
+                            <td>{{ b2c_totals.grand_total|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="gst-table-wrap" style="margin-top: 12px;">
+                <table class="gst-report-table gst-report-table--compact">
+                    <tbody>
+                        <tr class="gst-summary-row">
+                            <td class="text-left" style="width: 40%;">GRAND TOTAL (B2B + B2C)</td>
+                            <td>{{ grand_totals.taxable_amount|floatformat:2 }}</td>
+                            <td>{{ grand_totals.cgst|floatformat:2 }}</td>
+                            <td>{{ grand_totals.sgst|floatformat:2 }}</td>
+                            <td>{{ grand_totals.total_gst|floatformat:2 }}</td>
+                            <td>{{ grand_totals.grand_total|floatformat:2 }}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
